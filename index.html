@@ -6,6 +6,10 @@
   <title>Sistema de Calificaciones - UEPVR</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Librerías para generación de PDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+  
   <style>
     th, td { font-size: 0.80rem; vertical-align: middle; text-align: center; }
     .col-nombre { text-align: left !important; min-width: 250px; font-weight: 600; }
@@ -92,12 +96,11 @@
       <button class="btn btn-outline-danger btn-sm" onclick="cerrarSesion()">Cerrar Sesión</button>
     </div>
 
-    <!-- Filtros de Navegación con Curso y Materia Separados -->
+    <!-- Filtros de Navegación -->
     <div class="card shadow-sm mb-3">
       <div class="card-body py-2">
         <div class="row g-2 align-items-center">
           
-          <!-- Selector de Curso -->
           <div class="col-md-2">
             <label class="form-label mb-1 fw-bold">Curso / Grado:</label>
             <select id="selectCurso" class="form-select form-select-sm" onchange="alCambiarCurso()">
@@ -105,7 +108,6 @@
             </select>
           </div>
 
-          <!-- Selector de Materia -->
           <div class="col-md-3">
             <label class="form-label mb-1 fw-bold">Materia / Asignatura:</label>
             <select id="selectMateria" class="form-select form-select-sm" onchange="cambiarFiltro()" disabled>
@@ -113,7 +115,6 @@
             </select>
           </div>
           
-          <!-- Selector de Trimestre -->
           <div class="col-md-2">
             <label class="form-label mb-1 fw-bold">Trimestre / Ciclo:</label>
             <select id="selectTrimestre" class="form-select form-select-sm" onchange="cambiarFiltro()">
@@ -124,7 +125,6 @@
             </select>
           </div>
 
-          <!-- Selector de Evaluación / Parcial -->
           <div class="col-md-2" id="boxVista">
             <label class="form-label mb-1 fw-bold">Evaluación / Parcial:</label>
             <select id="selectVista" class="form-select form-select-sm" onchange="cambiarFiltro()">
@@ -134,15 +134,21 @@
             </select>
           </div>
 
-          <!-- Botones de Acción -->
+          <!-- Botones Parciales -->
           <div class="col-md-3 text-end pt-3" id="accionesParcial">
             <button class="btn btn-outline-primary btn-sm me-1 btn-control" onclick="agregarActividad(1)" disabled>+ Ins. 1</button>
             <button class="btn btn-outline-info btn-sm me-1 text-dark btn-control" onclick="agregarActividad(2)" disabled>+ Ins. 2</button>
             <button class="btn btn-success btn-sm px-3 fw-bold btn-control" id="btnGuardarParcial" onclick="guardarDatos()" disabled>💾 Guardar</button>
           </div>
 
+          <!-- Botón Resumen Trimestre -->
           <div class="col-md-3 text-end pt-3 d-none" id="accionesResumen">
             <button class="btn btn-success btn-sm px-3 fw-bold btn-control" id="btnGuardarResumen" onclick="guardarDatos()" disabled>💾 Guardar Examen</button>
+          </div>
+
+          <!-- Botón Exportar PDF Anual -->
+          <div class="col-md-3 text-end pt-3 d-none" id="accionesAnual">
+            <button class="btn btn-danger btn-sm px-3 fw-bold btn-control" onclick="exportarResumenAnualPDF()">📄 Descargar PDF</button>
           </div>
 
         </div>
@@ -170,6 +176,7 @@
     let estudiantes = [];
     let configActividades = { insumo1: [], insumo2: [] };
     let notasActualesMemoria = {};
+    let datosResumenAnualActual = []; // Memoria para exportar al PDF
 
     function resetearEstadoAplicacion() {
       catalogo = [];
@@ -177,6 +184,7 @@
       estudiantes = [];
       configActividades = { insumo1: [], insumo2: [] };
       notasActualesMemoria = {};
+      datosResumenAnualActual = [];
 
       const selectCurso = document.getElementById('selectCurso');
       if (selectCurso) selectCurso.innerHTML = '<option value="">Seleccione curso...</option>';
@@ -248,7 +256,6 @@
       catalogo = data && data.length > 0 ? data.map(d => d.nombre) : ['Deber', 'Lección en clases', 'Actuación en clases', 'Trabajo Grupal', 'Colaboración en el Aula'];
     }
 
-    // Cargar asignaciones del docente y llenar select de cursos únicos
     async function cargarCursosYMaterias() {
       const { data } = await supabaseClient.from('curso_materia_docente').select(`
         id, curso_id, materia_id,
@@ -258,7 +265,6 @@
 
       todasAsignaciones = data || [];
 
-      // Extraer cursos únicos
       const cursosUnicosMap = new Map();
       todasAsignaciones.forEach(a => {
         if (a.cursos && !cursosUnicosMap.has(a.cursos.id)) {
@@ -273,7 +279,6 @@
       });
     }
 
-    // Filtrar materias según el curso seleccionado
     function alCambiarCurso() {
       const cursoId = document.getElementById('selectCurso').value;
       const selectMateria = document.getElementById('selectMateria');
@@ -302,13 +307,16 @@
       const boxVista = document.getElementById('boxVista');
       const accParcial = document.getElementById('accionesParcial');
       const accResumen = document.getElementById('accionesResumen');
+      const accAnual = document.getElementById('accionesAnual');
 
       if (trimestreVal === 'anual') {
         boxVista.classList.add('d-none');
         accParcial.classList.add('d-none');
         accResumen.classList.add('d-none');
+        accAnual.classList.remove('d-none');
       } else {
         boxVista.classList.remove('d-none');
+        accAnual.classList.add('d-none');
         if (vistaVal === 'resumen_trimestre') {
           accParcial.classList.add('d-none');
           accResumen.classList.remove('d-none');
@@ -677,6 +685,8 @@
         }
       });
 
+      datosResumenAnualActual = [];
+
       let html = `
         <table class="table table-bordered table-sm mb-0 align-middle">
           <thead class="table-dark">
@@ -699,7 +709,19 @@
               const t3 = (reg[3].p1 * 0.35) + (reg[3].p2 * 0.35) + (reg[3].ex * 0.30);
 
               const promAnual = (t1 + t2 + t3) / 3;
-              const obs = promAnual >= 7 ? '<span class="badge bg-success">APROBADO</span>' : (promAnual >= 4 ? '<span class="badge bg-warning text-dark">SUPLETORIO</span>' : '<span class="badge bg-danger">REPROBADO</span>');
+              const obsTexto = promAnual >= 7 ? 'APROBADO' : (promAnual >= 4 ? 'SUPLETORIO' : 'REPROBADO');
+              const obsBadge = promAnual >= 7 ? '<span class="badge bg-success">APROBADO</span>' : (promAnual >= 4 ? '<span class="badge bg-warning text-dark">SUPLETORIO</span>' : '<span class="badge bg-danger">REPROBADO</span>');
+
+              // Guardar fila formateada para exportar
+              datosResumenAnualActual.push({
+                num: idx + 1,
+                nombre: est.nombres,
+                t1: t1.toFixed(2),
+                t2: t2.toFixed(2),
+                t3: t3.toFixed(2),
+                prom: promAnual.toFixed(2),
+                obs: obsTexto
+              });
 
               return `
                 <tr>
@@ -709,7 +731,7 @@
                   <td>${t2.toFixed(2)}</td>
                   <td>${t3.toFixed(2)}</td>
                   <td class="fw-bold bg-warning text-dark">${promAnual.toFixed(2)}</td>
-                  <td>${obs}</td>
+                  <td>${obsBadge}</td>
                 </tr>
               `;
             }).join('')}
@@ -717,6 +739,112 @@
         </table>
       `;
       contenedor.innerHTML = html;
+    }
+
+    // ==========================================
+    // EXPORTACIÓN A PDF INSTITUCIONAL
+    // ==========================================
+    function exportarResumenAnualPDF() {
+      if (datosResumenAnualActual.length === 0) {
+        alert('No hay datos disponibles para generar el PDF.');
+        return;
+      }
+
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF('p', 'mm', 'a4');
+
+      const selectCurso = document.getElementById('selectCurso');
+      const nombreCurso = selectCurso.options[selectCurso.selectedIndex].text;
+      
+      const selectMateria = document.getElementById('selectMateria');
+      const nombreMateria = selectMateria.options[selectMateria.selectedIndex].text;
+
+      const docenteEmail = document.getElementById('usuarioConectado').innerText.replace('Docente: ', '');
+
+      // Membrete Institucional
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(14);
+      doc.setTextColor(13, 110, 253);
+      doc.text('UNIDAD EDUCATIVA PARTICULAR "VICENTE ROCAFUERTE"', 105, 18, { align: 'center' });
+
+      doc.setFontSize(11);
+      doc.setTextColor(50, 50, 50);
+      doc.text('CUADRO DE CALIFICACIONES GENERAL ANUAL', 105, 25, { align: 'center' });
+
+      // Metadatos
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(30, 30, 30);
+      doc.text(`Curso: ${nombreCurso}`, 14, 34);
+      doc.text(`Materia: ${nombreMateria}`, 14, 39);
+      doc.text(`Docente: ${docenteEmail}`, 140, 34);
+      doc.text(`Fecha emisión: ${new Date().toLocaleDateString('es-EC')}`, 140, 39);
+
+      // Tabla de Datos
+      const tableRows = datosResumenAnualActual.map(r => [
+        r.num,
+        r.nombre,
+        r.t1,
+        r.t2,
+        r.t3,
+        r.prom,
+        r.obs
+      ]);
+
+      doc.autoTable({
+        startY: 44,
+        head: [['No.', 'Apellidos y Nombres', '1er Trim.', '2do Trim.', '3er Trim.', 'Promedio', 'Observación']],
+        body: tableRows,
+        theme: 'grid',
+        headStyles: {
+          fillColor: [33, 37, 41],
+          textColor: [255, 255, 255],
+          fontSize: 8.5,
+          halign: 'center',
+          valign: 'middle'
+        },
+        columnStyles: {
+          0: { cellWidth: 10, halign: 'center' },
+          1: { cellWidth: 75, halign: 'left' },
+          2: { cellWidth: 20, halign: 'center' },
+          3: { cellWidth: 20, halign: 'center' },
+          4: { cellWidth: 20, halign: 'center' },
+          5: { cellWidth: 22, halign: 'center', fontStyle: 'bold' },
+          6: { cellWidth: 25, halign: 'center' }
+        },
+        styles: {
+          fontSize: 8,
+          valign: 'middle'
+        },
+        didParseCell: function(data) {
+          if (data.section === 'body' && data.column.index === 6) {
+            if (data.cell.raw === 'APROBADO') {
+              data.cell.styles.textColor = [25, 135, 84];
+              data.cell.styles.fontStyle = 'bold';
+            } else if (data.cell.raw === 'SUPLETORIO') {
+              data.cell.styles.textColor = [255, 193, 7];
+              data.cell.styles.fontStyle = 'bold';
+            } else {
+              data.cell.styles.textColor = [220, 53, 69];
+              data.cell.styles.fontStyle = 'bold';
+            }
+          }
+        }
+      });
+
+      // Firmas al pie de página
+      const finalY = doc.lastAutoTable.finalY + 30;
+      if (finalY < 270) {
+        doc.line(30, finalY, 80, finalY);
+        doc.text('Docente Responsable', 55, finalY + 5, { align: 'center' });
+
+        doc.line(130, finalY, 180, finalY);
+        doc.text('Rectorado / Vicerrectorado', 155, finalY + 5, { align: 'center' });
+      }
+
+      // Descargar archivo
+      const cleanNombreCurso = nombreCurso.replace(/[^a-zA-Z0-9]/g, '_');
+      doc.save(`Resumen_Anual_${cleanNombreCurso}_${nombreMateria}.pdf`);
     }
 
     // ==========================================
@@ -774,7 +902,6 @@
           });
           if (errNotas) throw errNotas;
 
-          // Sincronización automática de notas_trimestre
           const { data: allPData } = await supabaseClient
             .from('notas_parcial_actividades')
             .select('*')
