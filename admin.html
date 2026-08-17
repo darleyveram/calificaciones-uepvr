@@ -649,15 +649,21 @@
       const docente_id = document.getElementById('asigSelectDocente').value;
       const es_optativa = document.getElementById('asigEsOptativa').checked;
 
-      const { error } = await supabaseClient.from('curso_materia_docente').insert([{
-        curso_id, materia_id, docente_id, es_optativa
-      }]);
+      // Usar upsert para actualizar si ya existe o insertar si es nueva
+      const { error } = await supabaseClient
+        .from('curso_materia_docente')
+        .upsert([{
+          curso_id,
+          materia_id,
+          docente_id,
+          es_optativa
+        }], { onConflict: 'curso_id,materia_id' });
 
       if (error) {
         alert('Error al asignar: ' + error.message);
       } else {
         modalAsignarInst.hide();
-        cargarMateriasDelCurso();
+        await cargarMateriasDelCurso();
       }
     }
 
