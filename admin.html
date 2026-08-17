@@ -62,6 +62,7 @@
           <li class="nav-item"><a href="#" class="nav-link" id="nav-materias" onclick="mostrarModulo('materias', this)"><i class="bi bi-book me-2"></i> Materias</a></li>
           <li class="nav-item"><a href="#" class="nav-link" id="nav-estudiantes" onclick="mostrarModulo('estudiantes', this)"><i class="bi bi-people me-2"></i> Estudiantes</a></li>
           <li class="nav-item"><a href="#" class="nav-link" id="nav-docentes" onclick="mostrarModulo('docentes', this)"><i class="bi bi-person-badge me-2"></i> Nómina Personal</a></li>
+          <li class="nav-item"><a href="#" class="nav-link" id="nav-titulos" onclick="mostrarModulo('titulos', this)"><i class="bi bi-mortarboard me-2"></i> Títulos Académicos</a></li>
           <li class="nav-item"><a href="#" class="nav-link" id="nav-actividades" onclick="mostrarModulo('actividades', this)"><i class="bi bi-list-check me-2"></i> Actividades</a></li>
         </ul>
         <div class="mt-auto pt-4 border-top border-secondary">
@@ -224,7 +225,30 @@
           </div>
         </div>
 
-        <!-- MODULO 7: ACTIVIDADES -->
+        <!-- MODULO 7: TÍTULOS ACADÉMICOS (NUEVO MÓDULO) -->
+        <div class="modulo d-none" id="mod-titulos">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+              <h4 class="fw-bold mb-0">Catálogo de Títulos Académicos</h4>
+              <small class="text-muted">Abreviaturas profesionales que preceden al nombre del personal.</small>
+            </div>
+            <button class="btn btn-success btn-sm" onclick="abrirModalTitulo()"><i class="bi bi-plus-circle me-1"></i> Nuevo Título</button>
+          </div>
+          <div class="card p-0" style="max-width: 700px;">
+            <table class="table table-hover mb-0 align-middle">
+              <thead>
+                <tr>
+                  <th style="width: 140px;">Abreviatura</th>
+                  <th>Descripción / Grado</th>
+                  <th style="width: 140px;">Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="tablaTitulos"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- MODULO 8: ACTIVIDADES -->
         <div class="modulo d-none" id="mod-actividades">
           <div class="d-flex justify-content-between align-items-center mb-3">
             <h4 class="fw-bold mb-0">Lista Oficial de Actividades</h4>
@@ -244,6 +268,35 @@
 
   <!-- ================= MODALES ================= -->
 
+  <!-- Modal Título Académico -->
+  <div class="modal fade" id="modalTituloBox" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header bg-dark text-white py-2">
+          <h6 class="modal-title fw-bold" id="modalTituloTitulo">Gestión de Título Académico</h6>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="formModalTitulo" onsubmit="guardarTituloModal(event)">
+            <input type="hidden" id="tituloModalId">
+            <div class="mb-3">
+              <label class="form-label fw-bold">Abreviatura (Ej: Ing., Lcdo., Msc.)</label>
+              <input type="text" id="tituloModalAbrev" class="form-control form-control-sm" placeholder="Ej: Ing." required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-bold">Descripción / Grado</label>
+              <input type="text" id="tituloModalDesc" class="form-control form-control-sm" placeholder="Ej: Ingeniero/a">
+            </div>
+            <div class="text-end">
+              <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+              <button type="submit" class="btn btn-primary btn-sm fw-bold">Guardar Título</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Modal Personal / Docente -->
   <div class="modal fade" id="modalPersonalBox" tabindex="-1">
     <div class="modal-dialog modal-lg">
@@ -258,18 +311,7 @@
             <div class="row g-2">
               <div class="col-md-3">
                 <label class="form-label fw-bold">Título Académico</label>
-                <select id="personalTitulo" class="form-select form-select-sm">
-                  <option value="Lcdo.">Lcdo.</option>
-                  <option value="Lcda.">Lcda.</option>
-                  <option value="Ing.">Ing.</option>
-                  <option value="Msc.">Msc.</option>
-                  <option value="Prof.">Prof.</option>
-                  <option value="Dr.">Dr.</option>
-                  <option value="Dra.">Dra.</option>
-                  <option value="Abg.">Abg.</option>
-                  <option value="Sr.">Sr.</option>
-                  <option value="Sra.">Sra.</option>
-                </select>
+                <select id="personalTitulo" class="form-select form-select-sm" required></select>
               </div>
               <div class="col-md-4">
                 <label class="form-label fw-bold">Nombres</label>
@@ -391,10 +433,11 @@
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNib211cXdudG9zdmRzb2psZnlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY5Mjk5NzcsImV4cCI6MjEwMjUwNTk3N30.WLgWyVOWVieC-4XjnkZFAKEqARKszvLpVqiAoGHdUU8';
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+    let titulosList = [];
     let docentesList = [];
     let cursosList = [];
     let materiasList = [];
-    let modalAsignarInst, modalCursoInst, modalPersonalInst;
+    let modalAsignarInst, modalCursoInst, modalPersonalInst, modalTituloInst;
 
     function formatNombreDocente(d) {
       if (!d) return '';
@@ -417,6 +460,7 @@
       if (id === 'asignaciones') cargarVistaAsignaciones();
       if (id === 'estudiantes') cargarCursosFiltroEstudiantes();
       if (id === 'docentes') cargarDocentes();
+      if (id === 'titulos') cargarTitulos();
       if (id === 'actividades') cargarActividades();
     }
 
@@ -430,6 +474,7 @@
           modalAsignarInst = new bootstrap.Modal(document.getElementById('modalAsignarMateria'));
           modalCursoInst = new bootstrap.Modal(document.getElementById('modalCursoBox'));
           modalPersonalInst = new bootstrap.Modal(document.getElementById('modalPersonalBox'));
+          modalTituloInst = new bootstrap.Modal(document.getElementById('modalTituloBox'));
           await cargarDatosIniciales();
           mostrarModulo('institucion', document.getElementById('nav-institucion'));
         } else {
@@ -462,12 +507,57 @@
     }
 
     async function cargarDatosIniciales() {
+      const { data: t } = await supabaseClient.from('catalogo_titulos').select('*').order('abreviatura');
+      titulosList = t || [];
       const { data: d } = await supabaseClient.from('perfiles').select('*').order('nombres');
       docentesList = d || [];
       const { data: c } = await supabaseClient.from('cursos').select('*').order('nombre');
       cursosList = c || [];
       const { data: m } = await supabaseClient.from('materias').select('*').order('nombre');
       materiasList = m || [];
+    }
+
+    // ==========================================
+    // MÓDULO: TÍTULOS ACADÉMICOS (CRUD)
+    // ==========================================
+    async function cargarTitulos() {
+      await cargarDatosIniciales();
+      const tbody = document.getElementById('tablaTitulos');
+      tbody.innerHTML = titulosList.map(t => `
+        <tr>
+          <td class="fw-bold fs-6 text-primary">${t.abreviatura}</td>
+          <td>${t.descripcion || '<span class="text-muted fst-italic">Sin descripción</span>'}</td>
+          <td>
+            <button class="btn btn-sm btn-outline-primary py-0" onclick="abrirModalTitulo(${t.id}, '${t.abreviatura}', '${t.descripcion || ''}')">Editar</button>
+            <button class="btn btn-sm btn-outline-danger py-0" onclick="eliminarRegistro('catalogo_titulos', ${t.id})">Eliminar</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function abrirModalTitulo(id = null, abrev = '', desc = '') {
+      document.getElementById('tituloModalId').value = id || '';
+      document.getElementById('tituloModalAbrev').value = abrev;
+      document.getElementById('tituloModalDesc').value = desc;
+      document.getElementById('modalTituloTitulo').innerText = id ? 'Editar Título Académico' : 'Registrar Nuevo Título';
+      modalTituloInst.show();
+    }
+
+    async function guardarTituloModal(e) {
+      e.preventDefault();
+      const id = document.getElementById('tituloModalId').value;
+      const abreviatura = document.getElementById('tituloModalAbrev').value.trim();
+      const descripcion = document.getElementById('tituloModalDesc').value.trim();
+
+      if (id) {
+        const { error } = await supabaseClient.from('catalogo_titulos').update({ abreviatura, descripcion }).eq('id', id);
+        if (error) alert('Error al actualizar: ' + error.message);
+      } else {
+        const { error } = await supabaseClient.from('catalogo_titulos').insert([{ abreviatura, descripcion }]);
+        if (error) alert('Error al registrar: ' + error.message);
+      }
+      modalTituloInst.hide();
+      await cargarTitulos();
     }
 
     // 1. Institución
@@ -595,7 +685,6 @@
       btn.disabled = false;
       await cargarDatosIniciales();
 
-      // Consultar asignaciones del curso con materias
       const { data, error } = await supabaseClient
         .from('curso_materia_docente')
         .select(`id, curso_id, materia_id, docente_id, es_optativa, materias(id, nombre)`)
@@ -613,7 +702,6 @@
 
       tbody.innerHTML = data.map(a => {
         const esOpt = a.es_optativa ? true : false;
-        // Buscar el docente en la lista en memoria
         const doc = docentesList.find(d => d.id === a.docente_id);
         const nombreDocente = doc ? formatNombreDocente(doc) : (a.docente_id || 'Docente no asignado');
 
@@ -661,15 +749,9 @@
       const docente_id = document.getElementById('asigSelectDocente').value;
       const es_optativa = document.getElementById('asigEsOptativa').checked;
 
-      // Usar upsert para actualizar si ya existe o insertar si es nueva
-      const { error } = await supabaseClient
-        .from('curso_materia_docente')
-        .upsert([{
-          curso_id,
-          materia_id,
-          docente_id,
-          es_optativa
-        }], { onConflict: 'curso_id,materia_id' });
+      const { error } = await supabaseClient.from('curso_materia_docente').upsert([{
+        curso_id, materia_id, docente_id, es_optativa
+      }], { onConflict: 'curso_id,materia_id' });
 
       if (error) {
         alert('Error al asignar: ' + error.message);
@@ -815,15 +897,19 @@
     function abrirModalPersonal(id = null) {
       document.getElementById('personalModalId').value = id || '';
       const passBox = document.getElementById('boxPasswordPersonal');
+      
+      // Llenar selector de títulos desde el catálogo
+      const selTitulo = document.getElementById('personalTitulo');
+      selTitulo.innerHTML = titulosList.map(t => `<option value="${t.abreviatura}">${t.abreviatura} - ${t.descripcion || ''}</option>`).join('');
 
       if (id) {
         const p = docentesList.find(item => item.id === id);
         document.getElementById('modalPersonalTitulo').innerText = 'Editar Datos del Personal';
-        document.getElementById('personalTitulo').value = p.titulo || 'Lcdo.';
+        selTitulo.value = p.titulo || (titulosList[0] ? titulosList[0].abreviatura : 'Lcdo.');
         document.getElementById('personalNombres').value = p.nombres || '';
         document.getElementById('personalApellidos').value = p.apellidos || '';
         document.getElementById('personalEmail').value = p.email || '';
-        document.getElementById('personalEmail').disabled = true; // Email vinculado a autenticación
+        document.getElementById('personalEmail').disabled = true;
         document.getElementById('personalTelefono').value = p.telefono || '';
         document.getElementById('personalCargo').value = p.cargo || 'Docente';
         document.getElementById('personalRol').value = p.rol || 'docente';
@@ -855,13 +941,11 @@
 
       try {
         if (id) {
-          // Edición de perfil existente
           const { error } = await supabaseClient.from('perfiles').update({
             titulo, nombres, apellidos, telefono, cargo, rol
           }).eq('id', id);
           if (error) throw error;
         } else {
-          // Creación de nuevo usuario en Auth
           if (!password || password.length < 6) throw new Error('La contraseña debe tener al menos 6 caracteres.');
 
           const { data: authData, error: authErr } = await supabaseClient.auth.signUp({
@@ -874,7 +958,6 @@
 
           if (authErr) throw authErr;
 
-          // Insertar / Actualizar Perfil
           const newUserId = authData.user ? authData.user.id : null;
           if (newUserId) {
             await supabaseClient.from('perfiles').upsert({
@@ -909,7 +992,7 @@
       else cargarDocentes();
     }
 
-    // 7. Actividades
+    // 8. Actividades
     async function cargarActividades() {
       const { data } = await supabaseClient.from('catalogo_actividades').select('*').order('nombre');
       const tbody = document.getElementById('tablaActividades');
@@ -930,6 +1013,7 @@
       else cargarActividades();
     }
 
+    // Función Genérica para Eliminar
     async function eliminarRegistro(tabla, id) {
       if (!confirm('¿Está seguro de eliminar este registro? Esta acción no se puede deshacer.')) return;
       const { error } = await supabaseClient.from(tabla).delete().eq('id', id);
@@ -939,6 +1023,7 @@
         if (tabla === 'materias') cargarMaterias();
         if (tabla === 'curso_materia_docente') cargarMateriasDelCurso();
         if (tabla === 'estudiantes') cargarEstudiantes();
+        if (tabla === 'catalogo_titulos') cargarTitulos();
         if (tabla === 'catalogo_actividades') cargarActividades();
       }
     }
