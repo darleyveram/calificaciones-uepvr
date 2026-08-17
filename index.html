@@ -92,7 +92,7 @@
       <button class="btn btn-outline-danger btn-sm" onclick="cerrarSesion()">Cerrar Sesión</button>
     </div>
 
-    <!-- Filtros -->
+    <!-- Filtros de Navegación -->
     <div class="card shadow-sm mb-3">
       <div class="card-body py-2">
         <div class="row g-2 align-items-center">
@@ -102,36 +102,42 @@
               <option value="">Seleccione...</option>
             </select>
           </div>
-          <div class="col-md-2" id="boxTrimestre">
-            <label class="form-label mb-1 fw-bold">Trimestre:</label>
+          
+          <div class="col-md-2">
+            <label class="form-label mb-1 fw-bold">Trimestre / Ciclo:</label>
             <select id="selectTrimestre" class="form-select form-select-sm" onchange="cambiarFiltro()">
               <option value="1">Trimestre 1</option>
               <option value="2">Trimestre 2</option>
               <option value="3">Trimestre 3</option>
+              <option value="anual">📊 Resumen General Anual</option>
             </select>
           </div>
-          <div class="col-md-3">
-            <label class="form-label mb-1 fw-bold">Vista / Evaluación:</label>
+
+          <div class="col-md-3" id="boxVista">
+            <label class="form-label mb-1 fw-bold">Evaluación / Parcial:</label>
             <select id="selectVista" class="form-select form-select-sm" onchange="cambiarFiltro()">
               <option value="p1">Parcial 1 (Insumos 1 y 2)</option>
               <option value="p2">Parcial 2 (Insumos 1 y 2)</option>
-              <option value="resumen_trimestre">Examen y Resumen Trimestral</option>
-              <option value="resumen_anual">Resumen General Anual</option>
+              <option value="resumen_trimestre">Examen y Consolidado Trimestral</option>
             </select>
           </div>
+
+          <!-- Botones Parciales -->
           <div class="col-md-4 text-end pt-3" id="accionesParcial">
             <button class="btn btn-outline-primary btn-sm me-1 btn-control" onclick="agregarActividad(1)" disabled>+ Actividad Ins. 1</button>
             <button class="btn btn-outline-info btn-sm me-2 text-dark btn-control" onclick="agregarActividad(2)" disabled>+ Actividad Ins. 2</button>
-            <button class="btn btn-success btn-sm px-3 fw-bold btn-control" id="btnGuardarParcial" onclick="guardarDatos()" disabled>💾 Guardar</button>
+            <button class="btn btn-success btn-sm px-3 fw-bold btn-control" id="btnGuardarParcial" onclick="guardarDatos()" disabled>💾 Guardar Parcial</button>
           </div>
+
+          <!-- Botón Resumen Trimestre -->
           <div class="col-md-4 text-end pt-3 d-none" id="accionesResumen">
-            <button class="btn btn-success btn-sm px-4 fw-bold btn-control" id="btnGuardarResumen" onclick="guardarDatos()" disabled>💾 Guardar Examen / Resumen</button>
+            <button class="btn btn-success btn-sm px-4 fw-bold btn-control" id="btnGuardarResumen" onclick="guardarDatos()" disabled>💾 Guardar Examen y Resumen</button>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Contenedor de Tablas -->
+    <!-- Contenedor Dinámico de Tablas -->
     <div class="card shadow-sm">
       <div class="card-body p-0">
         <div class="table-responsive" id="contenedorTabla">
@@ -151,7 +157,7 @@
     let asignaciones = [];
     let estudiantes = [];
     let configActividades = { insumo1: [], insumo2: [] };
-    let notasActualesMemoria = {}; // { [estId]: { i1: [], i2: [] } }
+    let notasActualesMemoria = {};
 
     function resetearEstadoAplicacion() {
       catalogo = [];
@@ -236,25 +242,28 @@
 
     function cambiarFiltro() {
       const asigId = document.getElementById('selectAsignacion').value;
-      const vista = document.getElementById('selectVista').value;
+      const trimestreVal = document.getElementById('selectTrimestre').value;
+      const vistaVal = document.getElementById('selectVista').value;
       const controles = document.querySelectorAll('.btn-control');
       
+      const boxVista = document.getElementById('boxVista');
       const accParcial = document.getElementById('accionesParcial');
       const accResumen = document.getElementById('accionesResumen');
-      const boxTrim = document.getElementById('boxTrimestre');
 
-      if (vista === 'resumen_anual') {
-        boxTrim.classList.add('d-none');
+      // Control de vista según el selector de Trimestre
+      if (trimestreVal === 'anual') {
+        boxVista.classList.add('d-none');
         accParcial.classList.add('d-none');
         accResumen.classList.add('d-none');
-      } else if (vista === 'resumen_trimestre') {
-        boxTrim.classList.remove('d-none');
-        accParcial.classList.add('d-none');
-        accResumen.classList.remove('d-none');
       } else {
-        boxTrim.classList.remove('d-none');
-        accParcial.classList.remove('d-none');
-        accResumen.classList.add('d-none');
+        boxVista.classList.remove('d-none');
+        if (vistaVal === 'resumen_trimestre') {
+          accParcial.classList.add('d-none');
+          accResumen.classList.remove('d-none');
+        } else {
+          accParcial.classList.remove('d-none');
+          accResumen.classList.add('d-none');
+        }
       }
 
       if (!asigId) {
@@ -264,12 +273,12 @@
       }
       controles.forEach(b => b.disabled = false);
 
-      if (vista === 'p1' || vista === 'p2') {
-        cargarVistaParcial(vista === 'p1' ? 1 : 2);
-      } else if (vista === 'resumen_trimestre') {
+      if (trimestreVal === 'anual') {
+        cargarVistaResumenAnual();
+      } else if (vistaVal === 'resumen_trimestre') {
         cargarVistaResumenTrimestre();
       } else {
-        cargarVistaResumenAnual();
+        cargarVistaParcial(vistaVal === 'p1' ? 1 : 2);
       }
     }
 
@@ -333,7 +342,6 @@
 
       const asig = asignaciones.find(a => a.id == asigId);
 
-      // 1. Obtener Cabeceras Guardadas
       const { data: confData } = await supabaseClient
         .from('config_parcial_cabeceras')
         .select('*')
@@ -345,11 +353,9 @@
       configActividades.insumo1 = confData?.actividades_insumo1 || ['Actuación en clases', 'Participación en Clases', 'Actuación en clases', 'Lección en clases'];
       configActividades.insumo2 = confData?.actividades_insumo2 || ['Colaboración en el Aula'];
 
-      // 2. Obtener Estudiantes
       const { data: estData } = await supabaseClient.from('estudiantes').select('*').eq('curso_id', asig.curso_id).order('numero_lista');
       estudiantes = estData || [];
 
-      // 3. Obtener Calificaciones
       const { data: notasData } = await supabaseClient
         .from('notas_parcial_actividades')
         .select('*')
@@ -640,17 +646,17 @@
     // ==========================================
     async function guardarDatos() {
       const asigId = document.getElementById('selectAsignacion').value;
-      const trimestre = parseInt(document.getElementById('selectTrimestre').value);
-      const vista = document.getElementById('selectVista').value;
+      const trimestreVal = document.getElementById('selectTrimestre').value;
+      const vistaVal = document.getElementById('selectVista').value;
 
-      if (vista === 'p1' || vista === 'p2') {
-        const parcialNum = vista === 'p1' ? 1 : 2;
+      if (trimestreVal !== 'anual' && (vistaVal === 'p1' || vistaVal === 'p2')) {
+        const parcialNum = vistaVal === 'p1' ? 1 : 2;
+        const trimestre = parseInt(trimestreVal);
         const btn = document.getElementById('btnGuardarParcial');
         btn.disabled = true;
         btn.innerText = 'Guardando...';
 
         try {
-          // 1. Guardar Configuración de Cabeceras
           const { error: errConf } = await supabaseClient.from('config_parcial_cabeceras').upsert({
             asignacion_id: parseInt(asigId),
             trimestre: trimestre,
@@ -661,7 +667,6 @@
 
           if (errConf) throw errConf;
 
-          // 2. Guardar Notas
           const filas = document.querySelectorAll('#tablaCuerpo tr');
           const payload = [];
 
@@ -698,10 +703,11 @@
           alert('Error al guardar: ' + err.message);
         } finally {
           btn.disabled = false;
-          btn.innerText = '💾 Guardar';
+          btn.innerText = '💾 Guardar Parcial';
         }
 
-      } else if (vista === 'resumen_trimestre') {
+      } else if (trimestreVal !== 'anual' && vistaVal === 'resumen_trimestre') {
+        const trimestre = parseInt(trimestreVal);
         const btn = document.getElementById('btnGuardarResumen');
         btn.disabled = true;
         btn.innerText = 'Guardando...';
@@ -742,7 +748,7 @@
           alert('Error al guardar: ' + err.message);
         } finally {
           btn.disabled = false;
-          btn.innerText = '💾 Guardar Examen / Resumen';
+          btn.innerText = '💾 Guardar Examen y Resumen';
         }
       }
     }
