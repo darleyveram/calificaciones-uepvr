@@ -7,15 +7,19 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    .input-nota { width: 75px; text-align: center; }
-    .col-prom { background-color: #f8f9fa; font-weight: bold; text-align: center; }
-    th { vertical-align: middle; text-align: center; font-size: 0.85rem; }
-    td { vertical-align: middle; }
+    th, td { font-size: 0.80rem; vertical-align: middle; text-align: center; }
+    .col-nombre { text-align: left !important; min-width: 240px; font-weight: 500; }
+    .input-act { width: 62px; text-align: center; padding: 2px 4px; }
+    .select-act { font-size: 0.72rem; padding: 2px; }
+    .bg-insumo1 { background-color: #0099ff !important; color: #fff; }
+    .bg-insumo2 { background-color: #00b0f0 !important; color: #fff; }
+    .bg-prom-ins { background-color: #ffff00 !important; font-weight: bold; }
+    .bg-nota-final { background-color: #00b050 !important; color: #fff; font-weight: bold; }
   </style>
 </head>
 <body class="bg-light py-3">
 
-  <!-- VISTA LOGIN -->
+  <!-- LOGIN -->
   <div class="container" id="seccionLogin" style="max-width: 420px; margin-top: 60px;">
     <div class="card shadow border-0">
       <div class="card-header bg-primary text-white text-center py-3">
@@ -39,73 +43,71 @@
     </div>
   </div>
 
-  <!-- VISTA PRINCIPAL (SÁBANA DE CALIFICACIONES) -->
-  <div class="container-fluid px-4 d-none" id="seccionApp">
+  <!-- SÁBANA DE NOTAS DETALLADA -->
+  <div class="container-fluid px-3 d-none" id="seccionApp">
     
-    <!-- Barra Superior -->
-    <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+    <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
       <div>
-        <h4 class="fw-bold text-primary mb-0">Unidad Educativa Particular "VICENTE ROCAFUERTE"</h4>
+        <h5 class="fw-bold text-primary mb-0">Unidad Educativa Particular "VICENTE ROCAFUERTE"</h5>
         <small class="text-muted" id="usuarioConectado"></small>
       </div>
       <button class="btn btn-outline-danger btn-sm" onclick="cerrarSesion()">Cerrar Sesión</button>
     </div>
 
-    <!-- Barra de Filtros y Asignación -->
+    <!-- Filtros de Asignación y Parciales -->
     <div class="card shadow-sm mb-3">
       <div class="card-body py-2">
-        <div class="row g-3 align-items-center">
+        <div class="row g-2 align-items-center">
           <div class="col-md-4">
-            <label class="form-label mb-1 fw-semibold">Asignatura / Curso asignado:</label>
-            <select id="selectAsignacion" class="form-select form-select-sm" onchange="cargarPlanilla()">
+            <label class="form-label mb-1 fw-bold">Curso / Materia:</label>
+            <select id="selectAsignacion" class="form-select form-select-sm" onchange="cargarSabana()">
               <option value="">Seleccione...</option>
             </select>
           </div>
           <div class="col-md-2">
-            <label class="form-label mb-1 fw-semibold">Trimestre:</label>
-            <select id="selectTrimestre" class="form-select form-select-sm" onchange="cargarPlanilla()">
+            <label class="form-label mb-1 fw-bold">Trimestre:</label>
+            <select id="selectTrimestre" class="form-select form-select-sm" onchange="cargarSabana()">
               <option value="1">Trimestre 1</option>
               <option value="2">Trimestre 2</option>
               <option value="3">Trimestre 3</option>
             </select>
           </div>
-          <div class="col-md-6 text-end pt-3">
-            <button class="btn btn-success btn-sm px-4 fw-bold" id="btnGuardarTodo" onclick="guardarPlanilla()">
-              💾 Guardar Calificaciones
-            </button>
+          <div class="col-md-2">
+            <label class="form-label mb-1 fw-bold">Parcial:</label>
+            <select id="selectParcial" class="form-select form-select-sm" onchange="cargarSabana()">
+              <option value="1">Parcial 1</option>
+              <option value="2">Parcial 2</option>
+            </select>
+          </div>
+          <div class="col-md-4 text-end pt-3">
+            <button class="btn btn-outline-primary btn-sm me-1" onclick="agregarActividad(1)">+ Actividad Ins. 1</button>
+            <button class="btn btn-outline-info btn-sm me-2 text-dark" onclick="agregarActividad(2)">+ Actividad Ins. 2</button>
+            <button class="btn btn-success btn-sm px-3 fw-bold" id="btnGuardar" onclick="guardarSabana()">💾 Guardar Sábana</button>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Tabla / Sábana de Notas -->
+    <!-- Tabla Sábana de Notas -->
     <div class="card shadow-sm">
       <div class="card-body p-0">
         <div class="table-responsive">
-          <table class="table table-bordered table-sm mb-0">
-            <thead class="table-dark">
-              <tr>
-                <th rowspan="2" style="width: 40px;">N°</th>
-                <th rowspan="2">Nómina del Estudiante</th>
-                <th colspan="3" class="bg-primary">PARCIAL 1 (35%)</th>
-                <th colspan="3" class="bg-info text-dark">PARCIAL 2 (35%)</th>
-                <th rowspan="2" style="width: 80px;">Examen (30%)</th>
-                <th rowspan="2" class="bg-warning text-dark" style="width: 85px;">Prom. Trimestre</th>
-                <th rowspan="2" style="width: 70px;">Comp.</th>
+          <table class="table table-bordered table-sm mb-0 align-middle">
+            <thead>
+              <tr class="table-light">
+                <th rowspan="3" style="width: 35px;">No.</th>
+                <th rowspan="3" class="col-nombre text-center">Apellidos y Nombres</th>
+                <th id="thInsumo1Principal" class="bg-insumo1">INSUMO 1 (Actividades Individuales)</th>
+                <th rowspan="3" class="bg-prom-ins" style="width: 70px;">Promedio Insumo 1</th>
+                <th id="thInsumo2Principal" class="bg-insumo2">INSUMO 2 (Actividades Grupales)</th>
+                <th rowspan="3" class="bg-prom-ins" style="width: 70px;">Promedio Insumo 2</th>
+                <th rowspan="3" class="bg-nota-final" style="width: 75px;">Nota Parcial</th>
               </tr>
-              <tr>
-                <!-- Parcial 1 -->
-                <th style="font-size: 0.75rem;">Ins. 1</th>
-                <th style="font-size: 0.75rem;">Ins. 2</th>
-                <th style="font-size: 0.75rem;">Total P1</th>
-                <!-- Parcial 2 -->
-                <th style="font-size: 0.75rem;">Ins. 1</th>
-                <th style="font-size: 0.75rem;">Ins. 2</th>
-                <th style="font-size: 0.75rem;">Total P2</th>
-              </tr>
+              <tr id="trNumeracionActividades" class="bg-light"></tr>
+              <tr id="trSelectoresActividades" class="bg-light"></tr>
             </thead>
             <tbody id="tablaCuerpo">
-              <tr><td colspan="10" class="text-center py-4 text-muted">Seleccione una asignatura para cargar la nómina.</td></tr>
+              <tr><td colspan="7" class="py-4 text-muted text-center">Seleccione Curso y Materia para cargar la sábana.</td></tr>
             </tbody>
           </table>
         </div>
@@ -119,43 +121,37 @@
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNib211cXdudG9zdmRzb2psZnlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY5Mjk5NzcsImV4cCI6MjEwMjUwNTk3N30.WLgWyVOWVieC-4XjnkZFAKEqARKszvLpVqiAoGHdUU8';
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    let asignacionesDocente = [];
-    let listaEstudiantes = [];
+    let catalogo = [];
+    let asignaciones = [];
+    let estudiantes = [];
+    let configActividades = {
+      insumo1: ['Actuación en clases', 'Participación en Clases', 'Actuación en clases', 'Lección en clases'],
+      insumo2: ['Colaboración en el Aula']
+    };
 
     // --- Autenticación ---
     async function verificarSesion() {
       const { data: { session } } = await supabaseClient.auth.getSession();
-      const loginView = document.getElementById('seccionLogin');
-      const appView = document.getElementById('seccionApp');
-
       if (session) {
-        loginView.classList.add('d-none');
-        appView.classList.remove('d-none');
+        document.getElementById('seccionLogin').classList.add('d-none');
+        document.getElementById('seccionApp').classList.remove('d-none');
         document.getElementById('usuarioConectado').innerText = `Docente: ${session.user.email}`;
+        await cargarCatalogo();
         await cargarAsignaciones();
       } else {
-        loginView.classList.remove('d-none');
-        appView.classList.add('d-none');
+        document.getElementById('seccionLogin').classList.remove('d-none');
+        document.getElementById('seccionApp').classList.add('d-none');
       }
     }
 
     async function iniciarSesion(e) {
       e.preventDefault();
-      const btn = document.getElementById('btnLogin');
-      const errorDiv = document.getElementById('loginError');
-      btn.disabled = true;
-      btn.innerText = 'Verificando...';
-      errorDiv.classList.add('d-none');
-
       const email = document.getElementById('loginEmail').value.trim();
       const password = document.getElementById('loginPassword').value;
-
       const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
       if (error) {
-        errorDiv.innerText = error.message;
-        errorDiv.classList.remove('d-none');
-        btn.disabled = false;
-        btn.innerText = 'Ingresar';
+        document.getElementById('loginError').innerText = error.message;
+        document.getElementById('loginError').classList.remove('d-none');
       } else {
         verificarSesion();
       }
@@ -166,167 +162,207 @@
       verificarSesion();
     }
 
-    // --- Cargar Cursos y Materias del Docente ---
-    async function cargarAsignaciones() {
-      const { data, error } = await supabaseClient
-        .from('curso_materia_docente')
-        .select(`
-          id,
-          curso_id,
-          cursos (id, nombre),
-          materias (id, nombre)
-        `);
-
-      if (!error && data) {
-        asignacionesDocente = data;
-        const select = document.getElementById('selectAsignacion');
-        select.innerHTML = '<option value="">Seleccione...</option>' + 
-          data.map(a => `<option value="${a.id}" data-curso="${a.curso_id}">${a.cursos.nombre} - ${a.materias.nombre}</option>`).join('');
-      }
+    // --- Cargar Catálogo de Actividades del Administrador ---
+    async function cargarCatalogo() {
+      const { data } = await supabaseClient.from('catalogo_actividades').select('nombre').order('nombre');
+      catalogo = data ? data.map(d => d.nombre) : [];
     }
 
-    // --- Cargar Nómina y Notas ---
-    async function cargarPlanilla() {
-      const asignacionId = document.getElementById('selectAsignacion').value;
+    async function cargarAsignaciones() {
+      const { data } = await supabaseClient.from('curso_materia_docente').select(`
+        id, curso_id, cursos(id, nombre), materias(id, nombre)
+      `);
+      asignaciones = data || [];
+      const select = document.getElementById('selectAsignacion');
+      select.innerHTML = '<option value="">Seleccione...</option>' + 
+        asignaciones.map(a => `<option value="${a.id}" data-curso="${a.curso_id}">${a.cursos.nombre} - ${a.materias.nombre}</option>`).join('');
+    }
+
+    // --- Renderizar Encabezados Dinámicos ---
+    function renderizarEncabezados() {
+      document.getElementById('thInsumo1Principal').colSpan = Math.max(configActividades.insumo1.length, 1);
+      document.getElementById('thInsumo2Principal').colSpan = Math.max(configActividades.insumo2.length, 1);
+
+      const trNum = document.getElementById('trNumeracionActividades');
+      const trSel = document.getElementById('trSelectoresActividades');
+
+      // Numeración
+      let numHtml = '';
+      configActividades.insumo1.forEach((_, i) => numHtml += `<th class="bg-light">${i+1}</th>`);
+      configActividades.insumo2.forEach((_, i) => numHtml += `<th class="bg-light">${i+1}</th>`);
+      trNum.innerHTML = numHtml;
+
+      // Selectores de actividades del catálogo
+      let selHtml = '';
+      configActividades.insumo1.forEach((actSeleccionada, i) => {
+        selHtml += `
+          <th>
+            <select class="form-select select-act" onchange="configActividades.insumo1[${i}]=this.value">
+              ${catalogo.map(c => `<option value="${c}" ${c === actSeleccionada ? 'selected' : ''}>${c}</option>`).join('')}
+            </select>
+          </th>`;
+      });
+      configActividades.insumo2.forEach((actSeleccionada, i) => {
+        selHtml += `
+          <th>
+            <select class="form-select select-act" onchange="configActividades.insumo2[${i}]=this.value">
+              ${catalogo.map(c => `<option value="${c}" ${c === actSeleccionada ? 'selected' : ''}>${c}</option>`).join('')}
+            </select>
+          </th>`;
+      });
+      trSel.innerHTML = selHtml;
+    }
+
+    // --- Agregar Columnas de Actividades ---
+    function agregarActividad(insumo) {
+      if (insumo === 1) {
+        configActividades.insumo1.push(catalogo[0] || 'Deber');
+      } else {
+        configActividades.insumo2.push(catalogo[0] || 'Trabajo Grupal');
+      }
+      renderizarEncabezados();
+      cargarSabana();
+    }
+
+    // --- Cargar Datos de la Sábana ---
+    async function cargarSabana() {
+      const asigId = document.getElementById('selectAsignacion').value;
       const trimestre = parseInt(document.getElementById('selectTrimestre').value);
+      const parcial = parseInt(document.getElementById('selectParcial').value);
       const tbody = document.getElementById('tablaCuerpo');
 
-      if (!asignacionId) {
-        tbody.innerHTML = '<tr><td colspan="10" class="text-center py-4 text-muted">Seleccione una asignatura.</td></tr>';
+      if (!asigId) {
+        tbody.innerHTML = '<tr><td colspan="7" class="py-4 text-muted text-center">Seleccione Curso y Materia.</td></tr>';
         return;
       }
 
-      tbody.innerHTML = '<tr><td colspan="10" class="text-center py-4">Cargando nómina de estudiantes...</td></tr>';
-      
-      const asignacion = asignacionesDocente.find(a => a.id == asignacionId);
-      
-      // Obtener estudiantes del curso
-      const { data: estData } = await supabaseClient
-        .from('estudiantes')
-        .select('*')
-        .eq('curso_id', asignacion.curso_id)
-        .order('numero_lista', { ascending: true });
+      renderizarEncabezados();
+      tbody.innerHTML = '<tr><td colspan="20" class="py-4 text-center">Cargando sábana de calificaciones...</td></tr>';
 
-      listaEstudiantes = estData || [];
+      const asig = asignaciones.find(a => a.id == asigId);
 
-      // Obtener notas existentes
+      // 1. Cargar Estudiantes
+      const { data: estData } = await supabaseClient.from('estudiantes').select('*').eq('curso_id', asig.curso_id).order('numero_lista');
+      estudiantes = estData || [];
+
+      // 2. Cargar Calificaciones existentes
       const { data: notasData } = await supabaseClient
-        .from('notas_trimestre')
+        .from('notas_parcial_actividades')
         .select('*')
-        .eq('asignacion_id', asignacionId)
-        .eq('trimestre', trimestre);
+        .eq('asignacion_id', asigId)
+        .eq('trimestre', trimestre)
+        .eq('parcial', parcial);
 
       const notasMap = {};
       (notasData || []).forEach(n => { notasMap[n.estudiante_id] = n; });
 
-      // Renderizar tabla
-      tbody.innerHTML = listaEstudiantes.map((est, idx) => {
-        const n = notasMap[est.id] || {};
-        const p1_i1 = n.p1_insumo1 ?? '';
-        const p1_i2 = n.p1_insumo2 ?? '';
-        const p2_i1 = n.p2_insumo1 ?? '';
-        const p2_i2 = n.p2_insumo2 ?? '';
-        const examen = n.examen ?? '';
-        const comp = n.comportamiento || 'A';
+      // 3. Renderizar Filas
+      tbody.innerHTML = estudiantes.map((est, idx) => {
+        const rowData = notasMap[est.id] || {};
+        const ins1Notas = rowData.insumo1_notas || [];
+        const ins2Notas = rowData.insumo2_notas || [];
+
+        let inputsIns1 = configActividades.insumo1.map((_, i) => `
+          <td><input type="number" step="0.01" min="0" max="10" class="form-control form-control-sm input-act nota-i1" value="${ins1Notas[i] ?? ''}" oninput="calcularFila(this)"></td>
+        `).join('');
+
+        let inputsIns2 = configActividades.insumo2.map((_, i) => `
+          <td><input type="number" step="0.01" min="0" max="10" class="form-control form-control-sm input-act nota-i2" value="${ins2Notas[i] ?? ''}" oninput="calcularFila(this)"></td>
+        `).join('');
 
         return `
           <tr data-estudiante-id="${est.id}">
-            <td class="text-center fw-semibold">${idx + 1}</td>
-            <td>${est.nombres}</td>
-            <!-- Parcial 1 -->
-            <td><input type="number" step="0.01" min="0" max="10" class="form-control form-control-sm input-nota p1-i1" value="${p1_i1}" oninput="calcularFila(this)"></td>
-            <td><input type="number" step="0.01" min="0" max="10" class="form-control form-control-sm input-nota p1-i2" value="${p1_i2}" oninput="calcularFila(this)"></td>
-            <td class="col-prom p1-total">0.00</td>
-            <!-- Parcial 2 -->
-            <td><input type="number" step="0.01" min="0" max="10" class="form-control form-control-sm input-nota p2-i1" value="${p2_i1}" oninput="calcularFila(this)"></td>
-            <td><input type="number" step="0.01" min="0" max="10" class="form-control form-control-sm input-nota p2-i2" value="${p2_i2}" oninput="calcularFila(this)"></td>
-            <td class="col-prom p2-total">0.00</td>
-            <!-- Examen -->
-            <td><input type="number" step="0.01" min="0" max="10" class="form-control form-control-sm input-nota examen" value="${examen}" oninput="calcularFila(this)"></td>
-            <!-- Promedio Final Trimestre -->
-            <td class="col-prom prom-trimestre text-primary">0.00</td>
-            <!-- Comportamiento -->
-            <td>
-              <select class="form-select form-select-sm text-center comp" style="width: 60px;">
-                <option value="A" ${comp==='A'?'selected':''}>A</option>
-                <option value="B" ${comp==='B'?'selected':''}>B</option>
-                <option value="C" ${comp==='C'?'selected':''}>C</option>
-                <option value="D" ${comp==='D'?'selected':''}>D</option>
-                <option value="E" ${comp==='E'?'selected':''}>E</option>
-              </select>
-            </td>
+            <td>${idx + 1}</td>
+            <td class="col-nombre">${est.nombres}</td>
+            ${inputsIns1}
+            <td class="bg-prom-ins prom-i1">0.00</td>
+            ${inputsIns2}
+            <td class="bg-prom-ins prom-i2">0.00</td>
+            <td class="bg-nota-final nota-parcial">0.00</td>
           </tr>
         `;
       }).join('');
 
-      // Recalcular todos los valores iniciales
       document.querySelectorAll('#tablaCuerpo tr').forEach(fila => calcularFila(fila));
     }
 
-    // --- Cálculos Matemáticos según Rúbrica Ministerial ---
+    // --- Cálculo en tiempo real por estudiante ---
     function calcularFila(elem) {
       const tr = elem.closest('tr');
-      const p1_i1 = parseFloat(tr.querySelector('.p1-i1').value) || 0;
-      const p1_i2 = parseFloat(tr.querySelector('.p1-i2').value) || 0;
-      const p2_i1 = parseFloat(tr.querySelector('.p2-i1').value) || 0;
-      const p2_i2 = parseFloat(tr.querySelector('.p2-i2').value) || 0;
-      const ex = parseFloat(tr.querySelector('.examen').value) || 0;
+      if (!tr) return;
 
-      const p1_tot = (p1_i1 + p1_i2) / 2;
-      const p2_tot = (p2_i1 + p2_i2) / 2;
-      const prom_trim = (p1_tot * 0.35) + (p2_tot * 0.35) + (ex * 0.30);
+      const notas1 = Array.from(tr.querySelectorAll('.nota-i1')).map(i => parseFloat(i.value)).filter(n => !isNaN(n));
+      const notas2 = Array.from(tr.querySelectorAll('.nota-i2')).map(i => parseFloat(i.value)).filter(n => !isNaN(n));
 
-      tr.querySelector('.p1-total').innerText = p1_tot.toFixed(2);
-      tr.querySelector('.p2-total').innerText = p2_tot.toFixed(2);
-      tr.querySelector('.prom-trimestre').innerText = prom_trim.toFixed(2);
+      const prom1 = notas1.length > 0 ? (notas1.reduce((a, b) => a + b, 0) / notas1.length) : 0;
+      const prom2 = notas2.length > 0 ? (notas2.reduce((a, b) => a + b, 0) / notas2.length) : 0;
+      const totalParcial = (prom1 + prom2) / 2;
+
+      tr.querySelector('.prom-i1').innerText = prom1.toFixed(2);
+      tr.querySelector('.prom-i2').innerText = prom2.toFixed(2);
+      tr.querySelector('.nota-parcial').innerText = totalParcial.toFixed(2);
     }
 
-    // --- Guardado Masivo en Supabase (Upsert) ---
-    async function guardarPlanilla() {
-      const asignacionId = document.getElementById('selectAsignacion').value;
+    // --- Guardar Calificaciones y Actividades ---
+    async function guardarSabana() {
+      const asigId = document.getElementById('selectAsignacion').value;
       const trimestre = parseInt(document.getElementById('selectTrimestre').value);
-      const btn = document.getElementById('btnGuardarTodo');
+      const parcial = parseInt(document.getElementById('selectParcial').value);
+      const btn = document.getElementById('btnGuardar');
 
-      if (!asignacionId) {
-        alert('Seleccione una asignatura.');
-        return;
-      }
+      if (!asigId) return alert('Seleccione una asignatura');
 
       btn.disabled = true;
       btn.innerText = 'Guardando...';
 
+      // 1. Guardar configuración de cabeceras de actividades
+      await supabaseClient.from('config_parcial_cabeceras').upsert({
+        asignacion_id: parseInt(asigId),
+        trimestre: trimestre,
+        parcial: parcial,
+        actividades_insumo1: configActividades.insumo1,
+        actividades_insumo2: configActividades.insumo2
+      }, { onConflict: 'asignacion_id,trimestre,parcial' });
+
+      // 2. Guardar calificaciones de cada estudiante
       const filas = document.querySelectorAll('#tablaCuerpo tr');
       const payload = [];
 
       filas.forEach(tr => {
         const estId = tr.getAttribute('data-estudiante-id');
         if (estId) {
+          const notas1 = Array.from(tr.querySelectorAll('.nota-i1')).map(i => parseFloat(i.value) || 0);
+          const notas2 = Array.from(tr.querySelectorAll('.nota-i2')).map(i => parseFloat(i.value) || 0);
+          const prom1 = parseFloat(tr.querySelector('.prom-i1').innerText) || 0;
+          const prom2 = parseFloat(tr.querySelector('.prom-i2').innerText) || 0;
+          const totalParcial = parseFloat(tr.querySelector('.nota-parcial').innerText) || 0;
+
           payload.push({
-            asignacion_id: parseInt(asignacionId),
+            asignacion_id: parseInt(asigId),
             estudiante_id: parseInt(estId),
             trimestre: trimestre,
-            p1_insumo1: parseFloat(tr.querySelector('.p1-i1').value) || 0,
-            p1_insumo2: parseFloat(tr.querySelector('.p1-i2').value) || 0,
-            p2_insumo1: parseFloat(tr.querySelector('.p2-i1').value) || 0,
-            p2_insumo2: parseFloat(tr.querySelector('.p2-i2').value) || 0,
-            examen: parseFloat(tr.querySelector('.examen').value) || 0,
-            comportamiento: tr.querySelector('.comp').value
+            parcial: parcial,
+            insumo1_notas: notas1,
+            insumo2_notas: notas2,
+            promedio_insumo1: prom1,
+            promedio_insumo2: prom2,
+            nota_parcial: totalParcial
           });
         }
       });
 
-      const { error } = await supabaseClient
-        .from('notas_trimestre')
-        .upsert(payload, { onConflict: 'asignacion_id,estudiante_id,trimestre' });
+      const { error } = await supabaseClient.from('notas_parcial_actividades').upsert(payload, {
+        onConflict: 'asignacion_id,estudiante_id,trimestre,parcial'
+      });
 
       if (error) {
         alert('Error al guardar: ' + error.message);
       } else {
-        alert('¡Calificaciones guardadas exitosamente!');
+        alert('¡Sábana de calificaciones guardada correctamente!');
       }
 
       btn.disabled = false;
-      btn.innerText = '💾 Guardar Calificaciones';
+      btn.innerText = '💾 Guardar Sábana';
     }
 
     document.addEventListener('DOMContentLoaded', verificarSesion);
