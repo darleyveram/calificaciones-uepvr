@@ -8,11 +8,43 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body class="bg-light py-4">
-  <div class="container" style="max-width: 900px;">
+
+  <!-- ================= VISTA DE LOGIN ================= -->
+  <div class="container" id="seccionLogin" style="max-width: 450px; margin-top: 50px;">
+    <div class="card shadow-sm border-0">
+      <div class="card-header bg-primary text-white text-center py-3">
+        <h5 class="mb-0 fw-bold">UEP Vicente Rocafuerte</h5>
+        <small>Portal Docente</small>
+      </div>
+      <div class="card-body p-4">
+        <form id="formLogin" onsubmit="iniciarSesion(event)">
+          <div class="mb-3">
+            <label class="form-label">Correo institucional</label>
+            <input type="email" id="loginEmail" class="form-control" placeholder="docente@uepvr.edu.ec" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Contraseña</label>
+            <input type="password" id="loginPassword" class="form-control" placeholder="••••••••" required>
+          </div>
+          <div id="loginError" class="alert alert-danger py-2 d-none" role="alert"></div>
+          <button type="submit" class="btn btn-primary w-100 fw-semibold" id="btnLogin">
+            Ingresar al Sistema
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= VISTA PRINCIPAL (CALIFICACIONES) ================= -->
+  <div class="container d-none" id="seccionApp" style="max-width: 900px;">
     
-    <div class="text-center mb-4">
-      <h3 class="fw-bold text-primary">Unidad Educativa Particular Vicente Rocafuerte</h3>
-      <p class="text-muted">Registro y Consulta de Calificaciones</p>
+    <!-- Barra Superior -->
+    <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
+      <div>
+        <h4 class="fw-bold text-primary mb-0">UEP Vicente Rocafuerte</h4>
+        <small class="text-muted" id="usuarioConectado"></small>
+      </div>
+      <button class="btn btn-outline-danger btn-sm" onclick="cerrarSesion()">Cerrar Sesión</button>
     </div>
 
     <!-- Formulario de Registro -->
@@ -83,6 +115,57 @@
 
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+    // --- Control de Sesión y Vistas ---
+    async function verificarSesion() {
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      
+      const seccionLogin = document.getElementById('seccionLogin');
+      const seccionApp = document.getElementById('seccionApp');
+
+      if (session) {
+        seccionLogin.classList.add('d-none');
+        seccionApp.classList.remove('d-none');
+        document.getElementById('usuarioConectado').innerText = `Docente: ${session.user.email}`;
+        cargarNotas();
+      } else {
+        seccionLogin.classList.remove('d-none');
+        seccionApp.classList.add('d-none');
+      }
+    }
+
+    // --- Iniciar Sesión ---
+    async function iniciarSesion(e) {
+      e.preventDefault();
+      const btn = document.getElementById('btnLogin');
+      const errorDiv = document.getElementById('loginError');
+      btn.disabled = true;
+      btn.innerText = 'Verificando...';
+      errorDiv.classList.add('d-none');
+
+      const email = document.getElementById('loginEmail').value.trim();
+      const password = document.getElementById('loginPassword').value;
+
+      const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+
+      if (error) {
+        errorDiv.innerText = 'Credenciales incorrectas: ' + error.message;
+        errorDiv.classList.remove('d-none');
+        btn.disabled = false;
+        btn.innerText = 'Ingresar al Sistema';
+      } else {
+        btn.disabled = false;
+        btn.innerText = 'Ingresar al Sistema';
+        verificarSesion();
+      }
+    }
+
+    // --- Cerrar Sesión ---
+    async function cerrarSesion() {
+      await supabaseClient.auth.signOut();
+      verificarSesion();
+    }
+
+    // --- Cargar Notas ---
     async function cargarNotas() {
       const tbody = document.getElementById('tablaCuerpo');
       tbody.innerHTML = '<tr><td colspan="5" class="text-center py-3">Cargando...</td></tr>';
@@ -115,6 +198,7 @@
       `).join('');
     }
 
+    // --- Guardar Registro ---
     async function guardarCalificacion(e) {
       e.preventDefault();
       const btn = document.getElementById('btnGuardar');
@@ -141,7 +225,15 @@
       btn.innerText = 'Guardar Registro';
     }
 
-    document.addEventListener('DOMContentLoaded', cargarNotas);
+    // Escuchar cambios de autenticación
+    supabaseClient.auth.onAuthStateChange((_event, _session) => {
+      verificarSesion();
+    });
+
+    document.addEventListener('DOMContentLoaded', verificarSesion);
+  </script>
+</body>
+</html>DOMContentLoaded', cargarNotas);
   </script>
 </body>
 </html>
