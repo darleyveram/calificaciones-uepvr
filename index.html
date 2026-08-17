@@ -6,101 +6,106 @@
   <title>Sistema de Calificaciones - UEPVR</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    .input-nota { width: 75px; text-align: center; }
+    .col-prom { background-color: #f8f9fa; font-weight: bold; text-align: center; }
+    th { vertical-align: middle; text-align: center; font-size: 0.85rem; }
+    td { vertical-align: middle; }
+  </style>
 </head>
-<body class="bg-light py-4">
+<body class="bg-light py-3">
 
-  <!-- ================= VISTA DE LOGIN ================= -->
-  <div class="container" id="seccionLogin" style="max-width: 450px; margin-top: 50px;">
-    <div class="card shadow-sm border-0">
+  <!-- VISTA LOGIN -->
+  <div class="container" id="seccionLogin" style="max-width: 420px; margin-top: 60px;">
+    <div class="card shadow border-0">
       <div class="card-header bg-primary text-white text-center py-3">
         <h5 class="mb-0 fw-bold">UEP Vicente Rocafuerte</h5>
         <small>Portal Docente</small>
       </div>
       <div class="card-body p-4">
-        <form id="formLogin" onsubmit="iniciarSesion(event)">
+        <form onsubmit="iniciarSesion(event)">
           <div class="mb-3">
             <label class="form-label">Correo institucional</label>
             <input type="email" id="loginEmail" class="form-control" placeholder="docente@uepvr.edu.ec" required>
           </div>
           <div class="mb-3">
             <label class="form-label">Contraseña</label>
-            <input type="password" id="loginPassword" class="form-control" placeholder="••••••••" required>
+            <input type="password" id="loginPassword" class="form-control" required>
           </div>
           <div id="loginError" class="alert alert-danger py-2 d-none" role="alert"></div>
-          <button type="submit" class="btn btn-primary w-100 fw-semibold" id="btnLogin">
-            Ingresar al Sistema
-          </button>
+          <button type="submit" class="btn btn-primary w-100 fw-bold" id="btnLogin">Ingresar</button>
         </form>
       </div>
     </div>
   </div>
 
-  <!-- ================= VISTA PRINCIPAL (CALIFICACIONES) ================= -->
-  <div class="container d-none" id="seccionApp" style="max-width: 900px;">
+  <!-- VISTA PRINCIPAL (SÁBANA DE CALIFICACIONES) -->
+  <div class="container-fluid px-4 d-none" id="seccionApp">
     
     <!-- Barra Superior -->
-    <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
+    <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
       <div>
-        <h4 class="fw-bold text-primary mb-0">UEP Vicente Rocafuerte</h4>
+        <h4 class="fw-bold text-primary mb-0">Unidad Educativa Particular "VICENTE ROCAFUERTE"</h4>
         <small class="text-muted" id="usuarioConectado"></small>
       </div>
       <button class="btn btn-outline-danger btn-sm" onclick="cerrarSesion()">Cerrar Sesión</button>
     </div>
 
-    <!-- Formulario de Registro -->
-    <div class="card shadow-sm mb-4">
-      <div class="card-header bg-primary text-white">
-        <h5 class="mb-0">Registrar Calificación</h5>
-      </div>
-      <div class="card-body">
-        <form id="formNotas" onsubmit="guardarCalificacion(event)">
-          <div class="row g-3">
-            <div class="col-md-6">
-              <label class="form-label">Nombre del Estudiante</label>
-              <input type="text" id="estudiante" class="form-control" placeholder="Ej. Juan Pérez" required>
-            </div>
-            <div class="col-md-6">
-              <label class="form-label">Materia / Asignatura</label>
-              <input type="text" id="materia" class="form-control" placeholder="Ej. Matemáticas" required>
-            </div>
-            <div class="col-md-3">
-              <label class="form-label">Parcial 1 (0-10)</label>
-              <input type="number" id="parcial1" class="form-control" step="0.01" min="0" max="10" placeholder="0.00" required>
-            </div>
-            <div class="col-md-3">
-              <label class="form-label">Parcial 2 (0-10)</label>
-              <input type="number" id="parcial2" class="form-control" step="0.01" min="0" max="10" placeholder="0.00" required>
-            </div>
-            <div class="col-md-6 d-flex align-items-end">
-              <button type="submit" class="btn btn-success w-100 fw-semibold" id="btnGuardar">
-                Guardar Registro
-              </button>
-            </div>
+    <!-- Barra de Filtros y Asignación -->
+    <div class="card shadow-sm mb-3">
+      <div class="card-body py-2">
+        <div class="row g-3 align-items-center">
+          <div class="col-md-4">
+            <label class="form-label mb-1 fw-semibold">Asignatura / Curso asignado:</label>
+            <select id="selectAsignacion" class="form-select form-select-sm" onchange="cargarPlanilla()">
+              <option value="">Seleccione...</option>
+            </select>
           </div>
-        </form>
+          <div class="col-md-2">
+            <label class="form-label mb-1 fw-semibold">Trimestre:</label>
+            <select id="selectTrimestre" class="form-select form-select-sm" onchange="cargarPlanilla()">
+              <option value="1">Trimestre 1</option>
+              <option value="2">Trimestre 2</option>
+              <option value="3">Trimestre 3</option>
+            </select>
+          </div>
+          <div class="col-md-6 text-end pt-3">
+            <button class="btn btn-success btn-sm px-4 fw-bold" id="btnGuardarTodo" onclick="guardarPlanilla()">
+              💾 Guardar Calificaciones
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- Tabla de Calificaciones -->
+    <!-- Tabla / Sábana de Notas -->
     <div class="card shadow-sm">
-      <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
-        <h6 class="mb-0">Listado de Notas</h6>
-        <button class="btn btn-sm btn-outline-light" onclick="cargarNotas()">Actualizar</button>
-      </div>
       <div class="card-body p-0">
         <div class="table-responsive">
-          <table class="table table-striped table-hover mb-0">
-            <thead class="table-light">
+          <table class="table table-bordered table-sm mb-0">
+            <thead class="table-dark">
               <tr>
-                <th>Estudiante</th>
-                <th>Materia</th>
-                <th class="text-center">P1</th>
-                <th class="text-center">P2</th>
-                <th class="text-center">Promedio</th>
+                <th rowspan="2" style="width: 40px;">N°</th>
+                <th rowspan="2">Nómina del Estudiante</th>
+                <th colspan="3" class="bg-primary">PARCIAL 1 (35%)</th>
+                <th colspan="3" class="bg-info text-dark">PARCIAL 2 (35%)</th>
+                <th rowspan="2" style="width: 80px;">Examen (30%)</th>
+                <th rowspan="2" class="bg-warning text-dark" style="width: 85px;">Prom. Trimestre</th>
+                <th rowspan="2" style="width: 70px;">Comp.</th>
+              </tr>
+              <tr>
+                <!-- Parcial 1 -->
+                <th style="font-size: 0.75rem;">Ins. 1</th>
+                <th style="font-size: 0.75rem;">Ins. 2</th>
+                <th style="font-size: 0.75rem;">Total P1</th>
+                <!-- Parcial 2 -->
+                <th style="font-size: 0.75rem;">Ins. 1</th>
+                <th style="font-size: 0.75rem;">Ins. 2</th>
+                <th style="font-size: 0.75rem;">Total P2</th>
               </tr>
             </thead>
             <tbody id="tablaCuerpo">
-              <tr><td colspan="5" class="text-center py-3">Cargando datos...</td></tr>
+              <tr><td colspan="10" class="text-center py-4 text-muted">Seleccione una asignatura para cargar la nómina.</td></tr>
             </tbody>
           </table>
         </div>
@@ -112,28 +117,28 @@
   <script>
     const SUPABASE_URL = 'https://sbomuqwntosvdsojlfyr.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNib211cXdudG9zdmRzb2psZnlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY5Mjk5NzcsImV4cCI6MjEwMjUwNTk3N30.WLgWyVOWVieC-4XjnkZFAKEqARKszvLpVqiAoGHdUU8';
-
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // --- Control de Sesión y Vistas ---
+    let asignacionesDocente = [];
+    let listaEstudiantes = [];
+
+    // --- Autenticación ---
     async function verificarSesion() {
       const { data: { session } } = await supabaseClient.auth.getSession();
-      
-      const seccionLogin = document.getElementById('seccionLogin');
-      const seccionApp = document.getElementById('seccionApp');
+      const loginView = document.getElementById('seccionLogin');
+      const appView = document.getElementById('seccionApp');
 
       if (session) {
-        seccionLogin.classList.add('d-none');
-        seccionApp.classList.remove('d-none');
+        loginView.classList.add('d-none');
+        appView.classList.remove('d-none');
         document.getElementById('usuarioConectado').innerText = `Docente: ${session.user.email}`;
-        cargarNotas();
+        await cargarAsignaciones();
       } else {
-        seccionLogin.classList.remove('d-none');
-        seccionApp.classList.add('d-none');
+        loginView.classList.remove('d-none');
+        appView.classList.add('d-none');
       }
     }
 
-    // --- Iniciar Sesión ---
     async function iniciarSesion(e) {
       e.preventDefault();
       const btn = document.getElementById('btnLogin');
@@ -145,90 +150,184 @@
       const email = document.getElementById('loginEmail').value.trim();
       const password = document.getElementById('loginPassword').value;
 
-      const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
-
+      const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
       if (error) {
-        errorDiv.innerText = 'Credenciales incorrectas: ' + error.message;
+        errorDiv.innerText = error.message;
         errorDiv.classList.remove('d-none');
         btn.disabled = false;
-        btn.innerText = 'Ingresar al Sistema';
+        btn.innerText = 'Ingresar';
       } else {
-        btn.disabled = false;
-        btn.innerText = 'Ingresar al Sistema';
         verificarSesion();
       }
     }
 
-    // --- Cerrar Sesión ---
     async function cerrarSesion() {
       await supabaseClient.auth.signOut();
       verificarSesion();
     }
 
-    // --- Cargar Notas ---
-    async function cargarNotas() {
-      const tbody = document.getElementById('tablaCuerpo');
-      tbody.innerHTML = '<tr><td colspan="5" class="text-center py-3">Cargando...</td></tr>';
-
+    // --- Cargar Cursos y Materias del Docente ---
+    async function cargarAsignaciones() {
       const { data, error } = await supabaseClient
-        .from('calificaciones')
-        .select('*')
-        .order('id', { ascending: false });
+        .from('curso_materia_docente')
+        .select(`
+          id,
+          curso_id,
+          cursos (id, nombre),
+          materias (id, nombre)
+        `);
 
-      if (error) {
-        tbody.innerHTML = `<tr><td colspan="5" class="text-center text-danger py-3">Error: ${error.message}</td></tr>`;
-        return;
+      if (!error && data) {
+        asignacionesDocente = data;
+        const select = document.getElementById('selectAsignacion');
+        select.innerHTML = '<option value="">Seleccione...</option>' + 
+          data.map(a => `<option value="${a.id}" data-curso="${a.curso_id}">${a.cursos.nombre} - ${a.materias.nombre}</option>`).join('');
       }
-
-      if (data.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-3">No hay registros ingresados.</td></tr>';
-        return;
-      }
-
-      tbody.innerHTML = data.map(item => `
-        <tr>
-          <td>${item.estudiante}</td>
-          <td>${item.materia}</td>
-          <td class="text-center">${parseFloat(item.parcial_1).toFixed(2)}</td>
-          <td class="text-center">${parseFloat(item.parcial_2).toFixed(2)}</td>
-          <td class="text-center fw-bold ${item.promedio >= 7 ? 'text-success' : 'text-danger'}">
-            ${parseFloat(item.promedio).toFixed(2)}
-          </td>
-        </tr>
-      `).join('');
     }
 
-    // --- Guardar Registro ---
-    async function guardarCalificacion(e) {
-      e.preventDefault();
-      const btn = document.getElementById('btnGuardar');
+    // --- Cargar Nómina y Notas ---
+    async function cargarPlanilla() {
+      const asignacionId = document.getElementById('selectAsignacion').value;
+      const trimestre = parseInt(document.getElementById('selectTrimestre').value);
+      const tbody = document.getElementById('tablaCuerpo');
+
+      if (!asignacionId) {
+        tbody.innerHTML = '<tr><td colspan="10" class="text-center py-4 text-muted">Seleccione una asignatura.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = '<tr><td colspan="10" class="text-center py-4">Cargando nómina de estudiantes...</td></tr>';
+      
+      const asignacion = asignacionesDocente.find(a => a.id == asignacionId);
+      
+      // Obtener estudiantes del curso
+      const { data: estData } = await supabaseClient
+        .from('estudiantes')
+        .select('*')
+        .eq('curso_id', asignacion.curso_id)
+        .order('numero_lista', { ascending: true });
+
+      listaEstudiantes = estData || [];
+
+      // Obtener notas existentes
+      const { data: notasData } = await supabaseClient
+        .from('notas_trimestre')
+        .select('*')
+        .eq('asignacion_id', asignacionId)
+        .eq('trimestre', trimestre);
+
+      const notasMap = {};
+      (notasData || []).forEach(n => { notasMap[n.estudiante_id] = n; });
+
+      // Renderizar tabla
+      tbody.innerHTML = listaEstudiantes.map((est, idx) => {
+        const n = notasMap[est.id] || {};
+        const p1_i1 = n.p1_insumo1 ?? '';
+        const p1_i2 = n.p1_insumo2 ?? '';
+        const p2_i1 = n.p2_insumo1 ?? '';
+        const p2_i2 = n.p2_insumo2 ?? '';
+        const examen = n.examen ?? '';
+        const comp = n.comportamiento || 'A';
+
+        return `
+          <tr data-estudiante-id="${est.id}">
+            <td class="text-center fw-semibold">${idx + 1}</td>
+            <td>${est.nombres}</td>
+            <!-- Parcial 1 -->
+            <td><input type="number" step="0.01" min="0" max="10" class="form-control form-control-sm input-nota p1-i1" value="${p1_i1}" oninput="calcularFila(this)"></td>
+            <td><input type="number" step="0.01" min="0" max="10" class="form-control form-control-sm input-nota p1-i2" value="${p1_i2}" oninput="calcularFila(this)"></td>
+            <td class="col-prom p1-total">0.00</td>
+            <!-- Parcial 2 -->
+            <td><input type="number" step="0.01" min="0" max="10" class="form-control form-control-sm input-nota p2-i1" value="${p2_i1}" oninput="calcularFila(this)"></td>
+            <td><input type="number" step="0.01" min="0" max="10" class="form-control form-control-sm input-nota p2-i2" value="${p2_i2}" oninput="calcularFila(this)"></td>
+            <td class="col-prom p2-total">0.00</td>
+            <!-- Examen -->
+            <td><input type="number" step="0.01" min="0" max="10" class="form-control form-control-sm input-nota examen" value="${examen}" oninput="calcularFila(this)"></td>
+            <!-- Promedio Final Trimestre -->
+            <td class="col-prom prom-trimestre text-primary">0.00</td>
+            <!-- Comportamiento -->
+            <td>
+              <select class="form-select form-select-sm text-center comp" style="width: 60px;">
+                <option value="A" ${comp==='A'?'selected':''}>A</option>
+                <option value="B" ${comp==='B'?'selected':''}>B</option>
+                <option value="C" ${comp==='C'?'selected':''}>C</option>
+                <option value="D" ${comp==='D'?'selected':''}>D</option>
+                <option value="E" ${comp==='E'?'selected':''}>E</option>
+              </select>
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      // Recalcular todos los valores iniciales
+      document.querySelectorAll('#tablaCuerpo tr').forEach(fila => calcularFila(fila));
+    }
+
+    // --- Cálculos Matemáticos según Rúbrica Ministerial ---
+    function calcularFila(elem) {
+      const tr = elem.closest('tr');
+      const p1_i1 = parseFloat(tr.querySelector('.p1-i1').value) || 0;
+      const p1_i2 = parseFloat(tr.querySelector('.p1-i2').value) || 0;
+      const p2_i1 = parseFloat(tr.querySelector('.p2-i1').value) || 0;
+      const p2_i2 = parseFloat(tr.querySelector('.p2-i2').value) || 0;
+      const ex = parseFloat(tr.querySelector('.examen').value) || 0;
+
+      const p1_tot = (p1_i1 + p1_i2) / 2;
+      const p2_tot = (p2_i1 + p2_i2) / 2;
+      const prom_trim = (p1_tot * 0.35) + (p2_tot * 0.35) + (ex * 0.30);
+
+      tr.querySelector('.p1-total').innerText = p1_tot.toFixed(2);
+      tr.querySelector('.p2-total').innerText = p2_tot.toFixed(2);
+      tr.querySelector('.prom-trimestre').innerText = prom_trim.toFixed(2);
+    }
+
+    // --- Guardado Masivo en Supabase (Upsert) ---
+    async function guardarPlanilla() {
+      const asignacionId = document.getElementById('selectAsignacion').value;
+      const trimestre = parseInt(document.getElementById('selectTrimestre').value);
+      const btn = document.getElementById('btnGuardarTodo');
+
+      if (!asignacionId) {
+        alert('Seleccione una asignatura.');
+        return;
+      }
+
       btn.disabled = true;
       btn.innerText = 'Guardando...';
 
-      const estudiante = document.getElementById('estudiante').value.trim();
-      const materia = document.getElementById('materia').value.trim();
-      const p1 = parseFloat(document.getElementById('parcial1').value);
-      const p2 = parseFloat(document.getElementById('parcial2').value);
+      const filas = document.querySelectorAll('#tablaCuerpo tr');
+      const payload = [];
+
+      filas.forEach(tr => {
+        const estId = tr.getAttribute('data-estudiante-id');
+        if (estId) {
+          payload.push({
+            asignacion_id: parseInt(asignacionId),
+            estudiante_id: parseInt(estId),
+            trimestre: trimestre,
+            p1_insumo1: parseFloat(tr.querySelector('.p1-i1').value) || 0,
+            p1_insumo2: parseFloat(tr.querySelector('.p1-i2').value) || 0,
+            p2_insumo1: parseFloat(tr.querySelector('.p2-i1').value) || 0,
+            p2_insumo2: parseFloat(tr.querySelector('.p2-i2').value) || 0,
+            examen: parseFloat(tr.querySelector('.examen').value) || 0,
+            comportamiento: tr.querySelector('.comp').value
+          });
+        }
+      });
 
       const { error } = await supabaseClient
-        .from('calificaciones')
-        .insert([{ estudiante, materia, parcial_1: p1, parcial_2: p2 }]);
+        .from('notas_trimestre')
+        .upsert(payload, { onConflict: 'asignacion_id,estudiante_id,trimestre' });
 
       if (error) {
         alert('Error al guardar: ' + error.message);
       } else {
-        document.getElementById('formNotas').reset();
-        await cargarNotas();
+        alert('¡Calificaciones guardadas exitosamente!');
       }
 
       btn.disabled = false;
-      btn.innerText = 'Guardar Registro';
+      btn.innerText = '💾 Guardar Calificaciones';
     }
-
-    // Escuchar cambios de autenticación
-    supabaseClient.auth.onAuthStateChange((_event, _session) => {
-      verificarSesion();
-    });
 
     document.addEventListener('DOMContentLoaded', verificarSesion);
   </script>
