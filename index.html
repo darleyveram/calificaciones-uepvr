@@ -8,18 +8,58 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     th, td { font-size: 0.80rem; vertical-align: middle; text-align: center; }
-    .col-nombre { text-align: left !important; min-width: 240px; font-weight: 500; }
-    .input-act { width: 62px; text-align: center; padding: 2px 4px; }
-    .select-act { font-size: 0.72rem; padding: 2px; }
-    .bg-insumo1 { background-color: #0099ff !important; color: #fff; }
-    .bg-insumo2 { background-color: #00b0f0 !important; color: #fff; }
-    .bg-prom-ins { background-color: #ffff00 !important; font-weight: bold; }
-    .bg-nota-final { background-color: #00b050 !important; color: #fff; font-weight: bold; }
+    .col-nombre { text-align: left !important; min-width: 250px; font-weight: 600; }
+    
+    /* Contenedor de encabezado de actividad estilo Excel */
+    .th-actividad {
+      width: 75px;
+      min-width: 75px;
+      max-width: 85px;
+      height: 140px;
+      padding: 4px 2px !important;
+      position: relative;
+      background-color: #f1f5f9;
+    }
+    
+    .select-act-custom {
+      font-size: 0.70rem;
+      width: 100%;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      padding: 2px;
+      background-color: #ffffff;
+      font-weight: 500;
+      cursor: pointer;
+    }
+
+    .btn-del-col {
+      font-size: 0.65rem;
+      padding: 0 4px;
+      line-height: 1;
+      margin-top: 2px;
+      color: #dc3545;
+      border: none;
+      background: transparent;
+    }
+    .btn-del-col:hover { color: #a71d2a; font-weight: bold; }
+
+    .input-act { 
+      width: 60px; 
+      margin: 0 auto;
+      text-align: center; 
+      font-weight: 500;
+      padding: 2px 4px; 
+    }
+
+    .bg-insumo1 { background-color: #0d6efd !important; color: #fff; }
+    .bg-insumo2 { background-color: #0dcaf0 !important; color: #000; }
+    .bg-prom-ins { background-color: #ffeb3b !important; font-weight: bold; color: #000; }
+    .bg-nota-final { background-color: #198754 !important; color: #fff; font-weight: bold; }
   </style>
 </head>
 <body class="bg-light py-3">
 
-  <!-- LOGIN -->
+  <!-- VISTA DE LOGIN -->
   <div class="container" id="seccionLogin" style="max-width: 420px; margin-top: 60px;">
     <div class="card shadow border-0">
       <div class="card-header bg-primary text-white text-center py-3">
@@ -54,19 +94,19 @@
       <button class="btn btn-outline-danger btn-sm" onclick="cerrarSesion()">Cerrar Sesión</button>
     </div>
 
-    <!-- Filtros de Asignación y Parciales -->
+    <!-- Barra de Filtros -->
     <div class="card shadow-sm mb-3">
       <div class="card-body py-2">
         <div class="row g-2 align-items-center">
           <div class="col-md-4">
             <label class="form-label mb-1 fw-bold">Curso / Materia:</label>
-            <select id="selectAsignacion" class="form-select form-select-sm" onchange="cargarSabana()">
+            <select id="selectAsignacion" class="form-select form-select-sm" onchange="cambiarFiltro()">
               <option value="">Seleccione...</option>
             </select>
           </div>
           <div class="col-md-2">
             <label class="form-label mb-1 fw-bold">Trimestre:</label>
-            <select id="selectTrimestre" class="form-select form-select-sm" onchange="cargarSabana()">
+            <select id="selectTrimestre" class="form-select form-select-sm" onchange="cambiarFiltro()">
               <option value="1">Trimestre 1</option>
               <option value="2">Trimestre 2</option>
               <option value="3">Trimestre 3</option>
@@ -74,37 +114,36 @@
           </div>
           <div class="col-md-2">
             <label class="form-label mb-1 fw-bold">Parcial:</label>
-            <select id="selectParcial" class="form-select form-select-sm" onchange="cargarSabana()">
+            <select id="selectParcial" class="form-select form-select-sm" onchange="cambiarFiltro()">
               <option value="1">Parcial 1</option>
               <option value="2">Parcial 2</option>
             </select>
           </div>
           <div class="col-md-4 text-end pt-3">
-            <button class="btn btn-outline-primary btn-sm me-1" onclick="agregarActividad(1)">+ Actividad Ins. 1</button>
-            <button class="btn btn-outline-info btn-sm me-2 text-dark" onclick="agregarActividad(2)">+ Actividad Ins. 2</button>
-            <button class="btn btn-success btn-sm px-3 fw-bold" id="btnGuardar" onclick="guardarSabana()">💾 Guardar Sábana</button>
+            <button class="btn btn-outline-primary btn-sm me-1 btn-control" onclick="agregarActividad(1)" disabled>+ Actividad Ins. 1</button>
+            <button class="btn btn-outline-info btn-sm me-2 text-dark btn-control" onclick="agregarActividad(2)" disabled>+ Actividad Ins. 2</button>
+            <button class="btn btn-success btn-sm px-3 fw-bold btn-control" id="btnGuardar" onclick="guardarSabana()" disabled>💾 Guardar Sábana</button>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Tabla Sábana de Notas -->
+    <!-- Sábana de Notas -->
     <div class="card shadow-sm">
       <div class="card-body p-0">
         <div class="table-responsive">
           <table class="table table-bordered table-sm mb-0 align-middle">
             <thead>
-              <tr class="table-light">
-                <th rowspan="3" style="width: 35px;">No.</th>
-                <th rowspan="3" class="col-nombre text-center">Apellidos y Nombres</th>
+              <tr>
+                <th rowspan="2" style="width: 35px;">No.</th>
+                <th rowspan="2" class="col-nombre text-center">Nómina del Estudiante</th>
                 <th id="thInsumo1Principal" class="bg-insumo1">INSUMO 1 (Actividades Individuales)</th>
-                <th rowspan="3" class="bg-prom-ins" style="width: 70px;">Promedio Insumo 1</th>
+                <th rowspan="2" class="bg-prom-ins" style="width: 75px;">Promedio Insumo 1</th>
                 <th id="thInsumo2Principal" class="bg-insumo2">INSUMO 2 (Actividades Grupales)</th>
-                <th rowspan="3" class="bg-prom-ins" style="width: 70px;">Promedio Insumo 2</th>
-                <th rowspan="3" class="bg-nota-final" style="width: 75px;">Nota Parcial</th>
+                <th rowspan="2" class="bg-prom-ins" style="width: 75px;">Promedio Insumo 2</th>
+                <th rowspan="2" class="bg-nota-final" style="width: 80px;">Nota Parcial</th>
               </tr>
-              <tr id="trNumeracionActividades" class="bg-light"></tr>
-              <tr id="trSelectoresActividades" class="bg-light"></tr>
+              <tr id="trEncabezadosActividades"></tr>
             </thead>
             <tbody id="tablaCuerpo">
               <tr><td colspan="7" class="py-4 text-muted text-center">Seleccione Curso y Materia para cargar la sábana.</td></tr>
@@ -124,10 +163,7 @@
     let catalogo = [];
     let asignaciones = [];
     let estudiantes = [];
-    let configActividades = {
-      insumo1: ['Actuación en clases', 'Participación en Clases', 'Actuación en clases', 'Lección en clases'],
-      insumo2: ['Colaboración en el Aula']
-    };
+    let configActividades = { insumo1: [], insumo2: [] };
 
     // --- Autenticación ---
     async function verificarSesion() {
@@ -162,10 +198,10 @@
       verificarSesion();
     }
 
-    // --- Cargar Catálogo de Actividades del Administrador ---
+    // --- Catálogo y Asignaciones ---
     async function cargarCatalogo() {
       const { data } = await supabaseClient.from('catalogo_actividades').select('nombre').order('nombre');
-      catalogo = data ? data.map(d => d.nombre) : [];
+      catalogo = data && data.length > 0 ? data.map(d => d.nombre) : ['Deber', 'Lección en clases', 'Actuación en clases', 'Trabajo Grupal'];
     }
 
     async function cargarAsignaciones() {
@@ -178,74 +214,133 @@
         asignaciones.map(a => `<option value="${a.id}" data-curso="${a.curso_id}">${a.cursos.nombre} - ${a.materias.nombre}</option>`).join('');
     }
 
-    // --- Renderizar Encabezados Dinámicos ---
-    function renderizarEncabezados() {
-      document.getElementById('thInsumo1Principal').colSpan = Math.max(configActividades.insumo1.length, 1);
-      document.getElementById('thInsumo2Principal').colSpan = Math.max(configActividades.insumo2.length, 1);
-
-      const trNum = document.getElementById('trNumeracionActividades');
-      const trSel = document.getElementById('trSelectoresActividades');
-
-      // Numeración
-      let numHtml = '';
-      configActividades.insumo1.forEach((_, i) => numHtml += `<th class="bg-light">${i+1}</th>`);
-      configActividades.insumo2.forEach((_, i) => numHtml += `<th class="bg-light">${i+1}</th>`);
-      trNum.innerHTML = numHtml;
-
-      // Selectores de actividades del catálogo
-      let selHtml = '';
-      configActividades.insumo1.forEach((actSeleccionada, i) => {
-        selHtml += `
-          <th>
-            <select class="form-select select-act" onchange="configActividades.insumo1[${i}]=this.value">
-              ${catalogo.map(c => `<option value="${c}" ${c === actSeleccionada ? 'selected' : ''}>${c}</option>`).join('')}
-            </select>
-          </th>`;
-      });
-      configActividades.insumo2.forEach((actSeleccionada, i) => {
-        selHtml += `
-          <th>
-            <select class="form-select select-act" onchange="configActividades.insumo2[${i}]=this.value">
-              ${catalogo.map(c => `<option value="${c}" ${c === actSeleccionada ? 'selected' : ''}>${c}</option>`).join('')}
-            </select>
-          </th>`;
-      });
-      trSel.innerHTML = selHtml;
-    }
-
-    // --- Agregar Columnas de Actividades ---
-    function agregarActividad(insumo) {
-      if (insumo === 1) {
-        configActividades.insumo1.push(catalogo[0] || 'Deber');
-      } else {
-        configActividades.insumo2.push(catalogo[0] || 'Trabajo Grupal');
+    function cambiarFiltro() {
+      const asigId = document.getElementById('selectAsignacion').value;
+      const controles = document.querySelectorAll('.btn-control');
+      if (!asigId) {
+        controles.forEach(b => b.disabled = true);
+        document.getElementById('tablaCuerpo').innerHTML = '<tr><td colspan="7" class="py-4 text-muted text-center">Seleccione Curso y Materia para cargar la sábana.</td></tr>';
+        document.getElementById('trEncabezadosActividades').innerHTML = '';
+        return;
       }
-      renderizarEncabezados();
+      controles.forEach(b => b.disabled = false);
       cargarSabana();
     }
 
-    // --- Cargar Datos de la Sábana ---
+    // --- Renderizado de Encabezados ---
+    function renderizarEncabezados() {
+      const colIns1 = Math.max(configActividades.insumo1.length, 1);
+      const colIns2 = Math.max(configActividades.insumo2.length, 1);
+
+      document.getElementById('thInsumo1Principal').colSpan = colIns1;
+      document.getElementById('thInsumo2Principal').colSpan = colIns2;
+
+      const tr = document.getElementById('trEncabezadosActividades');
+      let html = '';
+
+      // Insumo 1
+      if (configActividades.insumo1.length === 0) {
+        html += '<th class="text-muted fst-italic" style="font-size:0.75rem;">Sin actividades</th>';
+      } else {
+        configActividades.insumo1.forEach((act, i) => {
+          html += `
+            <th class="th-actividad">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="badge bg-primary">${i+1}</span>
+                <button type="button" class="btn-del-col" onclick="eliminarActividad(1, ${i})" title="Eliminar actividad">✕</button>
+              </div>
+              <select class="select-act-custom" onchange="actualizarNombreActividad(1, ${i}, this.value)">
+                ${catalogo.map(c => `<option value="${c}" ${c === act ? 'selected' : ''}>${c}</option>`).join('')}
+              </select>
+            </th>`;
+        });
+      }
+
+      // Insumo 2
+      if (configActividades.insumo2.length === 0) {
+        html += '<th class="text-muted fst-italic" style="font-size:0.75rem;">Sin actividades</th>';
+      } else {
+        configActividades.insumo2.forEach((act, i) => {
+          html += `
+            <th class="th-actividad">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="badge bg-info text-dark">${i+1}</span>
+                <button type="button" class="btn-del-col" onclick="eliminarActividad(2, ${i})" title="Eliminar actividad">✕</button>
+              </div>
+              <select class="select-act-custom" onchange="actualizarNombreActividad(2, ${i}, this.value)">
+                ${catalogo.map(c => `<option value="${c}" ${c === act ? 'selected' : ''}>${c}</option>`).join('')}
+              </select>
+            </th>`;
+        });
+      }
+
+      tr.innerHTML = html;
+    }
+
+    function actualizarNombreActividad(insumo, index, nuevoValor) {
+      if (insumo === 1) configActividades.insumo1[index] = nuevoValor;
+      else configActividades.insumo2[index] = nuevoValor;
+    }
+
+    function agregarActividad(insumo) {
+      const asigId = document.getElementById('selectAsignacion').value;
+      if (!asigId) return;
+
+      if (insumo === 1) configActividades.insumo1.push(catalogo[0] || 'Actuación en clases');
+      else configActividades.insumo2.push(catalogo[0] || 'Trabajo Grupal');
+
+      renderizarEncabezados();
+      renderizarFilasEstudiantes();
+    }
+
+    function eliminarActividad(insumo, index) {
+      if (insumo === 1) configActividades.insumo1.splice(index, 1);
+      else configActividades.insumo2.splice(index, 1);
+
+      renderizarEncabezados();
+      renderizarFilasEstudiantes();
+    }
+
+    // --- Cargar Sábana desde Supabase ---
     async function cargarSabana() {
       const asigId = document.getElementById('selectAsignacion').value;
       const trimestre = parseInt(document.getElementById('selectTrimestre').value);
       const parcial = parseInt(document.getElementById('selectParcial').value);
       const tbody = document.getElementById('tablaCuerpo');
 
-      if (!asigId) {
-        tbody.innerHTML = '<tr><td colspan="7" class="py-4 text-muted text-center">Seleccione Curso y Materia.</td></tr>';
-        return;
-      }
-
-      renderizarEncabezados();
-      tbody.innerHTML = '<tr><td colspan="20" class="py-4 text-center">Cargando sábana de calificaciones...</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="20" class="py-4 text-center">Cargando datos del período...</td></tr>';
 
       const asig = asignaciones.find(a => a.id == asigId);
 
-      // 1. Cargar Estudiantes
-      const { data: estData } = await supabaseClient.from('estudiantes').select('*').eq('curso_id', asig.curso_id).order('numero_lista');
+      // 1. Obtener Configuración de Cabeceras
+      const { data: confData } = await supabaseClient
+        .from('config_parcial_cabeceras')
+        .select('*')
+        .eq('asignacion_id', asigId)
+        .eq('trimestre', trimestre)
+        .eq('parcial', parcial)
+        .maybeSingle();
+
+      if (confData) {
+        configActividades.insumo1 = confData.actividades_insumo1 || [];
+        configActividades.insumo2 = confData.actividades_insumo2 || [];
+      } else {
+        // Estructura base inicial por defecto
+        configActividades.insumo1 = ['Actuación en clases', 'Participación en Clases', 'Actuación en clases', 'Lección en clases'];
+        configActividades.insumo2 = ['Colaboración en el Aula'];
+      }
+
+      renderizarEncabezados();
+
+      // 2. Obtener Estudiantes
+      const { data: estData } = await supabaseClient
+        .from('estudiantes')
+        .select('*')
+        .eq('curso_id', asig.curso_id)
+        .order('numero_lista');
       estudiantes = estData || [];
 
-      // 2. Cargar Calificaciones existentes
+      // 3. Obtener Notas
       const { data: notasData } = await supabaseClient
         .from('notas_parcial_actividades')
         .select('*')
@@ -253,22 +348,38 @@
         .eq('trimestre', trimestre)
         .eq('parcial', parcial);
 
-      const notasMap = {};
-      (notasData || []).forEach(n => { notasMap[n.estudiante_id] = n; });
+      window.notasCargadasMap = {};
+      (notasData || []).forEach(n => { window.notasCargadasMap[n.estudiante_id] = n; });
 
-      // 3. Renderizar Filas
+      renderizarFilasEstudiantes();
+    }
+
+    // --- Renderizar Filas de Estudiantes ---
+    function renderizarFilasEstudiantes() {
+      const tbody = document.getElementById('tablaCuerpo');
+      const notasMap = window.notasCargadasMap || {};
+
+      if (estudiantes.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="20" class="py-4 text-center text-muted">No hay estudiantes registrados en este curso.</td></tr>';
+        return;
+      }
+
       tbody.innerHTML = estudiantes.map((est, idx) => {
         const rowData = notasMap[est.id] || {};
         const ins1Notas = rowData.insumo1_notas || [];
         const ins2Notas = rowData.insumo2_notas || [];
 
-        let inputsIns1 = configActividades.insumo1.map((_, i) => `
-          <td><input type="number" step="0.01" min="0" max="10" class="form-control form-control-sm input-act nota-i1" value="${ins1Notas[i] ?? ''}" oninput="calcularFila(this)"></td>
-        `).join('');
+        let inputsIns1 = configActividades.insumo1.length === 0 
+          ? '<td class="text-muted">-</td>'
+          : configActividades.insumo1.map((_, i) => `
+              <td><input type="number" step="0.01" min="0" max="10" class="form-control form-control-sm input-act nota-i1" value="${ins1Notas[i] !== undefined && ins1Notas[i] !== null ? ins1Notas[i] : ''}" oninput="validarYCalcular(this)"></td>
+            `).join('');
 
-        let inputsIns2 = configActividades.insumo2.map((_, i) => `
-          <td><input type="number" step="0.01" min="0" max="10" class="form-control form-control-sm input-act nota-i2" value="${ins2Notas[i] ?? ''}" oninput="calcularFila(this)"></td>
-        `).join('');
+        let inputsIns2 = configActividades.insumo2.length === 0 
+          ? '<td class="text-muted">-</td>'
+          : configActividades.insumo2.map((_, i) => `
+              <td><input type="number" step="0.01" min="0" max="10" class="form-control form-control-sm input-act nota-i2" value="${ins2Notas[i] !== undefined && ins2Notas[i] !== null ? ins2Notas[i] : ''}" oninput="validarYCalcular(this)"></td>
+            `).join('');
 
         return `
           <tr data-estudiante-id="${est.id}">
@@ -286,13 +397,22 @@
       document.querySelectorAll('#tablaCuerpo tr').forEach(fila => calcularFila(fila));
     }
 
-    // --- Cálculo en tiempo real por estudiante ---
-    function calcularFila(elem) {
-      const tr = elem.closest('tr');
+    // --- Validación de Notas (0 - 10) y Cálculo ---
+    function validarYCalcular(input) {
+      let val = parseFloat(input.value);
+      if (val > 10) input.value = 10;
+      if (val < 0) input.value = 0;
+      calcularFila(input.closest('tr'));
+    }
+
+    function calcularFila(tr) {
       if (!tr) return;
 
-      const notas1 = Array.from(tr.querySelectorAll('.nota-i1')).map(i => parseFloat(i.value)).filter(n => !isNaN(n));
-      const notas2 = Array.from(tr.querySelectorAll('.nota-i2')).map(i => parseFloat(i.value)).filter(n => !isNaN(n));
+      const inputs1 = Array.from(tr.querySelectorAll('.nota-i1'));
+      const inputs2 = Array.from(tr.querySelectorAll('.nota-i2'));
+
+      const notas1 = inputs1.map(i => parseFloat(i.value)).filter(n => !isNaN(n));
+      const notas2 = inputs2.map(i => parseFloat(i.value)).filter(n => !isNaN(n));
 
       const prom1 = notas1.length > 0 ? (notas1.reduce((a, b) => a + b, 0) / notas1.length) : 0;
       const prom2 = notas2.length > 0 ? (notas2.reduce((a, b) => a + b, 0) / notas2.length) : 0;
@@ -303,7 +423,7 @@
       tr.querySelector('.nota-parcial').innerText = totalParcial.toFixed(2);
     }
 
-    // --- Guardar Calificaciones y Actividades ---
+    // --- Guardar en Supabase ---
     async function guardarSabana() {
       const asigId = document.getElementById('selectAsignacion').value;
       const trimestre = parseInt(document.getElementById('selectTrimestre').value);
@@ -315,56 +435,67 @@
       btn.disabled = true;
       btn.innerText = 'Guardando...';
 
-      // 1. Guardar configuración de cabeceras de actividades
-      await supabaseClient.from('config_parcial_cabeceras').upsert({
-        asignacion_id: parseInt(asigId),
-        trimestre: trimestre,
-        parcial: parcial,
-        actividades_insumo1: configActividades.insumo1,
-        actividades_insumo2: configActividades.insumo2
-      }, { onConflict: 'asignacion_id,trimestre,parcial' });
-
-      // 2. Guardar calificaciones de cada estudiante
-      const filas = document.querySelectorAll('#tablaCuerpo tr');
-      const payload = [];
-
-      filas.forEach(tr => {
-        const estId = tr.getAttribute('data-estudiante-id');
-        if (estId) {
-          const notas1 = Array.from(tr.querySelectorAll('.nota-i1')).map(i => parseFloat(i.value) || 0);
-          const notas2 = Array.from(tr.querySelectorAll('.nota-i2')).map(i => parseFloat(i.value) || 0);
-          const prom1 = parseFloat(tr.querySelector('.prom-i1').innerText) || 0;
-          const prom2 = parseFloat(tr.querySelector('.prom-i2').innerText) || 0;
-          const totalParcial = parseFloat(tr.querySelector('.nota-parcial').innerText) || 0;
-
-          payload.push({
+      try {
+        // 1. Guardar Configuración de Cabeceras
+        const { error: errConf } = await supabaseClient
+          .from('config_parcial_cabeceras')
+          .upsert({
             asignacion_id: parseInt(asigId),
-            estudiante_id: parseInt(estId),
             trimestre: trimestre,
             parcial: parcial,
-            insumo1_notas: notas1,
-            insumo2_notas: notas2,
-            promedio_insumo1: prom1,
-            promedio_insumo2: prom2,
-            nota_parcial: totalParcial
-          });
-        }
-      });
+            actividades_insumo1: configActividades.insumo1,
+            actividades_insumo2: configActividades.insumo2
+          }, { onConflict: 'asignacion_id,trimestre,parcial' });
 
-      const { error } = await supabaseClient.from('notas_parcial_actividades').upsert(payload, {
-        onConflict: 'asignacion_id,estudiante_id,trimestre,parcial'
-      });
+        if (errConf) throw errConf;
 
-      if (error) {
-        alert('Error al guardar: ' + error.message);
-      } else {
-        alert('¡Sábana de calificaciones guardada correctamente!');
+        // 2. Guardar Notas de cada estudiante
+        const filas = document.querySelectorAll('#tablaCuerpo tr');
+        const payload = [];
+
+        filas.forEach(tr => {
+          const estId = tr.getAttribute('data-estudiante-id');
+          if (estId) {
+            const notas1 = Array.from(tr.querySelectorAll('.nota-i1')).map(i => i.value !== '' ? parseFloat(i.value) : 0);
+            const notas2 = Array.from(tr.querySelectorAll('.nota-i2')).map(i => i.value !== '' ? parseFloat(i.value) : 0);
+            const prom1 = parseFloat(tr.querySelector('.prom-i1').innerText) || 0;
+            const prom2 = parseFloat(tr.querySelector('.prom-i2').innerText) || 0;
+            const totalParcial = parseFloat(tr.querySelector('.nota-parcial').innerText) || 0;
+
+            payload.push({
+              asignacion_id: parseInt(asigId),
+              estudiante_id: parseInt(estId),
+              trimestre: trimestre,
+              parcial: parcial,
+              insumo1_notas: notas1,
+              insumo2_notas: notas2,
+              promedio_insumo1: prom1,
+              promedio_insumo2: prom2,
+              nota_parcial: totalParcial
+            });
+          }
+        });
+
+        const { error: errNotas } = await supabaseClient
+          .from('notas_parcial_actividades')
+          .upsert(payload, { onConflict: 'asignacion_id,estudiante_id,trimestre,parcial' });
+
+        if (errNotas) throw errNotas;
+
+        alert('¡Sábana guardada exitosamente!');
+        await cargarSabana(); // Recargar datos frescos
+      } catch (err) {
+        alert('Error al guardar: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerText = '💾 Guardar Sábana';
       }
-
-      btn.disabled = false;
-      btn.innerText = '💾 Guardar Sábana';
     }
 
+    document.addEventListener('DOMContentLoaded', verificarSesion);
+  </script>
+</body>
+</html>
     document.addEventListener('DOMContentLoaded', verificarSesion);
   </script>
 </body>
