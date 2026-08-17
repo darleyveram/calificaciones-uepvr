@@ -11,8 +11,8 @@
     .col-nombre { text-align: left !important; min-width: 250px; font-weight: 600; }
     
     .th-actividad {
-      width: 80px;
-      min-width: 80px;
+      width: 85px;
+      min-width: 85px;
       padding: 4px 2px !important;
       background-color: #f8fafc;
     }
@@ -35,11 +35,12 @@
       color: #dc3545;
       border: none;
       background: transparent;
+      cursor: pointer;
     }
     .btn-del-col:hover { color: #a71d2a; font-weight: bold; }
 
     .input-nota-app { 
-      width: 65px; 
+      width: 62px; 
       margin: 0 auto;
       text-align: center; 
       font-weight: 500;
@@ -91,7 +92,7 @@
       <button class="btn btn-outline-danger btn-sm" onclick="cerrarSesion()">Cerrar Sesión</button>
     </div>
 
-    <!-- Barra de Filtros -->
+    <!-- Filtros -->
     <div class="card shadow-sm mb-3">
       <div class="card-body py-2">
         <div class="row g-2 align-items-center">
@@ -121,10 +122,10 @@
           <div class="col-md-4 text-end pt-3" id="accionesParcial">
             <button class="btn btn-outline-primary btn-sm me-1 btn-control" onclick="agregarActividad(1)" disabled>+ Actividad Ins. 1</button>
             <button class="btn btn-outline-info btn-sm me-2 text-dark btn-control" onclick="agregarActividad(2)" disabled>+ Actividad Ins. 2</button>
-            <button class="btn btn-success btn-sm px-3 fw-bold btn-control" onclick="guardarDatos()" disabled>💾 Guardar</button>
+            <button class="btn btn-success btn-sm px-3 fw-bold btn-control" id="btnGuardarParcial" onclick="guardarDatos()" disabled>💾 Guardar</button>
           </div>
           <div class="col-md-4 text-end pt-3 d-none" id="accionesResumen">
-            <button class="btn btn-success btn-sm px-4 fw-bold btn-control" onclick="guardarDatos()" disabled>💾 Guardar Examen / Resumen</button>
+            <button class="btn btn-success btn-sm px-4 fw-bold btn-control" id="btnGuardarResumen" onclick="guardarDatos()" disabled>💾 Guardar Examen / Resumen</button>
           </div>
         </div>
       </div>
@@ -150,14 +151,14 @@
     let asignaciones = [];
     let estudiantes = [];
     let configActividades = { insumo1: [], insumo2: [] };
+    let notasActualesMemoria = {}; // { [estId]: { i1: [], i2: [] } }
 
-    // --- Limpieza total del estado en memoria y DOM ---
     function resetearEstadoAplicacion() {
       catalogo = [];
       asignaciones = [];
       estudiantes = [];
       configActividades = { insumo1: [], insumo2: [] };
-      window.notasCargadasMap = {};
+      notasActualesMemoria = {};
 
       const selectAsig = document.getElementById('selectAsignacion');
       if (selectAsig) selectAsig.innerHTML = '<option value="">Seleccione...</option>';
@@ -183,7 +184,6 @@
       document.getElementById('contenedorTabla').innerHTML = '<div class="py-4 text-muted text-center">Seleccione Curso y Materia para cargar la información.</div>';
     }
 
-    // --- Autenticación ---
     async function verificarSesion() {
       const { data: { session } } = await supabaseClient.auth.getSession();
       if (session) {
@@ -219,10 +219,9 @@
       verificarSesion();
     }
 
-    // --- Carga de Catálogo y Asignaciones ---
     async function cargarCatalogo() {
       const { data } = await supabaseClient.from('catalogo_actividades').select('nombre').order('nombre');
-      catalogo = data && data.length > 0 ? data.map(d => d.nombre) : ['Deber', 'Lección en clases', 'Actuación en clases', 'Trabajo Grupal'];
+      catalogo = data && data.length > 0 ? data.map(d => d.nombre) : ['Deber', 'Lección en clases', 'Actuación en clases', 'Trabajo Grupal', 'Colaboración en el Aula'];
     }
 
     async function cargarAsignaciones() {
@@ -275,16 +274,66 @@
     }
 
     // ==========================================
-    // VISTA 1: PARCIAL DETALLADO
+    // GESTIÓN DINÁMICA DE ACTIVIDADES (INSUMOS)
+    // ==========================================
+    function capturarNotasDeLaTabla() {
+      const filas = document.querySelectorAll('#tablaCuerpo tr');
+      filas.forEach(tr => {
+        const estId = tr.getAttribute('data-estudiante-id');
+        if (estId) {
+          const notas1 = Array.from(tr.querySelectorAll('.nota-i1')).map(i => i.value !== '' ? i.value : '');
+          const notas2 = Array.from(tr.querySelectorAll('.nota-i2')).map(i => i.value !== '' ? i.value : '');
+          notasActualesMemoria[estId] = { i1: notas1, i2: notas2 };
+        }
+      });
+    }
+
+    function agregarActividad(insumo) {
+      capturarNotasDeLaTabla();
+      if (insumo === 1) {
+        configActividades.insumo1.push(catalogo[0] || 'Actuación en clases');
+        Object.keys(notasActualesMemoria).forEach(k => {
+          if (!notasActualesMemoria[k].i1) notasActualesMemoria[k].i1 = [];
+          notasActualesMemoria[k].i1.push('');
+        });
+      } else {
+        configActividades.insumo2.push(catalogo[0] || 'Trabajo Grupal');
+        Object.keys(notasActualesMemoria).forEach(k => {
+          if (!notasActualesMemoria[k].i2) notasActualesMemoria[k].i2 = [];
+          notasActualesMemoria[k].i2.push('');
+        });
+      }
+      renderizarTablaParcial();
+    }
+
+    function eliminarActividad(insumo, index) {
+      capturarNotasDeLaTabla();
+      if (insumo === 1) {
+        configActividades.insumo1.splice(index, 1);
+        Object.keys(notasActualesMemoria).forEach(k => {
+          if (notasActualesMemoria[k].i1) notasActualesMemoria[k].i1.splice(index, 1);
+        });
+      } else {
+        configActividades.insumo2.splice(index, 1);
+        Object.keys(notasActualesMemoria).forEach(k => {
+          if (notasActualesMemoria[k].i2) notasActualesMemoria[k].i2.splice(index, 1);
+        });
+      }
+      renderizarTablaParcial();
+    }
+
+    // ==========================================
+    // CARGAR Y RENDERIZAR VISTA PARCIAL
     // ==========================================
     async function cargarVistaParcial(parcialNum) {
       const asigId = document.getElementById('selectAsignacion').value;
       const trimestre = parseInt(document.getElementById('selectTrimestre').value);
       const contenedor = document.getElementById('contenedorTabla');
-      contenedor.innerHTML = '<div class="py-4 text-center">Cargando sábana de calificaciones...</div>';
+      contenedor.innerHTML = '<div class="py-4 text-center">Cargando datos del parcial...</div>';
 
       const asig = asignaciones.find(a => a.id == asigId);
 
+      // 1. Obtener Cabeceras Guardadas
       const { data: confData } = await supabaseClient
         .from('config_parcial_cabeceras')
         .select('*')
@@ -296,9 +345,11 @@
       configActividades.insumo1 = confData?.actividades_insumo1 || ['Actuación en clases', 'Participación en Clases', 'Actuación en clases', 'Lección en clases'];
       configActividades.insumo2 = confData?.actividades_insumo2 || ['Colaboración en el Aula'];
 
+      // 2. Obtener Estudiantes
       const { data: estData } = await supabaseClient.from('estudiantes').select('*').eq('curso_id', asig.curso_id).order('numero_lista');
       estudiantes = estData || [];
 
+      // 3. Obtener Calificaciones
       const { data: notasData } = await supabaseClient
         .from('notas_parcial_actividades')
         .select('*')
@@ -306,33 +357,47 @@
         .eq('trimestre', trimestre)
         .eq('parcial', parcialNum);
 
-      const notasMap = {};
-      (notasData || []).forEach(n => { notasMap[n.estudiante_id] = n; });
+      notasActualesMemoria = {};
+      (notasData || []).forEach(n => {
+        notasActualesMemoria[n.estudiante_id] = {
+          i1: n.insumo1_notas || [],
+          i2: n.insumo2_notas || []
+        };
+      });
 
+      renderizarTablaParcial();
+    }
+
+    function renderizarTablaParcial() {
+      const contenedor = document.getElementById('contenedorTabla');
       const colIns1 = Math.max(configActividades.insumo1.length, 1);
       const colIns2 = Math.max(configActividades.insumo2.length, 1);
 
-      let thIns1 = configActividades.insumo1.map((act, i) => `
-        <th class="th-actividad">
-          <div class="d-flex justify-content-between align-items-center mb-1">
-            <span class="badge bg-primary">${i+1}</span>
-            <button type="button" class="btn-del-col" onclick="eliminarActividad(1, ${i})">✕</button>
-          </div>
-          <select class="select-act-custom" onchange="configActividades.insumo1[${i}]=this.value">
-            ${catalogo.map(c => `<option value="${c}" ${c === act ? 'selected' : ''}>${c}</option>`).join('')}
-          </select>
-        </th>`).join('');
+      let thIns1 = configActividades.insumo1.length === 0 
+        ? '<th class="text-muted fst-italic py-2" style="font-size:0.75rem;">Sin actividades</th>' 
+        : configActividades.insumo1.map((act, i) => `
+            <th class="th-actividad">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="badge bg-primary">${i+1}</span>
+                <button type="button" class="btn-del-col" onclick="eliminarActividad(1, ${i})" title="Quitar actividad">✕</button>
+              </div>
+              <select class="select-act-custom" onchange="configActividades.insumo1[${i}]=this.value">
+                ${catalogo.map(c => `<option value="${c}" ${c === act ? 'selected' : ''}>${c}</option>`).join('')}
+              </select>
+            </th>`).join('');
 
-      let thIns2 = configActividades.insumo2.map((act, i) => `
-        <th class="th-actividad">
-          <div class="d-flex justify-content-between align-items-center mb-1">
-            <span class="badge bg-info text-dark">${i+1}</span>
-            <button type="button" class="btn-del-col" onclick="eliminarActividad(2, ${i})">✕</button>
-          </div>
-          <select class="select-act-custom" onchange="configActividades.insumo2[${i}]=this.value">
-            ${catalogo.map(c => `<option value="${c}" ${c === act ? 'selected' : ''}>${c}</option>`).join('')}
-          </select>
-        </th>`).join('');
+      let thIns2 = configActividades.insumo2.length === 0 
+        ? '<th class="text-muted fst-italic py-2" style="font-size:0.75rem;">Sin actividades</th>' 
+        : configActividades.insumo2.map((act, i) => `
+            <th class="th-actividad">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="badge bg-info text-dark">${i+1}</span>
+                <button type="button" class="btn-del-col" onclick="eliminarActividad(2, ${i})" title="Quitar actividad">✕</button>
+              </div>
+              <select class="select-act-custom" onchange="configActividades.insumo2[${i}]=this.value">
+                ${catalogo.map(c => `<option value="${c}" ${c === act ? 'selected' : ''}>${c}</option>`).join('')}
+              </select>
+            </th>`).join('');
 
       let html = `
         <table class="table table-bordered table-sm mb-0 align-middle">
@@ -353,17 +418,21 @@
           </thead>
           <tbody id="tablaCuerpo">
             ${estudiantes.map((est, idx) => {
-              const rowData = notasMap[est.id] || {};
-              const i1Notas = rowData.insumo1_notas || [];
-              const i2Notas = rowData.insumo2_notas || [];
+              const memData = notasActualesMemoria[est.id] || { i1: [], i2: [] };
+              const i1Notas = memData.i1 || [];
+              const i2Notas = memData.i2 || [];
 
-              const inp1 = configActividades.insumo1.map((_, i) => `
-                <td><input type="number" step="0.01" min="0" max="10" class="form-control form-control-sm input-nota-app nota-i1" value="${i1Notas[i] !== undefined && i1Notas[i] !== null ? i1Notas[i] : ''}" oninput="validarYCalcularParcial(this)"></td>
-              `).join('');
+              const inp1 = configActividades.insumo1.length === 0 
+                ? '<td class="text-muted">-</td>' 
+                : configActividades.insumo1.map((_, i) => `
+                    <td><input type="number" step="0.01" min="0" max="10" class="form-control form-control-sm input-nota-app nota-i1" value="${i1Notas[i] !== undefined && i1Notas[i] !== null ? i1Notas[i] : ''}" oninput="validarYCalcularParcial(this)"></td>
+                  `).join('');
 
-              const inp2 = configActividades.insumo2.map((_, i) => `
-                <td><input type="number" step="0.01" min="0" max="10" class="form-control form-control-sm input-nota-app nota-i2" value="${i2Notas[i] !== undefined && i2Notas[i] !== null ? i2Notas[i] : ''}" oninput="validarYCalcularParcial(this)"></td>
-              `).join('');
+              const inp2 = configActividades.insumo2.length === 0 
+                ? '<td class="text-muted">-</td>' 
+                : configActividades.insumo2.map((_, i) => `
+                    <td><input type="number" step="0.01" min="0" max="10" class="form-control form-control-sm input-nota-app nota-i2" value="${i2Notas[i] !== undefined && i2Notas[i] !== null ? i2Notas[i] : ''}" oninput="validarYCalcularParcial(this)"></td>
+                  `).join('');
 
               return `
                 <tr data-estudiante-id="${est.id}">
@@ -402,20 +471,6 @@
       tr.querySelector('.prom-i1').innerText = prom1.toFixed(2);
       tr.querySelector('.prom-i2').innerText = prom2.toFixed(2);
       tr.querySelector('.nota-parcial').innerText = total.toFixed(2);
-    }
-
-    function agregarActividad(insumo) {
-      if (insumo === 1) configActividades.insumo1.push(catalogo[0] || 'Actuación en clases');
-      else configActividades.insumo2.push(catalogo[0] || 'Trabajo Grupal');
-      const vista = document.getElementById('selectVista').value;
-      cargarVistaParcial(vista === 'p1' ? 1 : 2);
-    }
-
-    function eliminarActividad(insumo, index) {
-      if (insumo === 1) configActividades.insumo1.splice(index, 1);
-      else configActividades.insumo2.splice(index, 1);
-      const vista = document.getElementById('selectVista').value;
-      cargarVistaParcial(vista === 'p1' ? 1 : 2);
     }
 
     // ==========================================
@@ -590,80 +645,105 @@
 
       if (vista === 'p1' || vista === 'p2') {
         const parcialNum = vista === 'p1' ? 1 : 2;
+        const btn = document.getElementById('btnGuardarParcial');
+        btn.disabled = true;
+        btn.innerText = 'Guardando...';
 
-        await supabaseClient.from('config_parcial_cabeceras').upsert({
-          asignacion_id: parseInt(asigId),
-          trimestre: trimestre,
-          parcial: parcialNum,
-          actividades_insumo1: configActividades.insumo1,
-          actividades_insumo2: configActividades.insumo2
-        }, { onConflict: 'asignacion_id,trimestre,parcial' });
+        try {
+          // 1. Guardar Configuración de Cabeceras
+          const { error: errConf } = await supabaseClient.from('config_parcial_cabeceras').upsert({
+            asignacion_id: parseInt(asigId),
+            trimestre: trimestre,
+            parcial: parcialNum,
+            actividades_insumo1: configActividades.insumo1,
+            actividades_insumo2: configActividades.insumo2
+          }, { onConflict: 'asignacion_id,trimestre,parcial' });
 
-        const filas = document.querySelectorAll('#tablaCuerpo tr');
-        const payload = [];
+          if (errConf) throw errConf;
 
-        filas.forEach(tr => {
-          const estId = tr.getAttribute('data-estudiante-id');
-          if (estId) {
-            const notas1 = Array.from(tr.querySelectorAll('.nota-i1')).map(i => i.value !== '' ? parseFloat(i.value) : 0);
-            const notas2 = Array.from(tr.querySelectorAll('.nota-i2')).map(i => i.value !== '' ? parseFloat(i.value) : 0);
-            const prom1 = parseFloat(tr.querySelector('.prom-i1').innerText) || 0;
-            const prom2 = parseFloat(tr.querySelector('.prom-i2').innerText) || 0;
-            const total = parseFloat(tr.querySelector('.nota-parcial').innerText) || 0;
+          // 2. Guardar Notas
+          const filas = document.querySelectorAll('#tablaCuerpo tr');
+          const payload = [];
 
-            payload.push({
-              asignacion_id: parseInt(asigId),
-              estudiante_id: parseInt(estId),
-              trimestre: trimestre,
-              parcial: parcialNum,
-              insumo1_notas: notas1,
-              insumo2_notas: notas2,
-              promedio_insumo1: prom1,
-              promedio_insumo2: prom2,
-              nota_parcial: total
-            });
-          }
-        });
+          filas.forEach(tr => {
+            const estId = tr.getAttribute('data-estudiante-id');
+            if (estId) {
+              const notas1 = Array.from(tr.querySelectorAll('.nota-i1')).map(i => i.value !== '' ? parseFloat(i.value) : 0);
+              const notas2 = Array.from(tr.querySelectorAll('.nota-i2')).map(i => i.value !== '' ? parseFloat(i.value) : 0);
+              const prom1 = parseFloat(tr.querySelector('.prom-i1').innerText) || 0;
+              const prom2 = parseFloat(tr.querySelector('.prom-i2').innerText) || 0;
+              const total = parseFloat(tr.querySelector('.nota-parcial').innerText) || 0;
 
-        const { error } = await supabaseClient.from('notas_parcial_actividades').upsert(payload, {
-          onConflict: 'asignacion_id,estudiante_id,trimestre,parcial'
-        });
+              payload.push({
+                asignacion_id: parseInt(asigId),
+                estudiante_id: parseInt(estId),
+                trimestre: trimestre,
+                parcial: parcialNum,
+                insumo1_notas: notas1,
+                insumo2_notas: notas2,
+                promedio_insumo1: prom1,
+                promedio_insumo2: prom2,
+                nota_parcial: total
+              });
+            }
+          });
 
-        if (error) alert('Error: ' + error.message);
-        else alert('¡Notas del Parcial guardadas exitosamente!');
+          const { error: errNotas } = await supabaseClient.from('notas_parcial_actividades').upsert(payload, {
+            onConflict: 'asignacion_id,estudiante_id,trimestre,parcial'
+          });
+
+          if (errNotas) throw errNotas;
+          alert('¡Notas del Parcial y actividades guardadas con éxito!');
+        } catch (err) {
+          alert('Error al guardar: ' + err.message);
+        } finally {
+          btn.disabled = false;
+          btn.innerText = '💾 Guardar';
+        }
 
       } else if (vista === 'resumen_trimestre') {
-        const filas = document.querySelectorAll('#tablaCuerpoTrimestre tr');
-        const payload = [];
+        const btn = document.getElementById('btnGuardarResumen');
+        btn.disabled = true;
+        btn.innerText = 'Guardando...';
 
-        filas.forEach(tr => {
-          const estId = tr.getAttribute('data-estudiante-id');
-          if (estId) {
-            const ex = parseFloat(tr.querySelector('.nota-examen').value) || 0;
-            const comp = tr.querySelector('.comp-val').value;
-            const p1 = parseFloat(tr.querySelector('.p1-val').innerText) || 0;
-            const p2 = parseFloat(tr.querySelector('.p2-val').innerText) || 0;
+        try {
+          const filas = document.querySelectorAll('#tablaCuerpoTrimestre tr');
+          const payload = [];
 
-            payload.push({
-              asignacion_id: parseInt(asigId),
-              estudiante_id: parseInt(estId),
-              trimestre: trimestre,
-              p1_insumo1: p1,
-              p1_insumo2: p1,
-              p2_insumo1: p2,
-              p2_insumo2: p2,
-              examen: ex,
-              comportamiento: comp
-            });
-          }
-        });
+          filas.forEach(tr => {
+            const estId = tr.getAttribute('data-estudiante-id');
+            if (estId) {
+              const ex = parseFloat(tr.querySelector('.nota-examen').value) || 0;
+              const comp = tr.querySelector('.comp-val').value;
+              const p1 = parseFloat(tr.querySelector('.p1-val').innerText) || 0;
+              const p2 = parseFloat(tr.querySelector('.p2-val').innerText) || 0;
 
-        const { error } = await supabaseClient.from('notas_trimestre').upsert(payload, {
-          onConflict: 'asignacion_id,estudiante_id,trimestre'
-        });
+              payload.push({
+                asignacion_id: parseInt(asigId),
+                estudiante_id: parseInt(estId),
+                trimestre: trimestre,
+                p1_insumo1: p1,
+                p1_insumo2: p1,
+                p2_insumo1: p2,
+                p2_insumo2: p2,
+                examen: ex,
+                comportamiento: comp
+              });
+            }
+          });
 
-        if (error) alert('Error: ' + error.message);
-        else alert('¡Examen y Resumen Trimestral guardados con éxito!');
+          const { error } = await supabaseClient.from('notas_trimestre').upsert(payload, {
+            onConflict: 'asignacion_id,estudiante_id,trimestre'
+          });
+
+          if (error) throw error;
+          alert('¡Examen y Resumen Trimestral guardados con éxito!');
+        } catch (err) {
+          alert('Error al guardar: ' + err.message);
+        } finally {
+          btn.disabled = false;
+          btn.innerText = '💾 Guardar Examen / Resumen';
+        }
       }
     }
 
