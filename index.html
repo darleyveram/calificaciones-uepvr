@@ -130,11 +130,11 @@
       </div>
     </div>
 
-    <!-- Contenedor Dinámico de Tablas -->
+    <!-- Contenedor de Tablas -->
     <div class="card shadow-sm">
       <div class="card-body p-0">
         <div class="table-responsive" id="contenedorTabla">
-          <!-- Renderizado dinámico -->
+          <div class="py-4 text-muted text-center">Seleccione Curso y Materia para cargar la información.</div>
         </div>
       </div>
     </div>
@@ -151,6 +151,38 @@
     let estudiantes = [];
     let configActividades = { insumo1: [], insumo2: [] };
 
+    // --- Limpieza total del estado en memoria y DOM ---
+    function resetearEstadoAplicacion() {
+      catalogo = [];
+      asignaciones = [];
+      estudiantes = [];
+      configActividades = { insumo1: [], insumo2: [] };
+      window.notasCargadasMap = {};
+
+      const selectAsig = document.getElementById('selectAsignacion');
+      if (selectAsig) selectAsig.innerHTML = '<option value="">Seleccione...</option>';
+
+      const selectTrim = document.getElementById('selectTrimestre');
+      if (selectTrim) selectTrim.value = '1';
+
+      const selectVista = document.getElementById('selectVista');
+      if (selectVista) selectVista.value = 'p1';
+
+      const loginEmail = document.getElementById('loginEmail');
+      const loginPass = document.getElementById('loginPassword');
+      if (loginEmail) loginEmail.value = '';
+      if (loginPass) loginPass.value = '';
+
+      const loginError = document.getElementById('loginError');
+      if (loginError) {
+        loginError.innerText = '';
+        loginError.classList.add('d-none');
+      }
+
+      document.querySelectorAll('.btn-control').forEach(b => b.disabled = true);
+      document.getElementById('contenedorTabla').innerHTML = '<div class="py-4 text-muted text-center">Seleccione Curso y Materia para cargar la información.</div>';
+    }
+
     // --- Autenticación ---
     async function verificarSesion() {
       const { data: { session } } = await supabaseClient.auth.getSession();
@@ -161,6 +193,7 @@
         await cargarCatalogo();
         await cargarAsignaciones();
       } else {
+        resetearEstadoAplicacion();
         document.getElementById('seccionLogin').classList.remove('d-none');
         document.getElementById('seccionApp').classList.add('d-none');
       }
@@ -172,8 +205,9 @@
       const password = document.getElementById('loginPassword').value;
       const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
       if (error) {
-        document.getElementById('loginError').innerText = error.message;
-        document.getElementById('loginError').classList.remove('d-none');
+        const errDiv = document.getElementById('loginError');
+        errDiv.innerText = error.message;
+        errDiv.classList.remove('d-none');
       } else {
         verificarSesion();
       }
@@ -181,9 +215,11 @@
 
     async function cerrarSesion() {
       await supabaseClient.auth.signOut();
+      resetearEstadoAplicacion();
       verificarSesion();
     }
 
+    // --- Carga de Catálogo y Asignaciones ---
     async function cargarCatalogo() {
       const { data } = await supabaseClient.from('catalogo_actividades').select('nombre').order('nombre');
       catalogo = data && data.length > 0 ? data.map(d => d.nombre) : ['Deber', 'Lección en clases', 'Actuación en clases', 'Trabajo Grupal'];
@@ -239,7 +275,7 @@
     }
 
     // ==========================================
-    // VISTA 1: PARCIAL DETALLADO (Insumos 1 y 2)
+    // VISTA 1: PARCIAL DETALLADO
     // ==========================================
     async function cargarVistaParcial(parcialNum) {
       const asigId = document.getElementById('selectAsignacion').value;
@@ -249,7 +285,6 @@
 
       const asig = asignaciones.find(a => a.id == asigId);
 
-      // Cabeceras
       const { data: confData } = await supabaseClient
         .from('config_parcial_cabeceras')
         .select('*')
@@ -261,11 +296,9 @@
       configActividades.insumo1 = confData?.actividades_insumo1 || ['Actuación en clases', 'Participación en Clases', 'Actuación en clases', 'Lección en clases'];
       configActividades.insumo2 = confData?.actividades_insumo2 || ['Colaboración en el Aula'];
 
-      // Estudiantes
       const { data: estData } = await supabaseClient.from('estudiantes').select('*').eq('curso_id', asig.curso_id).order('numero_lista');
       estudiantes = estData || [];
 
-      // Notas
       const { data: notasData } = await supabaseClient
         .from('notas_parcial_actividades')
         .select('*')
@@ -276,7 +309,6 @@
       const notasMap = {};
       (notasData || []).forEach(n => { notasMap[n.estudiante_id] = n; });
 
-      // Renderizar tabla
       const colIns1 = Math.max(configActividades.insumo1.length, 1);
       const colIns2 = Math.max(configActividades.insumo2.length, 1);
 
@@ -397,11 +429,9 @@
 
       const asig = asignaciones.find(a => a.id == asigId);
 
-      // Estudiantes
       const { data: estData } = await supabaseClient.from('estudiantes').select('*').eq('curso_id', asig.curso_id).order('numero_lista');
       estudiantes = estData || [];
 
-      // Notas de Parcial 1 y Parcial 2
       const { data: pData } = await supabaseClient
         .from('notas_parcial_actividades')
         .select('*')
@@ -415,7 +445,6 @@
         if (n.parcial === 2) notasP2[n.estudiante_id] = n.nota_parcial || 0;
       });
 
-      // Examen y Comportamiento guardados en notas_trimestre
       const { data: tData } = await supabaseClient
         .from('notas_trimestre')
         .select('*')
@@ -487,7 +516,6 @@
       const p2 = parseFloat(tr.querySelector('.p2-val').innerText) || 0;
       const ex = parseFloat(tr.querySelector('.nota-examen').value) || 0;
 
-      // 35% P1 + 35% P2 + 30% Examen
       const total = (p1 * 0.35) + (p2 * 0.35) + (ex * 0.30);
       tr.querySelector('.total-trimestre').innerText = total.toFixed(2);
     }
@@ -563,7 +591,6 @@
       if (vista === 'p1' || vista === 'p2') {
         const parcialNum = vista === 'p1' ? 1 : 2;
 
-        // 1. Guardar Config Cabeceras
         await supabaseClient.from('config_parcial_cabeceras').upsert({
           asignacion_id: parseInt(asigId),
           trimestre: trimestre,
@@ -572,7 +599,6 @@
           actividades_insumo2: configActividades.insumo2
         }, { onConflict: 'asignacion_id,trimestre,parcial' });
 
-        // 2. Guardar Notas
         const filas = document.querySelectorAll('#tablaCuerpo tr');
         const payload = [];
 
