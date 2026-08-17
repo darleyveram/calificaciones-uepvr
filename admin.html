@@ -18,7 +18,7 @@
 </head>
 <body>
 
-  <!-- ================= LOGIN ADMIN ================= -->
+  <!-- LOGIN ADMIN -->
   <div class="container" id="seccionLogin" style="max-width: 420px; margin-top: 80px;">
     <div class="card shadow">
       <div class="card-header bg-dark text-white text-center py-3">
@@ -42,7 +42,7 @@
     </div>
   </div>
 
-  <!-- ================= DASHBOARD ADMIN ================= -->
+  <!-- DASHBOARD ADMIN -->
   <div class="container-fluid d-none" id="seccionApp">
     <div class="row">
       
@@ -139,7 +139,6 @@
             </button>
           </div>
 
-          <!-- Selector de Curso para Asignación -->
           <div class="card p-3 mb-3 bg-white">
             <div class="row align-items-center">
               <div class="col-md-5">
@@ -149,7 +148,7 @@
                 </select>
               </div>
               <div class="col-md-7 text-muted pt-3">
-                <small><i class="bi bi-info-circle me-1"></i> Las materias marcadas como <b>Optativas</b> no sumarán al promedio de notas, pero su comportamiento sí se sumará al cálculo institucional.</small>
+                <small><i class="bi bi-info-circle me-1"></i> Las materias <b>Optativas</b> no promedian en la libreta general, pero su comportamiento sí cuenta.</small>
               </div>
             </div>
           </div>
@@ -171,7 +170,7 @@
           </div>
         </div>
 
-        <!-- MODULO 4: MATERIAS (CATÁLOGO GENERAL) -->
+        <!-- MODULO 4: MATERIAS -->
         <div class="modulo d-none" id="mod-materias">
           <div class="d-flex justify-content-between align-items-center mb-3">
             <h4 class="fw-bold mb-0">Catálogo General de Materias</h4>
@@ -185,7 +184,7 @@
           </div>
         </div>
 
-        <!-- MODULO 5: ESTUDIANTES Y REPRESENTANTES -->
+        <!-- MODULO 5: ESTUDIANTES -->
         <div class="modulo d-none" id="mod-estudiantes">
           <div class="d-flex justify-content-between align-items-center mb-3">
             <h4 class="fw-bold mb-0">Estudiantes y Representantes</h4>
@@ -202,14 +201,24 @@
           </div>
         </div>
 
-        <!-- MODULO 6: NOMINA PERSONAL -->
+        <!-- MODULO 6: NÓMINA DEL PERSONAL -->
         <div class="modulo d-none" id="mod-docentes">
           <div class="d-flex justify-content-between align-items-center mb-3">
-            <h4 class="fw-bold mb-0">Nómina del Personal Docente</h4>
+            <h4 class="fw-bold mb-0">Nómina del Personal Docente y Administrativo</h4>
+            <button class="btn btn-success btn-sm" onclick="abrirModalPersonal()"><i class="bi bi-person-plus me-1"></i> Nuevo Personal</button>
           </div>
           <div class="card p-0">
             <table class="table table-hover mb-0 align-middle">
-              <thead><tr><th>Nombres</th><th>Correo Electrónico</th><th>Cargo</th><th>Rol</th><th>Acciones</th></tr></thead>
+              <thead>
+                <tr>
+                  <th>Nombres y Apellidos</th>
+                  <th>Correo Electrónico</th>
+                  <th>Teléfono</th>
+                  <th>Cargo</th>
+                  <th>Permisos / Rol</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
               <tbody id="tablaDocentes"></tbody>
             </table>
           </div>
@@ -233,9 +242,83 @@
     </div>
   </div>
 
-  <!-- ================= MODALES DE GESTIÓN ================= -->
-  
-  <!-- Modal Asignar Materia a Curso -->
+  <!-- ================= MODALES ================= -->
+
+  <!-- Modal Personal / Docente -->
+  <div class="modal fade" id="modalPersonalBox" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header bg-dark text-white py-2">
+          <h6 class="modal-title fw-bold" id="modalPersonalTitulo">Registrar Nuevo Personal</h6>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="formModalPersonal" onsubmit="guardarPersonalModal(event)">
+            <input type="hidden" id="personalModalId">
+            <div class="row g-2">
+              <div class="col-md-3">
+                <label class="form-label fw-bold">Título Académico</label>
+                <select id="personalTitulo" class="form-select form-select-sm">
+                  <option value="Lcdo.">Lcdo.</option>
+                  <option value="Lcda.">Lcda.</option>
+                  <option value="Ing.">Ing.</option>
+                  <option value="Msc.">Msc.</option>
+                  <option value="Prof.">Prof.</option>
+                  <option value="Dr.">Dr.</option>
+                  <option value="Dra.">Dra.</option>
+                  <option value="Abg.">Abg.</option>
+                  <option value="Sr.">Sr.</option>
+                  <option value="Sra.">Sra.</option>
+                </select>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label fw-bold">Nombres</label>
+                <input type="text" id="personalNombres" class="form-control form-control-sm" placeholder="Ej: Damarys Lilibeth" required>
+              </div>
+              <div class="col-md-5">
+                <label class="form-label fw-bold">Apellidos</label>
+                <input type="text" id="personalApellidos" class="form-control form-control-sm" placeholder="Ej: Carranza Balderramo" required>
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label fw-bold">Correo Institucional / Acceso</label>
+                <input type="email" id="personalEmail" class="form-control form-control-sm" placeholder="ejemplo@uepvr.edu.ec" required>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-bold">Número de Teléfono</label>
+                <input type="text" id="personalTelefono" class="form-control form-control-sm" placeholder="0991234567">
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label fw-bold">Cargo</label>
+                <input type="text" id="personalCargo" class="form-control form-control-sm" placeholder="Ej: Docente de Aula, Vicerrector, etc." required>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-bold">Rol en la Plataforma</label>
+                <select id="personalRol" class="form-select form-select-sm">
+                  <option value="docente">Docente (Acceso solo a sus notas y tutorías)</option>
+                  <option value="admin">Administrador (Acceso total + Docencia)</option>
+                </select>
+              </div>
+
+              <div class="col-md-12" id="boxPasswordPersonal">
+                <label class="form-label fw-bold">Contraseña de Acceso</label>
+                <input type="password" id="personalPassword" class="form-control form-control-sm" placeholder="Mínimo 6 caracteres">
+                <small class="text-muted">Si está editando, deje este campo en blanco para no cambiarla.</small>
+              </div>
+            </div>
+
+            <div class="text-end mt-4">
+              <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+              <button type="submit" class="btn btn-primary btn-sm fw-bold" id="btnGuardarPersonal">Guardar Personal</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Asignar Materia -->
   <div class="modal fade" id="modalAsignarMateria" tabindex="-1">
     <div class="modal-dialog">
       <div class="modal-content">
@@ -257,7 +340,7 @@
             <div class="mb-3 form-check form-switch">
               <input class="form-check-input" type="checkbox" id="asigEsOptativa">
               <label class="form-check-label fw-semibold" for="asigEsOptativa">Materia Optativa / Cualitativa</label>
-              <div class="form-text">Si se activa, la nota no promedia en la libreta académica general, pero su comportamiento sí cuenta.</div>
+              <div class="form-text">No sumará al promedio general de calificaciones, pero su comportamiento sí cuenta.</div>
             </div>
             <div class="text-end">
               <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
@@ -311,7 +394,16 @@
     let docentesList = [];
     let cursosList = [];
     let materiasList = [];
-    let modalAsignarInst, modalCursoInst;
+    let modalAsignarInst, modalCursoInst, modalPersonalInst;
+
+    function formatNombreDocente(d) {
+      if (!d) return '';
+      const tit = d.titulo ? `${d.titulo} ` : '';
+      const nom = d.nombres || '';
+      const ape = d.apellidos ? ` ${d.apellidos}` : '';
+      const res = `${tit}${nom}${ape}`.trim();
+      return res || d.email;
+    }
 
     function mostrarModulo(id, link) {
       document.querySelectorAll('.modulo').forEach(m => m.classList.add('d-none'));
@@ -337,6 +429,7 @@
           document.getElementById('seccionApp').classList.remove('d-none');
           modalAsignarInst = new bootstrap.Modal(document.getElementById('modalAsignarMateria'));
           modalCursoInst = new bootstrap.Modal(document.getElementById('modalCursoBox'));
+          modalPersonalInst = new bootstrap.Modal(document.getElementById('modalPersonalBox'));
           await cargarDatosIniciales();
           mostrarModulo('institucion', document.getElementById('nav-institucion'));
         } else {
@@ -408,7 +501,7 @@
       else alert('¡Datos institucionales actualizados correctamente!');
     }
 
-    // 2. Cursos
+    // 2. Cursos y Tutores
     async function cargarCursos() {
       await cargarDatosIniciales();
       const tbody = document.getElementById('tablaCursos');
@@ -419,7 +512,7 @@
             <td>${c.id}</td>
             <td class="fw-bold">${c.nombre}</td>
             <td>${c.seccion || 'Matutina'}</td>
-            <td>${tutor ? tutor.nombres : '<span class="text-muted">Sin tutor asignado</span>'}</td>
+            <td>${tutor ? `<i class="bi bi-person-check text-success me-1"></i>${formatNombreDocente(tutor)}` : '<span class="text-muted">Sin tutor asignado</span>'}</td>
             <td>
               <button class="btn btn-sm btn-outline-info py-0" onclick="irAsignarMateriasCurso(${c.id})">
                 <i class="bi bi-journal-plus me-1"></i> Asignar Materias
@@ -438,7 +531,7 @@
       document.getElementById('cursoModalId').value = id || '';
       const tutorSelect = document.getElementById('cursoModalTutor');
       tutorSelect.innerHTML = '<option value="">Sin Tutor asignado</option>' + 
-        docentesList.map(d => `<option value="${d.id}">${d.nombres} (${d.email})</option>`).join('');
+        docentesList.map(d => `<option value="${d.id}">${formatNombreDocente(d)} (${d.email})</option>`).join('');
 
       if (id) {
         const c = cursosList.find(item => item.id === id);
@@ -471,7 +564,7 @@
       cargarCursos();
     }
 
-    // 3. Asignación de Materias DENTRO del Curso Seleccionado
+    // 3. Asignación de Materias
     async function cargarVistaAsignaciones() {
       await cargarDatosIniciales();
       const select = document.getElementById('selectCursoAsignar');
@@ -502,7 +595,7 @@
       btn.disabled = false;
       const { data } = await supabaseClient
         .from('curso_materia_docente')
-        .select(`id, curso_id, materia_id, docente_id, es_optativa, materias(id, nombre), perfiles:docente_id(nombres, email)`)
+        .select(`id, curso_id, materia_id, docente_id, es_optativa, materias(id, nombre), perfiles:docente_id(titulo, nombres, apellidos, email)`)
         .eq('curso_id', cursoId);
 
       if (!data || data.length === 0) {
@@ -520,7 +613,7 @@
                 ? '<span class="badge bg-warning text-dark"><i class="bi bi-info-circle me-1"></i>Optativa (No suma notas)</span>' 
                 : '<span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Obligatoria (Suma notas)</span>'}
             </td>
-            <td>${a.perfiles ? a.perfiles.nombres : 'Docente no asignado'}</td>
+            <td>${a.perfiles ? formatNombreDocente(a.perfiles) : 'Docente no asignado'}</td>
             <td>
               <button class="btn btn-sm btn-outline-danger py-0" onclick="eliminarRegistro('curso_materia_docente', ${a.id})">
                 <i class="bi bi-trash me-1"></i> Quitar
@@ -543,7 +636,7 @@
       selM.innerHTML = materiasList.map(m => `<option value="${m.id}" data-optativa="${m.es_optativa}">${m.nombre}</option>`).join('');
 
       const selD = document.getElementById('asigSelectDocente');
-      selD.innerHTML = docentesList.map(d => `<option value="${d.id}">${d.nombres} (${d.email})</option>`).join('');
+      selD.innerHTML = docentesList.map(d => `<option value="${d.id}">${formatNombreDocente(d)} (${d.email})</option>`).join('');
 
       document.getElementById('asigEsOptativa').checked = false;
       modalAsignarInst.show();
@@ -568,7 +661,7 @@
       }
     }
 
-    // 4. Materias (Catálogo General)
+    // 4. Materias
     async function cargarMaterias() {
       await cargarDatosIniciales();
       const tbody = document.getElementById('tablaMaterias');
@@ -603,7 +696,7 @@
       else cargarMaterias();
     }
 
-    // 5. Estudiantes y Representantes
+    // 5. Estudiantes
     async function cargarCursosFiltroEstudiantes() {
       await cargarDatosIniciales();
       const select = document.getElementById('filtroCursoEstudiantes');
@@ -676,23 +769,119 @@
       else cargarEstudiantes();
     }
 
-    // 6. Docentes
+    // 6. Nómina del Personal
     async function cargarDocentes() {
       await cargarDatosIniciales();
       const tbody = document.getElementById('tablaDocentes');
       tbody.innerHTML = docentesList.map(d => `
         <tr>
-          <td class="fw-bold">${d.nombres}</td>
+          <td class="fw-bold">${formatNombreDocente(d)}</td>
           <td>${d.email}</td>
-          <td>${d.cargo || 'Docente'}</td>
-          <td><span class="badge ${d.rol === 'admin' ? 'bg-danger' : 'bg-primary'}">${d.rol.toUpperCase()}</span></td>
+          <td>${d.telefono || '<span class="text-muted">-</span>'}</td>
+          <td><span class="badge bg-light text-dark border">${d.cargo || 'Docente'}</span></td>
           <td>
+            <span class="badge ${d.rol === 'admin' ? 'bg-danger' : 'bg-primary'}">
+              ${d.rol === 'admin' ? 'ADMINISTRADOR' : 'DOCENTE'}
+            </span>
+          </td>
+          <td>
+            <button class="btn btn-sm btn-outline-primary py-0" onclick="abrirModalPersonal('${d.id}')">Editar</button>
             <button class="btn btn-sm btn-outline-secondary py-0" onclick="cambiarRolDocente('${d.id}', '${d.rol}')">
-              ${d.rol === 'admin' ? 'Hacer Docente' : 'Hacer Admin'}
+              ${d.rol === 'admin' ? 'Cambiar a Docente' : 'Hacer Admin'}
             </button>
           </td>
         </tr>
       `).join('');
+    }
+
+    function abrirModalPersonal(id = null) {
+      document.getElementById('personalModalId').value = id || '';
+      const passBox = document.getElementById('boxPasswordPersonal');
+
+      if (id) {
+        const p = docentesList.find(item => item.id === id);
+        document.getElementById('modalPersonalTitulo').innerText = 'Editar Datos del Personal';
+        document.getElementById('personalTitulo').value = p.titulo || 'Lcdo.';
+        document.getElementById('personalNombres').value = p.nombres || '';
+        document.getElementById('personalApellidos').value = p.apellidos || '';
+        document.getElementById('personalEmail').value = p.email || '';
+        document.getElementById('personalEmail').disabled = true; // Email vinculado a autenticación
+        document.getElementById('personalTelefono').value = p.telefono || '';
+        document.getElementById('personalCargo').value = p.cargo || 'Docente';
+        document.getElementById('personalRol').value = p.rol || 'docente';
+        passBox.classList.add('d-none');
+      } else {
+        document.getElementById('modalPersonalTitulo').innerText = 'Registrar Nuevo Personal';
+        document.getElementById('formModalPersonal').reset();
+        document.getElementById('personalEmail').disabled = false;
+        passBox.classList.remove('d-none');
+      }
+      modalPersonalInst.show();
+    }
+
+    async function guardarPersonalModal(e) {
+      e.preventDefault();
+      const id = document.getElementById('personalModalId').value;
+      const titulo = document.getElementById('personalTitulo').value;
+      const nombres = document.getElementById('personalNombres').value.trim();
+      const apellidos = document.getElementById('personalApellidos').value.trim();
+      const email = document.getElementById('personalEmail').value.trim();
+      const telefono = document.getElementById('personalTelefono').value.trim();
+      const cargo = document.getElementById('personalCargo').value.trim();
+      const rol = document.getElementById('personalRol').value;
+      const password = document.getElementById('personalPassword').value;
+
+      const btn = document.getElementById('btnGuardarPersonal');
+      btn.disabled = true;
+      btn.innerText = 'Guardando...';
+
+      try {
+        if (id) {
+          // Edición de perfil existente
+          const { error } = await supabaseClient.from('perfiles').update({
+            titulo, nombres, apellidos, telefono, cargo, rol
+          }).eq('id', id);
+          if (error) throw error;
+        } else {
+          // Creación de nuevo usuario en Auth
+          if (!password || password.length < 6) throw new Error('La contraseña debe tener al menos 6 caracteres.');
+
+          const { data: authData, error: authErr } = await supabaseClient.auth.signUp({
+            email: email,
+            password: password,
+            options: {
+              data: { nombres: `${nombres} ${apellidos}`, rol: rol }
+            }
+          });
+
+          if (authErr) throw authErr;
+
+          // Insertar / Actualizar Perfil
+          const newUserId = authData.user ? authData.user.id : null;
+          if (newUserId) {
+            await supabaseClient.from('perfiles').upsert({
+              id: newUserId,
+              email: email,
+              titulo: titulo,
+              nombres: nombres,
+              apellidos: apellidos,
+              telefono: telefono,
+              cargo: cargo,
+              rol: rol,
+              es_docente_activo: true
+            });
+          }
+        }
+
+        modalPersonalInst.hide();
+        await cargarDocentes();
+        alert('¡Datos de personal guardados correctamente!');
+      } catch (err) {
+        alert('Error: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerText = 'Guardar Personal';
+      }
     }
 
     async function cambiarRolDocente(id, rolActual) {
@@ -723,7 +912,6 @@
       else cargarActividades();
     }
 
-    // Función Genérica para Eliminar
     async function eliminarRegistro(tabla, id) {
       if (!confirm('¿Está seguro de eliminar este registro? Esta acción no se puede deshacer.')) return;
       const { error } = await supabaseClient.from(tabla).delete().eq('id', id);
