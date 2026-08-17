@@ -250,7 +250,6 @@
       const accParcial = document.getElementById('accionesParcial');
       const accResumen = document.getElementById('accionesResumen');
 
-      // Control de vista según el selector de Trimestre
       if (trimestreVal === 'anual') {
         boxVista.classList.add('d-none');
         accParcial.classList.add('d-none');
@@ -332,7 +331,7 @@
     }
 
     // ==========================================
-    // CARGAR Y RENDERIZAR VISTA PARCIAL
+    // VISTA 1: PARCIAL DETALLADO
     // ==========================================
     async function cargarVistaParcial(parcialNum) {
       const asigId = document.getElementById('selectAsignacion').value;
@@ -582,24 +581,50 @@
     }
 
     // ==========================================
-    // VISTA 3: RESUMEN GENERAL ANUAL
+    // VISTA 3: RESUMEN GENERAL ANUAL (Cálculo directo en tiempo real)
     // ==========================================
     async function cargarVistaResumenAnual() {
       const asigId = document.getElementById('selectAsignacion').value;
       const contenedor = document.getElementById('contenedorTabla');
-      contenedor.innerHTML = '<div class="py-4 text-center">Cargando sábana anual de calificaciones...</div>';
+      contenedor.innerHTML = '<div class="py-4 text-center">Cargando sábana anual de calificaciones en tiempo real...</div>';
 
       const asig = asignaciones.find(a => a.id == asigId);
       const { data: estData } = await supabaseClient.from('estudiantes').select('*').eq('curso_id', asig.curso_id).order('numero_lista');
       estudiantes = estData || [];
 
-      const { data: tData } = await supabaseClient.from('notas_trimestre').select('*').eq('asignacion_id', asigId);
+      // 1. Obtener todas las notas de los parciales (Trimestres 1, 2 y 3)
+      const { data: pData } = await supabaseClient
+        .from('notas_parcial_actividades')
+        .select('*')
+        .eq('asignacion_id', asigId);
 
-      const t1Map = {}, t2Map = {}, t3Map = {};
+      // 2. Obtener exámenes de cada trimestre
+      const { data: tData } = await supabaseClient
+        .from('notas_trimestre')
+        .select('*')
+        .eq('asignacion_id', asigId);
+
+      // Estructura: matriz[estId][trimestre] = { p1, p2, examen }
+      const notasMatriz = {};
+      estudiantes.forEach(e => {
+        notasMatriz[e.id] = {
+          1: { p1: 0, p2: 0, ex: 0 },
+          2: { p1: 0, p2: 0, ex: 0 },
+          3: { p1: 0, p2: 0, ex: 0 }
+        };
+      });
+
+      (pData || []).forEach(n => {
+        if (notasMatriz[n.estudiante_id] && notasMatriz[n.estudiante_id][n.trimestre]) {
+          if (n.parcial === 1) notasMatriz[n.estudiante_id][n.trimestre].p1 = n.nota_parcial || 0;
+          if (n.parcial === 2) notasMatriz[n.estudiante_id][n.trimestre].p2 = n.nota_parcial || 0;
+        }
+      });
+
       (tData || []).forEach(t => {
-        if (t.trimestre === 1) t1Map[t.estudiante_id] = t.promedio_trimestre || 0;
-        if (t.trimestre === 2) t2Map[t.estudiante_id] = t.promedio_trimestre || 0;
-        if (t.trimestre === 3) t3Map[t.estudiante_id] = t.promedio_trimestre || 0;
+        if (notasMatriz[t.estudiante_id] && notasMatriz[t.estudiante_id][t.trimestre]) {
+          notasMatriz[t.estudiante_id][t.trimestre].ex = t.examen || 0;
+        }
       });
 
       let html = `
@@ -617,9 +642,13 @@
           </thead>
           <tbody>
             ${estudiantes.map((est, idx) => {
-              const t1 = parseFloat(t1Map[est.id] || 0);
-              const t2 = parseFloat(t2Map[est.id] || 0);
-              const t3 = parseFloat(t3Map[est.id] || 0);
+              const reg = notasMatriz[est.id] || {};
+              
+              // Cálculo por trimestre: 35% P1 + 35% P2 + 30% Examen
+              const t1 = (reg[1].p1 * 0.35) + (reg[1].p2 * 0.35) + (reg[1].ex * 0.30);
+              const t2 = (reg[2].p1 * 0.35) + (reg[2].p2 * 0.35) + (reg[2].ex * 0.30);
+              const t3 = (reg[3].p1 * 0.35) + (reg[3].p2 * 0.35) + (reg[3].ex * 0.30);
+
               const promAnual = (t1 + t2 + t3) / 3;
               const obs = promAnual >= 7 ? '<span class="badge bg-success">APROBADO</span>' : (promAnual >= 4 ? '<span class="badge bg-warning text-dark">SUPLETORIO</span>' : '<span class="badge bg-danger">REPROBADO</span>');
 
@@ -642,7 +671,7 @@
     }
 
     // ==========================================
-    // GUARDADO GENERAL EN SUPABASE
+    // GUARDADO GENERAL CON AUTO-SINCRONIZACIÓN
     // ==========================================
     async function guardarDatos() {
       const asigId = document.getElementById('selectAsignacion').value;
@@ -657,7 +686,8 @@
         btn.innerText = 'Guardando...';
 
         try {
-          const { error: errConf } = await supabaseClient.from('config_parcial_cabeceras').upsert({
+          // 1. Guardar Configuración de Cabeceras
+          await supabaseClient.from('config_parcial_cabeceras').upsert({
             asignacion_id: parseInt(asigId),
             trimestre: trimestre,
             parcial: parcialNum,
@@ -665,8 +695,7 @@
             actividades_insumo2: configActividades.insumo2
           }, { onConflict: 'asignacion_id,trimestre,parcial' });
 
-          if (errConf) throw errConf;
-
+          // 2. Guardar Notas del Parcial
           const filas = document.querySelectorAll('#tablaCuerpo tr');
           const payload = [];
 
@@ -696,9 +725,50 @@
           const { error: errNotas } = await supabaseClient.from('notas_parcial_actividades').upsert(payload, {
             onConflict: 'asignacion_id,estudiante_id,trimestre,parcial'
           });
-
           if (errNotas) throw errNotas;
-          alert('¡Notas del Parcial y actividades guardadas con éxito!');
+
+          // 3. Sincronización automática de notas_trimestre
+          const { data: allPData } = await supabaseClient
+            .from('notas_parcial_actividades')
+            .select('*')
+            .eq('asignacion_id', asigId)
+            .eq('trimestre', trimestre);
+
+          const { data: existingTData } = await supabaseClient
+            .from('notas_trimestre')
+            .select('*')
+            .eq('asignacion_id', asigId)
+            .eq('trimestre', trimestre);
+
+          const existingTMap = {};
+          (existingTData || []).forEach(t => { existingTMap[t.estudiante_id] = t; });
+
+          const p1Map = {}, p2Map = {};
+          (allPData || []).forEach(n => {
+            if (n.parcial === 1) p1Map[n.estudiante_id] = n.nota_parcial || 0;
+            if (n.parcial === 2) p2Map[n.estudiante_id] = n.nota_parcial || 0;
+          });
+
+          const trimPayload = estudiantes.map(e => {
+            const currentT = existingTMap[e.id] || {};
+            return {
+              asignacion_id: parseInt(asigId),
+              estudiante_id: e.id,
+              trimestre: trimestre,
+              p1_insumo1: p1Map[e.id] || 0,
+              p1_insumo2: p1Map[e.id] || 0,
+              p2_insumo1: p2Map[e.id] || 0,
+              p2_insumo2: p2Map[e.id] || 0,
+              examen: currentT.examen || 0,
+              comportamiento: currentT.comportamiento || 'A'
+            };
+          });
+
+          await supabaseClient.from('notas_trimestre').upsert(trimPayload, {
+            onConflict: 'asignacion_id,estudiante_id,trimestre'
+          });
+
+          alert('¡Notas del Parcial guardadas y sincronizadas con el resumen anual!');
         } catch (err) {
           alert('Error al guardar: ' + err.message);
         } finally {
