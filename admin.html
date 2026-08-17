@@ -593,10 +593,18 @@
       }
 
       btn.disabled = false;
-      const { data } = await supabaseClient
+      await cargarDatosIniciales();
+
+      // Consultar asignaciones del curso con materias
+      const { data, error } = await supabaseClient
         .from('curso_materia_docente')
-        .select(`id, curso_id, materia_id, docente_id, es_optativa, materias(id, nombre), perfiles:docente_id(titulo, nombres, apellidos, email)`)
-        .eq('curso_id', cursoId);
+        .select(`id, curso_id, materia_id, docente_id, es_optativa, materias(id, nombre)`)
+        .eq('curso_id', parseInt(cursoId));
+
+      if (error) {
+        tbody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-danger">Error: ${error.message}</td></tr>`;
+        return;
+      }
 
       if (!data || data.length === 0) {
         tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-muted">Este curso aún no tiene materias asignadas. Haga clic en "+ Asignar Materia a este Curso".</td></tr>';
@@ -605,15 +613,19 @@
 
       tbody.innerHTML = data.map(a => {
         const esOpt = a.es_optativa ? true : false;
+        // Buscar el docente en la lista en memoria
+        const doc = docentesList.find(d => d.id === a.docente_id);
+        const nombreDocente = doc ? formatNombreDocente(doc) : (a.docente_id || 'Docente no asignado');
+
         return `
           <tr>
-            <td class="fw-bold fs-6">${a.materias?.nombre || ''}</td>
+            <td class="fw-bold fs-6">${a.materias?.nombre || 'Materia no encontrada'}</td>
             <td>
               ${esOpt 
                 ? '<span class="badge bg-warning text-dark"><i class="bi bi-info-circle me-1"></i>Optativa (No suma notas)</span>' 
                 : '<span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Obligatoria (Suma notas)</span>'}
             </td>
-            <td>${a.perfiles ? formatNombreDocente(a.perfiles) : 'Docente no asignado'}</td>
+            <td>${nombreDocente}</td>
             <td>
               <button class="btn btn-sm btn-outline-danger py-0" onclick="eliminarRegistro('curso_materia_docente', ${a.id})">
                 <i class="bi bi-trash me-1"></i> Quitar
