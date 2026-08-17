@@ -92,17 +92,28 @@
       <button class="btn btn-outline-danger btn-sm" onclick="cerrarSesion()">Cerrar Sesión</button>
     </div>
 
-    <!-- Filtros de Navegación -->
+    <!-- Filtros de Navegación con Curso y Materia Separados -->
     <div class="card shadow-sm mb-3">
       <div class="card-body py-2">
         <div class="row g-2 align-items-center">
+          
+          <!-- Selector de Curso -->
+          <div class="col-md-2">
+            <label class="form-label mb-1 fw-bold">Curso / Grado:</label>
+            <select id="selectCurso" class="form-select form-select-sm" onchange="alCambiarCurso()">
+              <option value="">Seleccione curso...</option>
+            </select>
+          </div>
+
+          <!-- Selector de Materia -->
           <div class="col-md-3">
-            <label class="form-label mb-1 fw-bold">Curso / Materia:</label>
-            <select id="selectAsignacion" class="form-select form-select-sm" onchange="cambiarFiltro()">
-              <option value="">Seleccione...</option>
+            <label class="form-label mb-1 fw-bold">Materia / Asignatura:</label>
+            <select id="selectMateria" class="form-select form-select-sm" onchange="cambiarFiltro()" disabled>
+              <option value="">Seleccione materia...</option>
             </select>
           </div>
           
+          <!-- Selector de Trimestre -->
           <div class="col-md-2">
             <label class="form-label mb-1 fw-bold">Trimestre / Ciclo:</label>
             <select id="selectTrimestre" class="form-select form-select-sm" onchange="cambiarFiltro()">
@@ -113,26 +124,27 @@
             </select>
           </div>
 
-          <div class="col-md-3" id="boxVista">
+          <!-- Selector de Evaluación / Parcial -->
+          <div class="col-md-2" id="boxVista">
             <label class="form-label mb-1 fw-bold">Evaluación / Parcial:</label>
             <select id="selectVista" class="form-select form-select-sm" onchange="cambiarFiltro()">
               <option value="p1">Parcial 1 (Insumos 1 y 2)</option>
               <option value="p2">Parcial 2 (Insumos 1 y 2)</option>
-              <option value="resumen_trimestre">Examen y Consolidado Trimestral</option>
+              <option value="resumen_trimestre">Examen y Resumen Trimestral</option>
             </select>
           </div>
 
-          <!-- Botones Parciales -->
-          <div class="col-md-4 text-end pt-3" id="accionesParcial">
-            <button class="btn btn-outline-primary btn-sm me-1 btn-control" onclick="agregarActividad(1)" disabled>+ Actividad Ins. 1</button>
-            <button class="btn btn-outline-info btn-sm me-2 text-dark btn-control" onclick="agregarActividad(2)" disabled>+ Actividad Ins. 2</button>
-            <button class="btn btn-success btn-sm px-3 fw-bold btn-control" id="btnGuardarParcial" onclick="guardarDatos()" disabled>💾 Guardar Parcial</button>
+          <!-- Botones de Acción -->
+          <div class="col-md-3 text-end pt-3" id="accionesParcial">
+            <button class="btn btn-outline-primary btn-sm me-1 btn-control" onclick="agregarActividad(1)" disabled>+ Ins. 1</button>
+            <button class="btn btn-outline-info btn-sm me-1 text-dark btn-control" onclick="agregarActividad(2)" disabled>+ Ins. 2</button>
+            <button class="btn btn-success btn-sm px-3 fw-bold btn-control" id="btnGuardarParcial" onclick="guardarDatos()" disabled>💾 Guardar</button>
           </div>
 
-          <!-- Botón Resumen Trimestre -->
-          <div class="col-md-4 text-end pt-3 d-none" id="accionesResumen">
-            <button class="btn btn-success btn-sm px-4 fw-bold btn-control" id="btnGuardarResumen" onclick="guardarDatos()" disabled>💾 Guardar Examen y Resumen</button>
+          <div class="col-md-3 text-end pt-3 d-none" id="accionesResumen">
+            <button class="btn btn-success btn-sm px-3 fw-bold btn-control" id="btnGuardarResumen" onclick="guardarDatos()" disabled>💾 Guardar Examen</button>
           </div>
+
         </div>
       </div>
     </div>
@@ -141,7 +153,7 @@
     <div class="card shadow-sm">
       <div class="card-body p-0">
         <div class="table-responsive" id="contenedorTabla">
-          <div class="py-4 text-muted text-center">Seleccione Curso y Materia para cargar la información.</div>
+          <div class="py-4 text-muted text-center">Seleccione un Curso y una Materia para visualizar las calificaciones.</div>
         </div>
       </div>
     </div>
@@ -154,20 +166,26 @@
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     let catalogo = [];
-    let asignaciones = [];
+    let todasAsignaciones = [];
     let estudiantes = [];
     let configActividades = { insumo1: [], insumo2: [] };
     let notasActualesMemoria = {};
 
     function resetearEstadoAplicacion() {
       catalogo = [];
-      asignaciones = [];
+      todasAsignaciones = [];
       estudiantes = [];
       configActividades = { insumo1: [], insumo2: [] };
       notasActualesMemoria = {};
 
-      const selectAsig = document.getElementById('selectAsignacion');
-      if (selectAsig) selectAsig.innerHTML = '<option value="">Seleccione...</option>';
+      const selectCurso = document.getElementById('selectCurso');
+      if (selectCurso) selectCurso.innerHTML = '<option value="">Seleccione curso...</option>';
+
+      const selectMateria = document.getElementById('selectMateria');
+      if (selectMateria) {
+        selectMateria.innerHTML = '<option value="">Seleccione materia...</option>';
+        selectMateria.disabled = true;
+      }
 
       const selectTrim = document.getElementById('selectTrimestre');
       if (selectTrim) selectTrim.value = '1';
@@ -187,7 +205,7 @@
       }
 
       document.querySelectorAll('.btn-control').forEach(b => b.disabled = true);
-      document.getElementById('contenedorTabla').innerHTML = '<div class="py-4 text-muted text-center">Seleccione Curso y Materia para cargar la información.</div>';
+      document.getElementById('contenedorTabla').innerHTML = '<div class="py-4 text-muted text-center">Seleccione un Curso y una Materia para visualizar las calificaciones.</div>';
     }
 
     async function verificarSesion() {
@@ -197,7 +215,7 @@
         document.getElementById('seccionApp').classList.remove('d-none');
         document.getElementById('usuarioConectado').innerText = `Docente: ${session.user.email}`;
         await cargarCatalogo();
-        await cargarAsignaciones();
+        await cargarCursosYMaterias();
       } else {
         resetearEstadoAplicacion();
         document.getElementById('seccionLogin').classList.remove('d-none');
@@ -230,18 +248,53 @@
       catalogo = data && data.length > 0 ? data.map(d => d.nombre) : ['Deber', 'Lección en clases', 'Actuación en clases', 'Trabajo Grupal', 'Colaboración en el Aula'];
     }
 
-    async function cargarAsignaciones() {
+    // Cargar asignaciones del docente y llenar select de cursos únicos
+    async function cargarCursosYMaterias() {
       const { data } = await supabaseClient.from('curso_materia_docente').select(`
-        id, curso_id, cursos(id, nombre), materias(id, nombre)
+        id, curso_id, materia_id,
+        cursos(id, nombre),
+        materias(id, nombre)
       `);
-      asignaciones = data || [];
-      const select = document.getElementById('selectAsignacion');
-      select.innerHTML = '<option value="">Seleccione...</option>' + 
-        asignaciones.map(a => `<option value="${a.id}" data-curso="${a.curso_id}">${a.cursos.nombre} - ${a.materias.nombre}</option>`).join('');
+
+      todasAsignaciones = data || [];
+
+      // Extraer cursos únicos
+      const cursosUnicosMap = new Map();
+      todasAsignaciones.forEach(a => {
+        if (a.cursos && !cursosUnicosMap.has(a.cursos.id)) {
+          cursosUnicosMap.set(a.cursos.id, a.cursos.nombre);
+        }
+      });
+
+      const selectCurso = document.getElementById('selectCurso');
+      selectCurso.innerHTML = '<option value="">Seleccione curso...</option>';
+      cursosUnicosMap.forEach((nombre, id) => {
+        selectCurso.innerHTML += `<option value="${id}">${nombre}</option>`;
+      });
+    }
+
+    // Filtrar materias según el curso seleccionado
+    function alCambiarCurso() {
+      const cursoId = document.getElementById('selectCurso').value;
+      const selectMateria = document.getElementById('selectMateria');
+
+      if (!cursoId) {
+        selectMateria.innerHTML = '<option value="">Seleccione materia...</option>';
+        selectMateria.disabled = true;
+        cambiarFiltro();
+        return;
+      }
+
+      const materiasDelCurso = todasAsignaciones.filter(a => a.curso_id == cursoId);
+      selectMateria.innerHTML = '<option value="">Seleccione materia...</option>' + 
+        materiasDelCurso.map(a => `<option value="${a.id}">${a.materias.nombre}</option>`).join('');
+      
+      selectMateria.disabled = false;
+      cambiarFiltro();
     }
 
     function cambiarFiltro() {
-      const asigId = document.getElementById('selectAsignacion').value;
+      const asigId = document.getElementById('selectMateria').value;
       const trimestreVal = document.getElementById('selectTrimestre').value;
       const vistaVal = document.getElementById('selectVista').value;
       const controles = document.querySelectorAll('.btn-control');
@@ -267,7 +320,7 @@
 
       if (!asigId) {
         controles.forEach(b => b.disabled = true);
-        document.getElementById('contenedorTabla').innerHTML = '<div class="py-4 text-muted text-center">Seleccione Curso y Materia para cargar la información.</div>';
+        document.getElementById('contenedorTabla').innerHTML = '<div class="py-4 text-muted text-center">Seleccione un Curso y una Materia para visualizar las calificaciones.</div>';
         return;
       }
       controles.forEach(b => b.disabled = false);
@@ -282,7 +335,7 @@
     }
 
     // ==========================================
-    // GESTIÓN DINÁMICA DE ACTIVIDADES (INSUMOS)
+    // GESTIÓN DINÁMICA DE ACTIVIDADES
     // ==========================================
     function capturarNotasDeLaTabla() {
       const filas = document.querySelectorAll('#tablaCuerpo tr');
@@ -334,12 +387,12 @@
     // VISTA 1: PARCIAL DETALLADO
     // ==========================================
     async function cargarVistaParcial(parcialNum) {
-      const asigId = document.getElementById('selectAsignacion').value;
+      const asigId = document.getElementById('selectMateria').value;
       const trimestre = parseInt(document.getElementById('selectTrimestre').value);
       const contenedor = document.getElementById('contenedorTabla');
       contenedor.innerHTML = '<div class="py-4 text-center">Cargando datos del parcial...</div>';
 
-      const asig = asignaciones.find(a => a.id == asigId);
+      const asig = todasAsignaciones.find(a => a.id == asigId);
 
       const { data: confData } = await supabaseClient
         .from('config_parcial_cabeceras')
@@ -482,12 +535,12 @@
     // VISTA 2: RESUMEN TRIMESTRAL + EXAMEN
     // ==========================================
     async function cargarVistaResumenTrimestre() {
-      const asigId = document.getElementById('selectAsignacion').value;
+      const asigId = document.getElementById('selectMateria').value;
       const trimestre = parseInt(document.getElementById('selectTrimestre').value);
       const contenedor = document.getElementById('contenedorTabla');
       contenedor.innerHTML = '<div class="py-4 text-center">Cargando consolidado del trimestre...</div>';
 
-      const asig = asignaciones.find(a => a.id == asigId);
+      const asig = todasAsignaciones.find(a => a.id == asigId);
 
       const { data: estData } = await supabaseClient.from('estudiantes').select('*').eq('curso_id', asig.curso_id).order('numero_lista');
       estudiantes = estData || [];
@@ -581,30 +634,27 @@
     }
 
     // ==========================================
-    // VISTA 3: RESUMEN GENERAL ANUAL (Cálculo directo en tiempo real)
+    // VISTA 3: RESUMEN GENERAL ANUAL
     // ==========================================
     async function cargarVistaResumenAnual() {
-      const asigId = document.getElementById('selectAsignacion').value;
+      const asigId = document.getElementById('selectMateria').value;
       const contenedor = document.getElementById('contenedorTabla');
       contenedor.innerHTML = '<div class="py-4 text-center">Cargando sábana anual de calificaciones en tiempo real...</div>';
 
-      const asig = asignaciones.find(a => a.id == asigId);
+      const asig = todasAsignaciones.find(a => a.id == asigId);
       const { data: estData } = await supabaseClient.from('estudiantes').select('*').eq('curso_id', asig.curso_id).order('numero_lista');
       estudiantes = estData || [];
 
-      // 1. Obtener todas las notas de los parciales (Trimestres 1, 2 y 3)
       const { data: pData } = await supabaseClient
         .from('notas_parcial_actividades')
         .select('*')
         .eq('asignacion_id', asigId);
 
-      // 2. Obtener exámenes de cada trimestre
       const { data: tData } = await supabaseClient
         .from('notas_trimestre')
         .select('*')
         .eq('asignacion_id', asigId);
 
-      // Estructura: matriz[estId][trimestre] = { p1, p2, examen }
       const notasMatriz = {};
       estudiantes.forEach(e => {
         notasMatriz[e.id] = {
@@ -644,7 +694,6 @@
             ${estudiantes.map((est, idx) => {
               const reg = notasMatriz[est.id] || {};
               
-              // Cálculo por trimestre: 35% P1 + 35% P2 + 30% Examen
               const t1 = (reg[1].p1 * 0.35) + (reg[1].p2 * 0.35) + (reg[1].ex * 0.30);
               const t2 = (reg[2].p1 * 0.35) + (reg[2].p2 * 0.35) + (reg[2].ex * 0.30);
               const t3 = (reg[3].p1 * 0.35) + (reg[3].p2 * 0.35) + (reg[3].ex * 0.30);
@@ -674,7 +723,7 @@
     // GUARDADO GENERAL CON AUTO-SINCRONIZACIÓN
     // ==========================================
     async function guardarDatos() {
-      const asigId = document.getElementById('selectAsignacion').value;
+      const asigId = document.getElementById('selectMateria').value;
       const trimestreVal = document.getElementById('selectTrimestre').value;
       const vistaVal = document.getElementById('selectVista').value;
 
@@ -686,7 +735,6 @@
         btn.innerText = 'Guardando...';
 
         try {
-          // 1. Guardar Configuración de Cabeceras
           await supabaseClient.from('config_parcial_cabeceras').upsert({
             asignacion_id: parseInt(asigId),
             trimestre: trimestre,
@@ -695,7 +743,6 @@
             actividades_insumo2: configActividades.insumo2
           }, { onConflict: 'asignacion_id,trimestre,parcial' });
 
-          // 2. Guardar Notas del Parcial
           const filas = document.querySelectorAll('#tablaCuerpo tr');
           const payload = [];
 
@@ -727,7 +774,7 @@
           });
           if (errNotas) throw errNotas;
 
-          // 3. Sincronización automática de notas_trimestre
+          // Sincronización automática de notas_trimestre
           const { data: allPData } = await supabaseClient
             .from('notas_parcial_actividades')
             .select('*')
@@ -773,7 +820,7 @@
           alert('Error al guardar: ' + err.message);
         } finally {
           btn.disabled = false;
-          btn.innerText = '💾 Guardar Parcial';
+          btn.innerText = '💾 Guardar';
         }
 
       } else if (trimestreVal !== 'anual' && vistaVal === 'resumen_trimestre') {
@@ -818,7 +865,7 @@
           alert('Error al guardar: ' + err.message);
         } finally {
           btn.disabled = false;
-          btn.innerText = '💾 Guardar Examen y Resumen';
+          btn.innerText = '💾 Guardar Examen';
         }
       }
     }
