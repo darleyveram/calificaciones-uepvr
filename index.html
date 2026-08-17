@@ -76,7 +76,7 @@
     <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
       <div>
         <h5 class="fw-bold text-primary mb-0">Unidad Educativa Particular "VICENTE ROCAFUERTE"</h5>
-        <small class="text-muted" id="usuarioConectado"></small>
+        <small class="text-muted fw-bold" id="usuarioConectado"></small>
       </div>
       <button class="btn btn-outline-danger btn-sm" onclick="cerrarSesion()">Cerrar Sesión</button>
     </div>
@@ -170,8 +170,8 @@
     let configActividades = { insumo1: [], insumo2: [] };
     let notasActualesMemoria = {};
     let datosResumenAnualActual = [];
+    let usuarioActualPerfil = null;
 
-    // Colores semafóricos
     function obtenerClaseColor(valor, esPromedio = false) {
       if (isNaN(valor) || valor === null || valor === '') return '';
       const n = parseFloat(valor);
@@ -199,6 +199,7 @@
       configActividades = { insumo1: [], insumo2: [] };
       notasActualesMemoria = {};
       datosResumenAnualActual = [];
+      usuarioActualPerfil = null;
 
       const selectCurso = document.getElementById('selectCurso');
       if (selectCurso) selectCurso.innerHTML = '<option value="">Seleccione curso...</option>';
@@ -233,11 +234,20 @@
     async function verificarSesion() {
       const { data: { session } } = await supabaseClient.auth.getSession();
       if (session) {
+        // Cargar perfil del docente autenticado
+        const { data: perfil } = await supabaseClient.from('perfiles').select('*').eq('id', session.user.id).maybeSingle();
+        usuarioActualPerfil = perfil;
+
+        const nombreDocente = perfil 
+          ? `${perfil.titulo ? perfil.titulo + ' ' : ''}${perfil.nombres} ${perfil.apellidos || ''}`.trim() 
+          : session.user.email;
+
         document.getElementById('seccionLogin').classList.add('d-none');
         document.getElementById('seccionApp').classList.remove('d-none');
-        document.getElementById('usuarioConectado').innerText = `Docente: ${session.user.email}`;
+        document.getElementById('usuarioConectado').innerText = `Docente: ${nombreDocente}`;
+        
         await cargarCatalogo();
-        await cargarCursosYMaterias();
+        await cargarCursosYMaterias(session.user.id, perfil?.rol);
       } else {
         resetearEstadoAplicacion();
         document.getElementById('seccionLogin').classList.remove('d-none');
@@ -270,15 +280,34 @@
       catalogo = data && data.length > 0 ? data.map(d => d.nombre) : ['Deber', 'Lección en clases', 'Actuación en clases', 'Trabajo Grupal', 'Colaboración en el Aula'];
     }
 
-    async function cargarCursosYMaterias() {
-      const { data } = await supabaseClient.from('curso_materia_docente').select(`
-        id, curso_id, materia_id,
+    // Carga de asignaciones filtradas estrictamente por el usuario autenticado
+    async function cargarCursosYMaterias(userId, userRol) {
+      let query = supabaseClient.from('curso_materia_docente').select(`
+        id, curso_id, materia_id, docente_id, es_optativa,
         cursos(id, nombre),
         materias(id, nombre)
       `);
 
+      // Si no es admin, filtrar solo sus asignaciones
+      if (userRol !== 'admin') {
+        query = query.eq('docente_id', userId);
+      }
+
+      const { data, error } = await query;
       todasAsignaciones = data || [];
 
+      const selectCurso = document.getElementById('selectCurso');
+      const selectMateria = document.getElementById('selectMateria');
+
+      if (todasAsignaciones.length === 0) {
+        selectCurso.innerHTML = '<option value="">No tiene cursos asignados</option>';
+        selectMateria.innerHTML = '<option value="">No tiene materias asignadas</option>';
+        selectMateria.disabled = true;
+        document.getElementById('contenedorTabla').innerHTML = '<div class="py-4 text-center text-danger fw-bold">Usted no tiene cursos ni materias asignadas actualmente. Contacte al Administrador.</div>';
+        return;
+      }
+
+      // Extraer cursos únicos pertenecientes al docente
       const cursosUnicosMap = new Map();
       todasAsignaciones.forEach(a => {
         if (a.cursos && !cursosUnicosMap.has(a.cursos.id)) {
@@ -286,11 +315,16 @@
         }
       });
 
-      const selectCurso = document.getElementById('selectCurso');
       selectCurso.innerHTML = '<option value="">Seleccione curso...</option>';
       cursosUnicosMap.forEach((nombre, id) => {
         selectCurso.innerHTML += `<option value="${id}">${nombre}</option>`;
       });
+
+      // Si solo tiene un curso asignado, seleccionarlo automáticamente
+      if (cursosUnicosMap.size === 1) {
+        selectCurso.value = Array.from(cursosUnicosMap.keys())[0];
+        alCambiarCurso();
+      }
     }
 
     function alCambiarCurso() {
@@ -304,11 +338,18 @@
         return;
       }
 
+      // Filtrar únicamente las materias de este curso asignadas al docente
       const materiasDelCurso = todasAsignaciones.filter(a => a.curso_id == cursoId);
       selectMateria.innerHTML = '<option value="">Seleccione materia...</option>' + 
-        materiasDelCurso.map(a => `<option value="${a.id}">${a.materias.nombre}</option>`).join('');
+        materiasDelCurso.map(a => `<option value="${a.id}">${a.materias.nombre} ${a.es_optativa ? '(Optativa)' : ''}</option>`).join('');
       
       selectMateria.disabled = false;
+
+      // Si solo tiene una materia en ese curso, seleccionarla de inmediato
+      if (materiasDelCurso.length === 1) {
+        selectMateria.value = materiasDelCurso[0].id;
+      }
+
       cambiarFiltro();
     }
 
@@ -662,7 +703,6 @@
       calcularFilaParcial(input.closest('tr'));
     }
 
-    // Cálculo proporcional dividiendo entre el total de actividades creadas
     function calcularFilaParcial(tr) {
       const inputs1 = Array.from(tr.querySelectorAll('.nota-i1'));
       const inputs2 = Array.from(tr.querySelectorAll('.nota-i2'));
@@ -670,11 +710,9 @@
       inputs1.forEach(i => i.className = `form-control form-control-sm input-nota-app nota-i1 ${obtenerClaseColor(i.value, false)}`);
       inputs2.forEach(i => i.className = `form-control form-control-sm input-nota-app nota-i2 ${obtenerClaseColor(i.value, false)}`);
 
-      // Total de actividades configuradas (denominador exacto)
       const cantAct1 = configActividades.insumo1.length;
       const cantAct2 = configActividades.insumo2.length;
 
-      // Suma considerando casillas vacías como 0
       const suma1 = inputs1.reduce((acc, inp) => acc + (parseFloat(inp.value) || 0), 0);
       const suma2 = inputs2.reduce((acc, inp) => acc + (parseFloat(inp.value) || 0), 0);
 
@@ -696,7 +734,7 @@
     }
 
     // ==========================================
-    // VISTA: RESUMEN TRIMESTRAL + EXAMEN + COMPORTAMIENTO PROMEDIADO
+    // VISTA: RESUMEN TRIMESTRAL + EXAMEN
     // ==========================================
     async function cargarVistaResumenTrimestre() {
       const asigId = document.getElementById('selectMateria').value;
@@ -708,7 +746,6 @@
       const { data: estData } = await supabaseClient.from('estudiantes').select('*').eq('curso_id', asig.curso_id).order('numero_lista');
       estudiantes = estData || [];
 
-      // Notas Parciales
       const { data: pData } = await supabaseClient
         .from('notas_parcial_actividades')
         .select('*')
@@ -722,7 +759,6 @@
         if (n.parcial === 2) notasP2[n.estudiante_id] = n.nota_parcial || 0;
       });
 
-      // Comportamiento Parciales
       const { data: compData } = await supabaseClient
         .from('comportamiento_parcial')
         .select('*')
@@ -735,7 +771,6 @@
         if (c.parcial === 2) compP2[c.estudiante_id] = parseFloat(c.total_cuantitativo) || 0;
       });
 
-      // Exámenes Trimestrales
       const { data: tData } = await supabaseClient
         .from('notas_trimestre')
         .select('*')
@@ -970,7 +1005,7 @@
       const selectMateria = document.getElementById('selectMateria');
       const nombreMateria = selectMateria.options[selectMateria.selectedIndex].text;
 
-      const docenteEmail = document.getElementById('usuarioConectado').innerText.replace('Docente: ', '');
+      const docenteText = document.getElementById('usuarioConectado').innerText.replace('Docente: ', '');
 
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(14);
@@ -986,7 +1021,7 @@
       doc.setTextColor(30, 30, 30);
       doc.text(`Curso: ${nombreCurso}`, 14, 29);
       doc.text(`Materia: ${nombreMateria}`, 14, 34);
-      doc.text(`Docente: ${docenteEmail}`, 200, 29);
+      doc.text(`Docente: ${docenteText}`, 200, 29);
       doc.text(`Fecha emisión: ${new Date().toLocaleDateString('es-EC')}`, 200, 34);
 
       const tableRows = datosResumenAnualActual.map(r => [
