@@ -28,7 +28,7 @@
     .nota-aprobada-verde { background-color: #d1e7dd !important; color: #0f5132 !important; font-weight: bold; }
     .nota-perfecta-10 { background-color: #198754 !important; color: #ffffff !important; font-weight: bold; }
 
-    /* Bloques temáticos de comportamiento */
+    /* Bloques de Comportamiento */
     .bg-comp-puntual { background-color: #3b5998 !important; color: #fff; }
     .bg-comp-limp { background-color: #b9770e !important; color: #fff; }
     .bg-comp-resp { background-color: #58d68d !important; color: #000; }
@@ -171,7 +171,7 @@
     let notasActualesMemoria = {};
     let datosResumenAnualActual = [];
 
-    // --- Función utilitaria para aplicar clases de color ---
+    // Colores semafóricos
     function obtenerClaseColor(valor, esPromedio = false) {
       if (isNaN(valor) || valor === null || valor === '') return '';
       const n = parseFloat(valor);
@@ -662,6 +662,7 @@
       calcularFilaParcial(input.closest('tr'));
     }
 
+    // Cálculo proporcional dividiendo entre el total de actividades creadas
     function calcularFilaParcial(tr) {
       const inputs1 = Array.from(tr.querySelectorAll('.nota-i1'));
       const inputs2 = Array.from(tr.querySelectorAll('.nota-i2'));
@@ -669,11 +670,16 @@
       inputs1.forEach(i => i.className = `form-control form-control-sm input-nota-app nota-i1 ${obtenerClaseColor(i.value, false)}`);
       inputs2.forEach(i => i.className = `form-control form-control-sm input-nota-app nota-i2 ${obtenerClaseColor(i.value, false)}`);
 
-      const notas1 = inputs1.map(i => parseFloat(i.value)).filter(n => !isNaN(n));
-      const notas2 = inputs2.map(i => parseFloat(i.value)).filter(n => !isNaN(n));
+      // Total de actividades configuradas (denominador exacto)
+      const cantAct1 = configActividades.insumo1.length;
+      const cantAct2 = configActividades.insumo2.length;
 
-      const prom1 = notas1.length > 0 ? (notas1.reduce((a, b) => a + b, 0) / notas1.length) : 0;
-      const prom2 = notas2.length > 0 ? (notas2.reduce((a, b) => a + b, 0) / notas2.length) : 0;
+      // Suma considerando casillas vacías como 0
+      const suma1 = inputs1.reduce((acc, inp) => acc + (parseFloat(inp.value) || 0), 0);
+      const suma2 = inputs2.reduce((acc, inp) => acc + (parseFloat(inp.value) || 0), 0);
+
+      const prom1 = cantAct1 > 0 ? (suma1 / cantAct1) : 0;
+      const prom2 = cantAct2 > 0 ? (suma2 / cantAct2) : 0;
       const total = (prom1 + prom2) / 2;
 
       const cProm1 = tr.querySelector('.prom-i1');
@@ -702,7 +708,7 @@
       const { data: estData } = await supabaseClient.from('estudiantes').select('*').eq('curso_id', asig.curso_id).order('numero_lista');
       estudiantes = estData || [];
 
-      // Notas de Parcial 1 y Parcial 2
+      // Notas Parciales
       const { data: pData } = await supabaseClient
         .from('notas_parcial_actividades')
         .select('*')
@@ -716,7 +722,7 @@
         if (n.parcial === 2) notasP2[n.estudiante_id] = n.nota_parcial || 0;
       });
 
-      // Comportamiento de Parcial 1 y Parcial 2
+      // Comportamiento Parciales
       const { data: compData } = await supabaseClient
         .from('comportamiento_parcial')
         .select('*')
@@ -729,7 +735,7 @@
         if (c.parcial === 2) compP2[c.estudiante_id] = parseFloat(c.total_cuantitativo) || 0;
       });
 
-      // Examen Trimestral existente
+      // Exámenes Trimestrales
       const { data: tData } = await supabaseClient
         .from('notas_trimestre')
         .select('*')
@@ -759,7 +765,6 @@
               const tInfo = trimMap[est.id] || {};
               const ex = tInfo.examen !== undefined && tInfo.examen !== null ? tInfo.examen : '';
 
-              // Promedio comportamiento: (P1 + P2) / 2
               const cp1 = compP1[est.id] !== undefined ? compP1[est.id] : 10;
               const cp2 = compP2[est.id] !== undefined ? compP2[est.id] : 10;
               const compPromNum = (cp1 + cp2) / 2;
@@ -810,20 +815,18 @@
       cP1.className = `p1-val fw-bold ${obtenerClaseColor(p1, false)}`;
       cP2.className = `p2-val fw-bold ${obtenerClaseColor(p2, false)}`;
 
-      // 35% P1 + 35% P2 + 30% Examen
       const total = (p1 * 0.35) + (p2 * 0.35) + (ex * 0.30);
       const celdaTotal = tr.querySelector('.total-trimestre');
       celdaTotal.innerText = total.toFixed(2);
       celdaTotal.className = `total-trimestre fw-bold ${obtenerClaseColor(total, true)}`;
 
-      // Comportamiento color
       const compNum = parseFloat(tr.getAttribute('data-comp-num')) || 10;
       const celdaComp = tr.querySelector('.comp-trimestral-badge');
       celdaComp.className = `comp-trimestral-badge fw-bold ${obtenerClaseColor(compNum, true)}`;
     }
 
     // ==========================================
-    // VISTA: RESUMEN GENERAL ANUAL (Académico y Comportamiento)
+    // VISTA: RESUMEN GENERAL ANUAL
     // ==========================================
     async function cargarVistaResumenAnual() {
       const asigId = document.getElementById('selectMateria').value;
@@ -834,11 +837,8 @@
       const { data: estData } = await supabaseClient.from('estudiantes').select('*').eq('curso_id', asig.curso_id).order('numero_lista');
       estudiantes = estData || [];
 
-      // Parciales académicos
       const { data: pData } = await supabaseClient.from('notas_parcial_actividades').select('*').eq('asignacion_id', asigId);
-      // Exámenes trimestrales
       const { data: tData } = await supabaseClient.from('notas_trimestre').select('*').eq('asignacion_id', asigId);
-      // Comportamiento de todos los parciales y trimestres
       const { data: cData } = await supabaseClient.from('comportamiento_parcial').select('*').eq('asignacion_id', asigId);
 
       const notasMatriz = {};
@@ -905,13 +905,11 @@
               const reg = notasMatriz[est.id] || {};
               const cReg = compMatriz[est.id] || {};
               
-              // Académico
               const t1 = (reg[1].p1 * 0.35) + (reg[1].p2 * 0.35) + (reg[1].ex * 0.30);
               const t2 = (reg[2].p1 * 0.35) + (reg[2].p2 * 0.35) + (reg[2].ex * 0.30);
               const t3 = (reg[3].p1 * 0.35) + (reg[3].p2 * 0.35) + (reg[3].ex * 0.30);
               const promAnual = (t1 + t2 + t3) / 3;
 
-              // Comportamiento
               const ct1 = (cReg[1].p1 + cReg[1].p2) / 2;
               const ct2 = (cReg[2].p1 + cReg[2].p2) / 2;
               const ct3 = (cReg[3].p1 + cReg[3].p2) / 2;
@@ -964,7 +962,7 @@
       if (datosResumenAnualActual.length === 0) return alert('No hay datos para exportar.');
 
       const { jsPDF } = window.jspdf;
-      const doc = new jsPDF('landscape', 'mm', 'a4'); // Formato horizontal para sábana completa
+      const doc = new jsPDF('landscape', 'mm', 'a4');
 
       const selectCurso = document.getElementById('selectCurso');
       const nombreCurso = selectCurso.options[selectCurso.selectedIndex].text;
