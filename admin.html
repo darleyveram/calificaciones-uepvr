@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel Administrativo - UEP Vicente Rocafuerte</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body { background-color: #f4f6f9; font-size: 0.88rem; }
+    .sidebar { min-height: 100vh; background-color: #1e293b; }
+    .sidebar .nav-link { color: #94a3b8; font-weight: 500; padding: 10px 16px; border-radius: 6px; margin-bottom: 4px; }
+    .sidebar .nav-link:hover, .sidebar .nav-link.active { color: #fff; background-color: #0d6efd; }
+    .card { border: none; border-radius: 8px; box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.075); }
+    .table th { font-size: 0.82rem; text-transform: uppercase; background-color: #f8fafc; }
+  </style>
+</head>
+<body>
+
+  <!-- ================= LOGIN ADMIN ================= -->
+  <div class="container" id="seccionLogin" style="max-width: 420px; margin-top: 80px;">
+    <div class="card shadow">
+      <div class="card-header bg-dark text-white text-center py-3">
+        <h5 class="mb-0 fw-bold"><i class="bi bi-shield-lock me-2"></i>Acceso Administrativo</h5>
+        <small class="text-secondary">UEP Vicente Rocafuerte</small>
+      </div>
+      <div class="card-body p-4">
+        <form onsubmit="iniciarSesionAdmin(event)">
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Correo de Administrador</label>
+            <input type="email" id="adminEmail" class="form-control" placeholder="admin@uepvr.edu.ec" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Contraseña</label>
+            <input type="password" id="adminPassword" class="form-control" required>
+          </div>
+          <div id="loginError" class="alert alert-danger py-2 d-none"></div>
+          <button type="submit" class="btn btn-dark w-100 fw-bold" id="btnLogin">Ingresar al Panel</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= DASHBOARD ADMIN ================= -->
+  <div class="container-fluid d-none" id="seccionApp">
+    <div class="row">
+      
+      <!-- Menú Lateral -->
+      <div class="col-md-3 col-lg-2 sidebar p-3 text-white">
+        <div class="d-flex align-items-center mb-4 pb-2 border-bottom border-secondary">
+          <i class="bi bi-mortarboard-fill text-primary fs-3 me-2"></i>
+          <div>
+            <h6 class="mb-0 fw-bold">UEPVR</h6>
+            <small class="text-secondary">Administración</small>
+          </div>
+        </div>
+        <ul class="nav nav-pills flex-column">
+          <li class="nav-item"><a href="#" class="nav-link active" onclick="mostrarModulo('institucion', this)"><i class="bi bi-building me-2"></i> Institución</a></li>
+          <li class="nav-item"><a href="#" class="nav-link" onclick="mostrarModulo('cursos', this)"><i class="bi bi-grid-3x3-gap me-2"></i> Cursos y Tutores</a></li>
+          <li class="nav-item"><a href="#" class="nav-link" onclick="mostrarModulo('materias', this)"><i class="bi bi-book me-2"></i> Materias</a></li>
+          <li class="nav-item"><a href="#" class="nav-link" onclick="mostrarModulo('asignaciones', this)"><i class="bi bi-person-check me-2"></i> Asignar Materias</a></li>
+          <li class="nav-item"><a href="#" class="nav-link" onclick="mostrarModulo('estudiantes', this)"><i class="bi bi-people me-2"></i> Estudiantes</a></li>
+          <li class="nav-item"><a href="#" class="nav-link" onclick="mostrarModulo('docentes', this)"><i class="bi bi-person-badge me-2"></i> Nómina Personal</a></li>
+          <li class="nav-item"><a href="#" class="nav-link" onclick="mostrarModulo('actividades', this)"><i class="bi bi-list-check me-2"></i> Actividades</a></li>
+        </ul>
+        <div class="mt-auto pt-4 border-top border-secondary">
+          <button class="btn btn-outline-danger btn-sm w-100" onclick="cerrarSesion()"><i class="bi bi-box-arrow-right me-1"></i> Cerrar Sesión</button>
+        </div>
+      </div>
+
+      <!-- Contenido Principal -->
+      <div class="col-md-9 col-lg-10 p-4">
+        
+        <!-- MODULO 1: DATOS INSTITUCIONALES -->
+        <div class="modulo" id="mod-institucion">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="fw-bold mb-0">Datos de la Institución</h4>
+            <button class="btn btn-primary btn-sm" onclick="guardarDatosInstitucion()"><i class="bi bi-save me-1"></i> Guardar Cambios</button>
+          </div>
+          <div class="card p-3">
+            <form id="formInstitucion" class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Nombre Institucional</label>
+                <input type="text" id="instNombre" class="form-control form-control-sm" required>
+              </div>
+              <div class="col-md-2">
+                <label class="form-label fw-semibold">Código AMIE</label>
+                <input type="text" id="instAmie" class="form-control form-control-sm" required>
+              </div>
+              <div class="col-md-2">
+                <label class="form-label fw-semibold">Circuito</label>
+                <input type="text" id="instCircuito" class="form-control form-control-sm">
+              </div>
+              <div class="col-md-2">
+                <label class="form-label fw-semibold">Distrito</label>
+                <input type="text" id="instDistrito" class="form-control form-control-sm">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label fw-semibold">Cantón</label>
+                <input type="text" id="instCanton" class="form-control form-control-sm">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label fw-semibold">Provincia</label>
+                <input type="text" id="instProvincia" class="form-control form-control-sm">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label fw-semibold">Año Lectivo</label>
+                <input type="text" id="instPeriodo" class="form-control form-control-sm" placeholder="2026-2027">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label fw-semibold">Rector / Director</label>
+                <input type="text" id="instRector" class="form-control form-control-sm">
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- MODULO 2: CURSOS Y TUTORES -->
+        <div class="modulo d-none" id="mod-cursos">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="fw-bold mb-0">Gestión de Cursos y Tutores</h4>
+            <button class="btn btn-success btn-sm" onclick="modalCurso()"><i class="bi bi-plus-circle me-1"></i> Nuevo Curso</button>
+          </div>
+          <div class="card p-0">
+            <table class="table table-hover mb-0">
+              <thead><tr><th>ID</th><th>Nombre del Curso</th><th>Sección</th><th>Docente Tutor</th><th>Acciones</th></tr></thead>
+              <tbody id="tablaCursos"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- MODULO 3: MATERIAS -->
+        <div class="modulo d-none" id="mod-materias">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="fw-bold mb-0">Catálogo General de Materias</h4>
+            <button class="btn btn-success btn-sm" onclick="modalMateria()"><i class="bi bi-plus-circle me-1"></i> Nueva Materia</button>
+          </div>
+          <div class="card p-0">
+            <table class="table table-hover mb-0">
+              <thead><tr><th>ID</th><th>Nombre de la Asignatura</th><th>Acciones</th></tr></thead>
+              <tbody id="tablaMaterias"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- MODULO 4: ASIGNACIÓN DE MATERIAS Y DOCENTES -->
+        <div class="modulo d-none" id="mod-asignaciones">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="fw-bold mb-0">Asignar Docentes a Materias por Curso</h4>
+            <button class="btn btn-success btn-sm" onclick="modalAsignacion()"><i class="bi bi-plus-circle me-1"></i> Nueva Asignación</button>
+          </div>
+          <div class="card p-0">
+            <table class="table table-hover mb-0">
+              <thead><tr><th>Curso</th><th>Materia</th><th>Docente Asignado</th><th>Acciones</th></tr></thead>
+              <tbody id="tablaAsignaciones"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- MODULO 5: ESTUDIANTES Y REPRESENTANTES -->
+        <div class="modulo d-none" id="mod-estudiantes">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="fw-bold mb-0">Estudiantes y Representantes</h4>
+            <div class="d-flex gap-2">
+              <select id="filtroCursoEstudiantes" class="form-select form-select-sm" style="width: 200px;" onchange="cargarEstudiantes()"></select>
+              <button class="btn btn-success btn-sm" onclick="modalEstudiante()"><i class="bi bi-plus-circle me-1"></i> Nuevo Estudiante</button>
+            </div>
+          </div>
+          <div class="card p-0">
+            <table class="table table-hover mb-0">
+              <thead><tr><th>N°</th><th>Cédula</th><th>Estudiante</th><th>Representante</th><th>Teléfono</th><th>Acciones</th></tr></thead>
+              <tbody id="tablaEstudiantes"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- MODULO 6: NOMINA PERSONAL -->
+        <div class="modulo d-none" id="mod-docentes">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="fw-bold mb-0">Nómina del Personal Docente</h4>
+          </div>
+          <div class="card p-0">
+            <table class="table table-hover mb-0">
+              <thead><tr><th>Nombres</th><th>Correo Electrónico</th><th>Cargo</th><th>Rol</th><th>Acciones</th></tr></thead>
+              <tbody id="tablaDocentes"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- MODULO 7: ACTIVIDADES -->
+        <div class="modulo d-none" id="mod-actividades">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="fw-bold mb-0">Lista Oficial de Actividades</h4>
+            <button class="btn btn-success btn-sm" onclick="modalActividad()"><i class="bi bi-plus-circle me-1"></i> Nueva Actividad</button>
+          </div>
+          <div class="card p-0" style="max-width: 600px;">
+            <table class="table table-hover mb-0">
+              <thead><tr><th>ID</th><th>Nombre de la Actividad</th><th>Acciones</th></tr></thead>
+              <tbody id="tablaActividades"></tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = 'https://sbomuqwntosvdsojlfyr.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNib211cXdudG9zdmRzb2psZnlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY5Mjk5NzcsImV4cCI6MjEwMjUwNTk3N30.WLgWyVOWVieC-4XjnkZFAKEqARKszvLpVqiAoGHdUU8';
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let docentesList = [];
+    let cursosList = [];
+    let materiasList = [];
+
+    // Control de Vistas
+    function mostrarModulo(id, link) {
+      document.querySelectorAll('.modulo').forEach(m => m.classList.add('d-none'));
+      document.querySelectorAll('.sidebar .nav-link').forEach(l => l.classList.remove('active'));
+      document.getElementById('mod-' + id).classList.remove('d-none');
+      if (link) link.classList.add('active');
+
+      if (id === 'institucion') cargarDatosInstitucion();
+      if (id === 'cursos') cargarCursos();
+      if (id === 'materias') cargarMaterias();
+      if (id === 'asignaciones') cargarAsignaciones();
+      if (id === 'estudiantes') cargarCursosFiltroEstudiantes();
+      if (id === 'docentes') cargarDocentes();
+      if (id === 'actividades') cargarActividades();
+    }
+
+    // Autenticación
+    async function verificarSesion() {
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      if (session) {
+        // Verificar si es administrador
+        const { data: perfil } = await supabaseClient.from('perfiles').select('*').eq('id', session.user.id).single();
+        if (perfil && perfil.rol === 'admin') {
+          document.getElementById('seccionLogin').classList.add('d-none');
+          document.getElementById('seccionApp').classList.remove('d-none');
+          await cargarDatosIniciales();
+          mostrarModulo('institucion');
+        } else {
+          alert('Acceso restringido solo para administradores.');
+          await supabaseClient.auth.signOut();
+        }
+      } else {
+        document.getElementById('seccionLogin').classList.remove('d-none');
+        document.getElementById('seccionApp').classList.add('d-none');
+      }
+    }
+
+    async function iniciarSesionAdmin(e) {
+      e.preventDefault();
+      const email = document.getElementById('adminEmail').value.trim();
+      const password = document.getElementById('adminPassword').value;
+      const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+      if (error) {
+        const err = document.getElementById('loginError');
+        err.innerText = error.message;
+        err.classList.remove('d-none');
+      } else {
+        verificarSesion();
+      }
+    }
+
+    async function cerrarSesion() {
+      await supabaseClient.auth.signOut();
+      verificarSesion();
+    }
+
+    async function cargarDatosIniciales() {
+      const { data: d } = await supabaseClient.from('perfiles').select('*').order('nombres');
+      docentesList = d || [];
+      const { data: c } = await supabaseClient.from('cursos').select('*').order('nombre');
+      cursosList = c || [];
+      const { data: m } = await supabaseClient.from('materias').select('*').order('nombre');
+      materiasList = m || [];
+    }
+
+    // 1. Institución
+    async function cargarDatosInstitucion() {
+      const { data } = await supabaseClient.from('institucion').select('*').eq('id', 1).single();
+      if (data) {
+        document.getElementById('instNombre').value = data.nombre || '';
+        document.getElementById('instAmie').value = data.amie || '';
+        document.getElementById('instCircuito').value = data.circuito || '';
+        document.getElementById('instDistrito').value = data.distrito || '';
+        document.getElementById('instCanton').value = data.canton || '';
+        document.getElementById('instProvincia').value = data.provincia || '';
+        document.getElementById('instPeriodo').value = data.periodo_lectivo || '';
+        document.getElementById('instRector').value = data.rector || '';
+      }
+    }
+
+    async function guardarDatosInstitucion() {
+      const payload = {
+        nombre: document.getElementById('instNombre').value,
+        amie: document.getElementById('instAmie').value,
+        circuito: document.getElementById('instCircuito').value,
+        distrito: document.getElementById('instDistrito').value,
+        canton: document.getElementById('instCanton').value,
+        provincia: document.getElementById('instProvincia').value,
+        periodo_lectivo: document.getElementById('instPeriodo').value,
+        rector: document.getElementById('instRector').value
+      };
+      const { error } = await supabaseClient.from('institucion').update(payload).eq('id', 1);
+      if (error) alert('Error: ' + error.message);
+      else alert('¡Datos institucionales actualizados correctamente!');
+    }
+
+    // 2. Cursos
+    async function cargarCursos() {
+      await cargarDatosIniciales();
+      const tbody = document.getElementById('tablaCursos');
+      tbody.innerHTML = cursosList.map(c => {
+        const tutor = docentesList.find(d => d.id === c.tutor_id);
+        return `
+          <tr>
+            <td>${c.id}</td>
+            <td class="fw-bold">${c.nombre}</td>
+            <td>${c.seccion || 'Matutina'}</td>
+            <td>${tutor ? tutor.nombres : '<span class="text-muted">Sin tutor asignado</span>'}</td>
+            <td>
+              <button class="btn btn-sm btn-outline-primary py-0" onclick="editarCurso(${c.id}, '${c.nombre}', '${c.tutor_id || ''}')">Editar</button>
+              <button class="btn btn-sm btn-outline-danger py-0" onclick="eliminarRegistro('cursos', ${c.id})">Eliminar</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    async function modalCurso() {
+      const nombre = prompt('Nombre del curso (Ej: INICIAL I "A", 10MO EGB "B"):');
+      if (!nombre) return;
+      const { error } = await supabaseClient.from('cursos').insert([{ nombre }]);
+      if (error) alert(error.message);
+      else cargarCursos();
+    }
+
+    async function editarCurso(id, nombreActual, tutorActual) {
+      const nuevoNombre = prompt('Nombre del curso:', nombreActual);
+      if (!nuevoNombre) return;
+
+      let opcionesTutores = "Seleccione el número del Tutor:\n0: Sin Tutor\n" + 
+        docentesList.map((d, i) => `${i+1}: ${d.nombres} (${d.email})`).join('\n');
+      
+      const sel = prompt(opcionesTutores);
+      let nuevoTutor = null;
+      if (sel && parseInt(sel) > 0 && docentesList[parseInt(sel) - 1]) {
+        nuevoTutor = docentesList[parseInt(sel) - 1].id;
+      }
+
+      const { error } = await supabaseClient.from('cursos').update({ nombre: nuevoNombre, tutor_id: nuevoTutor }).eq('id', id);
+      if (error) alert(error.message);
+      else cargarCursos();
+    }
+
+    // 3. Materias
+    async function cargarMaterias() {
+      await cargarDatosIniciales();
+      const tbody = document.getElementById('tablaMaterias');
+      tbody.innerHTML = materiasList.map(m => `
+        <tr>
+          <td>${m.id}</td>
+          <td class="fw-bold">${m.nombre}</td>
+          <td>
+            <button class="btn btn-sm btn-outline-primary py-0" onclick="editarMateria(${m.id}, '${m.nombre}')">Editar</button>
+            <button class="btn btn-sm btn-outline-danger py-0" onclick="eliminarRegistro('materias', ${m.id})">Eliminar</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    async function modalMateria() {
+      const nombre = prompt('Nombre de la Materia / Asignatura:');
+      if (!nombre) return;
+      const { error } = await supabaseClient.from('materias').insert([{ nombre }]);
+      if (error) alert(error.message);
+      else cargarMaterias();
+    }
+
+    async function editarMateria(id, nombreActual) {
+      const nuevoNombre = prompt('Nombre de la Materia:', nombreActual);
+      if (!nuevoNombre) return;
+      const { error } = await supabaseClient.from('materias').update({ nombre: nuevoNombre }).eq('id', id);
+      if (error) alert(error.message);
+      else cargarMaterias();
+    }
+
+    // 4. Asignaciones
+    async function cargarAsignaciones() {
+      await cargarDatosIniciales();
+      const { data } = await supabaseClient.from('curso_materia_docente').select(`
+        id, curso_id, materia_id, docente_id,
+        cursos(nombre), materias(nombre)
+      `);
+      const tbody = document.getElementById('tablaAsignaciones');
+      tbody.innerHTML = (data || []).map(a => {
+        const doc = docentesList.find(d => d.id === a.docente_id);
+        return `
+          <tr>
+            <td class="fw-bold">${a.cursos?.nombre || ''}</td>
+            <td>${a.materias?.nombre || ''}</td>
+            <td>${doc ? doc.nombres : a.docente_id}</td>
+            <td><button class="btn btn-sm btn-outline-danger py-0" onclick="eliminarRegistro('curso_materia_docente', ${a.id})">Quitar Asignación</button></td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    async function modalAsignacion() {
+      if (cursosList.length === 0 || materiasList.length === 0 || docentesList.length === 0) {
+        alert('Debe tener cursos, materias y docentes registrados.');
+        return;
+      }
+
+      const cursoPrompt = "Seleccione el Curso:\n" + cursosList.map((c, i) => `${i+1}: ${c.nombre}`).join('\n');
+      const cIdx = parseInt(prompt(cursoPrompt)) - 1;
+      if (isNaN(cIdx) || !cursosList[cIdx]) return;
+
+      const matPrompt = "Seleccione la Materia:\n" + materiasList.map((m, i) => `${i+1}: ${m.nombre}`).join('\n');
+      const mIdx = parseInt(prompt(matPrompt)) - 1;
+      if (isNaN(mIdx) || !materiasList[mIdx]) return;
+
+      const docPrompt = "Seleccione el Docente:\n" + docentesList.map((d, i) => `${i+1}: ${d.nombres}`).join('\n');
+      const dIdx = parseInt(prompt(docPrompt)) - 1;
+      if (isNaN(dIdx) || !docentesList[dIdx]) return;
+
+      const { error } = await supabaseClient.from('curso_materia_docente').insert([{
+        curso_id: cursosList[cIdx].id,
+        materia_id: materiasList[mIdx].id,
+        docente_id: docentesList[dIdx].id
+      }]);
+
+      if (error) alert(error.message);
+      else cargarAsignaciones();
+    }
+
+    // 5. Estudiantes y Representantes
+    async function cargarCursosFiltroEstudiantes() {
+      await cargarDatosIniciales();
+      const select = document.getElementById('filtroCursoEstudiantes');
+      select.innerHTML = '<option value="">Seleccione Curso...</option>' + 
+        cursosList.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
+      cargarEstudiantes();
+    }
+
+    async function cargarEstudiantes() {
+      const cursoId = document.getElementById('filtroCursoEstudiantes').value;
+      const tbody = document.getElementById('tablaEstudiantes');
+      if (!cursoId) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-3 text-muted">Seleccione un curso para ver la nómina.</td></tr>';
+        return;
+      }
+
+      const { data } = await supabaseClient.from('estudiantes').select('*').eq('curso_id', cursoId).order('numero_lista');
+      tbody.innerHTML = (data || []).map((e, idx) => `
+        <tr>
+          <td>${idx + 1}</td>
+          <td>${e.cedula || '-'}</td>
+          <td class="fw-bold">${e.nombres}</td>
+          <td>${e.representante_nombres || '-'}</td>
+          <td>${e.representante_telefono || '-'}</td>
+          <td>
+            <button class="btn btn-sm btn-outline-primary py-0" onclick="editarEstudiante(${e.id})">Editar</button>
+            <button class="btn btn-sm btn-outline-danger py-0" onclick="eliminarRegistro('estudiantes', ${e.id})">Eliminar</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    async function modalEstudiante() {
+      const cursoId = document.getElementById('filtroCursoEstudiantes').value;
+      if (!cursoId) return alert('Seleccione primero el curso en el filtro superior.');
+
+      const nombres = prompt('Nombres completos del estudiante:');
+      if (!nombres) return;
+      const cedula = prompt('Cédula del estudiante (opcional):') || '';
+      const rep = prompt('Nombres del Representante Legal:') || '';
+      const telf = prompt('Teléfono del Representante:') || '';
+
+      const { error } = await supabaseClient.from('estudiantes').insert([{
+        curso_id: parseInt(cursoId),
+        nombres,
+        cedula,
+        representante_nombres: rep,
+        representante_telefono: telf
+      }]);
+
+      if (error) alert(error.message);
+      else cargarEstudiantes();
+    }
+
+    async function editarEstudiante(id) {
+      const { data: est } = await supabaseClient.from('estudiantes').select('*').eq('id', id).single();
+      if (!est) return;
+
+      const nombres = prompt('Nombres del estudiante:', est.nombres);
+      if (!nombres) return;
+      const cedula = prompt('Cédula del estudiante:', est.cedula || '') || '';
+      const rep = prompt('Representante:', est.representante_nombres || '') || '';
+      const telf = prompt('Teléfono:', est.representante_telefono || '') || '';
+
+      const { error } = await supabaseClient.from('estudiantes').update({
+        nombres, cedula, representante_nombres: rep, representante_telefono: telf
+      }).eq('id', id);
+
+      if (error) alert(error.message);
+      else cargarEstudiantes();
+    }
+
+    // 6. Docentes
+    async function cargarDocentes() {
+      await cargarDatosIniciales();
+      const tbody = document.getElementById('tablaDocentes');
+      tbody.innerHTML = docentesList.map(d => `
+        <tr>
+          <td class="fw-bold">${d.nombres}</td>
+          <td>${d.email}</td>
+          <td>${d.cargo || 'Docente'}</td>
+          <td><span class="badge ${d.rol === 'admin' ? 'bg-danger' : 'bg-primary'}">${d.rol.toUpperCase()}</span></td>
+          <td>
+            <button class="btn btn-sm btn-outline-secondary py-0" onclick="cambiarRolDocente('${d.id}', '${d.rol}')">
+              ${d.rol === 'admin' ? 'Hacer Docente' : 'Hacer Admin'}
+            </button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    async function cambiarRolDocente(id, rolActual) {
+      const nuevoRol = rolActual === 'admin' ? 'docente' : 'admin';
+      const { error } = await supabaseClient.from('perfiles').update({ rol: nuevoRol }).eq('id', id);
+      if (error) alert(error.message);
+      else cargarDocentes();
+    }
+
+    // 7. Actividades
+    async function cargarActividades() {
+      const { data } = await supabaseClient.from('catalogo_actividades').select('*').order('nombre');
+      const tbody = document.getElementById('tablaActividades');
+      tbody.innerHTML = (data || []).map(a => `
+        <tr>
+          <td>${a.id}</td>
+          <td class="fw-bold">${a.nombre}</td>
+          <td><button class="btn btn-sm btn-outline-danger py-0" onclick="eliminarRegistro('catalogo_actividades', ${a.id})">Eliminar</button></td>
+        </tr>
+      `).join('');
+    }
+
+    async function modalActividad() {
+      const nombre = prompt('Nombre del nuevo tipo de actividad:');
+      if (!nombre) return;
+      const { error } = await supabaseClient.from('catalogo_actividades').insert([{ nombre }]);
+      if (error) alert(error.message);
+      else cargarActividades();
+    }
+
+    // Función Genérica para Eliminar
+    async function eliminarRegistro(tabla, id) {
+      if (!confirm('¿Está seguro de eliminar este registro? Esta acción no se puede deshacer.')) return;
+      const { error } = await supabaseClient.from(tabla).delete().eq('id', id);
+      if (error) alert('Error al eliminar: ' + error.message);
+      else {
+        if (tabla === 'cursos') cargarCursos();
+        if (tabla === 'materias') cargarMaterias();
+        if (tabla === 'curso_materia_docente') cargarAsignaciones();
+        if (tabla === 'estudiantes') cargarEstudiantes();
+        if (tabla === 'catalogo_actividades') cargarActividades();
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', verificarSesion);
+  </script>
+</body>
+</html>
