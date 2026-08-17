@@ -56,13 +56,13 @@
           </div>
         </div>
         <ul class="nav nav-pills flex-column">
-          <li class="nav-item"><a href="#" class="nav-link active" onclick="mostrarModulo('institucion', this)"><i class="bi bi-building me-2"></i> Institución</a></li>
-          <li class="nav-item"><a href="#" class="nav-link" onclick="mostrarModulo('cursos', this)"><i class="bi bi-grid-3x3-gap me-2"></i> Cursos y Tutores</a></li>
-          <li class="nav-item"><a href="#" class="nav-link" onclick="mostrarModulo('materias', this)"><i class="bi bi-book me-2"></i> Materias</a></li>
-          <li class="nav-item"><a href="#" class="nav-link" onclick="mostrarModulo('asignaciones', this)"><i class="bi bi-person-check me-2"></i> Asignar Materias</a></li>
-          <li class="nav-item"><a href="#" class="nav-link" onclick="mostrarModulo('estudiantes', this)"><i class="bi bi-people me-2"></i> Estudiantes</a></li>
-          <li class="nav-item"><a href="#" class="nav-link" onclick="mostrarModulo('docentes', this)"><i class="bi bi-person-badge me-2"></i> Nómina Personal</a></li>
-          <li class="nav-item"><a href="#" class="nav-link" onclick="mostrarModulo('actividades', this)"><i class="bi bi-list-check me-2"></i> Actividades</a></li>
+          <li class="nav-item"><a href="#" class="nav-link active" id="nav-institucion" onclick="mostrarModulo('institucion', this)"><i class="bi bi-building me-2"></i> Institución</a></li>
+          <li class="nav-item"><a href="#" class="nav-link" id="nav-cursos" onclick="mostrarModulo('cursos', this)"><i class="bi bi-grid-3x3-gap me-2"></i> Cursos y Tutores</a></li>
+          <li class="nav-item"><a href="#" class="nav-link" id="nav-asignaciones" onclick="mostrarModulo('asignaciones', this)"><i class="bi bi-journal-check me-2"></i> Asignar Materias</a></li>
+          <li class="nav-item"><a href="#" class="nav-link" id="nav-materias" onclick="mostrarModulo('materias', this)"><i class="bi bi-book me-2"></i> Materias</a></li>
+          <li class="nav-item"><a href="#" class="nav-link" id="nav-estudiantes" onclick="mostrarModulo('estudiantes', this)"><i class="bi bi-people me-2"></i> Estudiantes</a></li>
+          <li class="nav-item"><a href="#" class="nav-link" id="nav-docentes" onclick="mostrarModulo('docentes', this)"><i class="bi bi-person-badge me-2"></i> Nómina Personal</a></li>
+          <li class="nav-item"><a href="#" class="nav-link" id="nav-actividades" onclick="mostrarModulo('actividades', this)"><i class="bi bi-list-check me-2"></i> Actividades</a></li>
         </ul>
         <div class="mt-auto pt-4 border-top border-secondary">
           <button class="btn btn-outline-danger btn-sm w-100" onclick="cerrarSesion()"><i class="bi bi-box-arrow-right me-1"></i> Cerrar Sesión</button>
@@ -72,7 +72,7 @@
       <!-- Contenido Principal -->
       <div class="col-md-9 col-lg-10 p-4">
         
-        <!-- MODULO 1: DATOS INSTITUCIONALES -->
+        <!-- MODULO 1: INSTITUCIÓN -->
         <div class="modulo" id="mod-institucion">
           <div class="d-flex justify-content-between align-items-center mb-3">
             <h4 class="fw-bold mb-0">Datos de la Institución</h4>
@@ -120,40 +120,67 @@
         <div class="modulo d-none" id="mod-cursos">
           <div class="d-flex justify-content-between align-items-center mb-3">
             <h4 class="fw-bold mb-0">Gestión de Cursos y Tutores</h4>
-            <button class="btn btn-success btn-sm" onclick="modalCurso()"><i class="bi bi-plus-circle me-1"></i> Nuevo Curso</button>
+            <button class="btn btn-success btn-sm" onclick="abrirModalCurso()"><i class="bi bi-plus-circle me-1"></i> Nuevo Curso</button>
           </div>
           <div class="card p-0">
-            <table class="table table-hover mb-0">
-              <thead><tr><th>ID</th><th>Nombre del Curso</th><th>Sección</th><th>Docente Tutor</th><th>Acciones</th></tr></thead>
+            <table class="table table-hover mb-0 align-middle">
+              <thead><tr><th>ID</th><th>Nombre del Curso</th><th>Sección</th><th>Docente Tutor</th><th>Malla Curricular</th><th>Acciones</th></tr></thead>
               <tbody id="tablaCursos"></tbody>
             </table>
           </div>
         </div>
 
-        <!-- MODULO 3: MATERIAS -->
-        <div class="modulo d-none" id="mod-materias">
+        <!-- MODULO 3: ASIGNACIÓN DE MATERIAS POR CURSO -->
+        <div class="modulo d-none" id="mod-asignaciones">
           <div class="d-flex justify-content-between align-items-center mb-3">
-            <h4 class="fw-bold mb-0">Catálogo General de Materias</h4>
-            <button class="btn btn-success btn-sm" onclick="modalMateria()"><i class="bi bi-plus-circle me-1"></i> Nueva Materia</button>
+            <h4 class="fw-bold mb-0">Malla y Asignación de Materias por Curso</h4>
+            <button class="btn btn-success btn-sm" id="btnNuevaAsignacion" onclick="abrirModalAsignacion()" disabled>
+              <i class="bi bi-plus-circle me-1"></i> Asignar Materia a este Curso
+            </button>
           </div>
+
+          <!-- Selector de Curso para Asignación -->
+          <div class="card p-3 mb-3 bg-white">
+            <div class="row align-items-center">
+              <div class="col-md-5">
+                <label class="form-label fw-bold mb-1">Seleccione el Curso a Configurar:</label>
+                <select id="selectCursoAsignar" class="form-select form-select-sm" onchange="cargarMateriasDelCurso()">
+                  <option value="">Seleccione curso...</option>
+                </select>
+              </div>
+              <div class="col-md-7 text-muted pt-3">
+                <small><i class="bi bi-info-circle me-1"></i> Las materias marcadas como <b>Optativas</b> no sumarán al promedio de notas, pero su comportamiento sí se sumará al cálculo institucional.</small>
+              </div>
+            </div>
+          </div>
+
           <div class="card p-0">
-            <table class="table table-hover mb-0">
-              <thead><tr><th>ID</th><th>Nombre de la Asignatura</th><th>Acciones</th></tr></thead>
-              <tbody id="tablaMaterias"></tbody>
+            <table class="table table-hover mb-0 align-middle">
+              <thead>
+                <tr>
+                  <th>Materia / Asignatura</th>
+                  <th>Tipo de Materia</th>
+                  <th>Docente Responsable</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="tablaMateriasCurso">
+                <tr><td colspan="4" class="text-center py-4 text-muted">Seleccione un curso arriba para ver sus materias asignadas.</td></tr>
+              </tbody>
             </table>
           </div>
         </div>
 
-        <!-- MODULO 4: ASIGNACIÓN DE MATERIAS Y DOCENTES -->
-        <div class="modulo d-none" id="mod-asignaciones">
+        <!-- MODULO 4: MATERIAS (CATÁLOGO GENERAL) -->
+        <div class="modulo d-none" id="mod-materias">
           <div class="d-flex justify-content-between align-items-center mb-3">
-            <h4 class="fw-bold mb-0">Asignar Docentes a Materias por Curso</h4>
-            <button class="btn btn-success btn-sm" onclick="modalAsignacion()"><i class="bi bi-plus-circle me-1"></i> Nueva Asignación</button>
+            <h4 class="fw-bold mb-0">Catálogo General de Materias</h4>
+            <button class="btn btn-success btn-sm" onclick="abrirModalMateria()"><i class="bi bi-plus-circle me-1"></i> Nueva Materia</button>
           </div>
           <div class="card p-0">
-            <table class="table table-hover mb-0">
-              <thead><tr><th>Curso</th><th>Materia</th><th>Docente Asignado</th><th>Acciones</th></tr></thead>
-              <tbody id="tablaAsignaciones"></tbody>
+            <table class="table table-hover mb-0 align-middle">
+              <thead><tr><th>ID</th><th>Nombre de la Asignatura</th><th>Tipo Predeterminado</th><th>Acciones</th></tr></thead>
+              <tbody id="tablaMaterias"></tbody>
             </table>
           </div>
         </div>
@@ -164,11 +191,11 @@
             <h4 class="fw-bold mb-0">Estudiantes y Representantes</h4>
             <div class="d-flex gap-2">
               <select id="filtroCursoEstudiantes" class="form-select form-select-sm" style="width: 200px;" onchange="cargarEstudiantes()"></select>
-              <button class="btn btn-success btn-sm" onclick="modalEstudiante()"><i class="bi bi-plus-circle me-1"></i> Nuevo Estudiante</button>
+              <button class="btn btn-success btn-sm" onclick="abrirModalEstudiante()"><i class="bi bi-plus-circle me-1"></i> Nuevo Estudiante</button>
             </div>
           </div>
           <div class="card p-0">
-            <table class="table table-hover mb-0">
+            <table class="table table-hover mb-0 align-middle">
               <thead><tr><th>N°</th><th>Cédula</th><th>Estudiante</th><th>Representante</th><th>Teléfono</th><th>Acciones</th></tr></thead>
               <tbody id="tablaEstudiantes"></tbody>
             </table>
@@ -181,7 +208,7 @@
             <h4 class="fw-bold mb-0">Nómina del Personal Docente</h4>
           </div>
           <div class="card p-0">
-            <table class="table table-hover mb-0">
+            <table class="table table-hover mb-0 align-middle">
               <thead><tr><th>Nombres</th><th>Correo Electrónico</th><th>Cargo</th><th>Rol</th><th>Acciones</th></tr></thead>
               <tbody id="tablaDocentes"></tbody>
             </table>
@@ -192,10 +219,10 @@
         <div class="modulo d-none" id="mod-actividades">
           <div class="d-flex justify-content-between align-items-center mb-3">
             <h4 class="fw-bold mb-0">Lista Oficial de Actividades</h4>
-            <button class="btn btn-success btn-sm" onclick="modalActividad()"><i class="bi bi-plus-circle me-1"></i> Nueva Actividad</button>
+            <button class="btn btn-success btn-sm" onclick="abrirModalActividad()"><i class="bi bi-plus-circle me-1"></i> Nueva Actividad</button>
           </div>
           <div class="card p-0" style="max-width: 600px;">
-            <table class="table table-hover mb-0">
+            <table class="table table-hover mb-0 align-middle">
               <thead><tr><th>ID</th><th>Nombre de la Actividad</th><th>Acciones</th></tr></thead>
               <tbody id="tablaActividades"></tbody>
             </table>
@@ -206,6 +233,76 @@
     </div>
   </div>
 
+  <!-- ================= MODALES DE GESTIÓN ================= -->
+  
+  <!-- Modal Asignar Materia a Curso -->
+  <div class="modal fade" id="modalAsignarMateria" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header bg-primary text-white py-2">
+          <h6 class="modal-title fw-bold" id="modalAsigTitulo">Asignar Materia al Curso</h6>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="formModalAsignacion" onsubmit="guardarAsignacionModal(event)">
+            <input type="hidden" id="asigCursoId">
+            <div class="mb-3">
+              <label class="form-label fw-bold">Materia / Asignatura</label>
+              <select id="asigSelectMateria" class="form-select form-select-sm" required></select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-bold">Docente Responsable</label>
+              <select id="asigSelectDocente" class="form-select form-select-sm" required></select>
+            </div>
+            <div class="mb-3 form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="asigEsOptativa">
+              <label class="form-check-label fw-semibold" for="asigEsOptativa">Materia Optativa / Cualitativa</label>
+              <div class="form-text">Si se activa, la nota no promedia en la libreta académica general, pero su comportamiento sí cuenta.</div>
+            </div>
+            <div class="text-end">
+              <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+              <button type="submit" class="btn btn-primary btn-sm fw-bold">Guardar Asignación</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Curso -->
+  <div class="modal fade" id="modalCursoBox" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header bg-dark text-white py-2">
+          <h6 class="modal-title fw-bold">Gestión de Curso</h6>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form onsubmit="guardarCursoModal(event)">
+            <input type="hidden" id="cursoModalId">
+            <div class="mb-3">
+              <label class="form-label fw-bold">Nombre del Curso</label>
+              <input type="text" id="cursoModalNombre" class="form-control form-control-sm" placeholder="Ej: INICIAL I 'A'" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-bold">Sección</label>
+              <input type="text" id="cursoModalSeccion" class="form-control form-control-sm" value="Matutina">
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-bold">Docente Tutor</label>
+              <select id="cursoModalTutor" class="form-select form-select-sm"></select>
+            </div>
+            <div class="text-end">
+              <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+              <button type="submit" class="btn btn-primary btn-sm fw-bold">Guardar Curso</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script>
     const SUPABASE_URL = 'https://sbomuqwntosvdsojlfyr.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNib211cXdudG9zdmRzb2psZnlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY5Mjk5NzcsImV4cCI6MjEwMjUwNTk3N30.WLgWyVOWVieC-4XjnkZFAKEqARKszvLpVqiAoGHdUU8';
@@ -214,8 +311,8 @@
     let docentesList = [];
     let cursosList = [];
     let materiasList = [];
+    let modalAsignarInst, modalCursoInst;
 
-    // Control de Vistas
     function mostrarModulo(id, link) {
       document.querySelectorAll('.modulo').forEach(m => m.classList.add('d-none'));
       document.querySelectorAll('.sidebar .nav-link').forEach(l => l.classList.remove('active'));
@@ -225,23 +322,23 @@
       if (id === 'institucion') cargarDatosInstitucion();
       if (id === 'cursos') cargarCursos();
       if (id === 'materias') cargarMaterias();
-      if (id === 'asignaciones') cargarAsignaciones();
+      if (id === 'asignaciones') cargarVistaAsignaciones();
       if (id === 'estudiantes') cargarCursosFiltroEstudiantes();
       if (id === 'docentes') cargarDocentes();
       if (id === 'actividades') cargarActividades();
     }
 
-    // Autenticación
     async function verificarSesion() {
       const { data: { session } } = await supabaseClient.auth.getSession();
       if (session) {
-        // Verificar si es administrador
         const { data: perfil } = await supabaseClient.from('perfiles').select('*').eq('id', session.user.id).single();
         if (perfil && perfil.rol === 'admin') {
           document.getElementById('seccionLogin').classList.add('d-none');
           document.getElementById('seccionApp').classList.remove('d-none');
+          modalAsignarInst = new bootstrap.Modal(document.getElementById('modalAsignarMateria'));
+          modalCursoInst = new bootstrap.Modal(document.getElementById('modalCursoBox'));
           await cargarDatosIniciales();
-          mostrarModulo('institucion');
+          mostrarModulo('institucion', document.getElementById('nav-institucion'));
         } else {
           alert('Acceso restringido solo para administradores.');
           await supabaseClient.auth.signOut();
@@ -324,7 +421,12 @@
             <td>${c.seccion || 'Matutina'}</td>
             <td>${tutor ? tutor.nombres : '<span class="text-muted">Sin tutor asignado</span>'}</td>
             <td>
-              <button class="btn btn-sm btn-outline-primary py-0" onclick="editarCurso(${c.id}, '${c.nombre}', '${c.tutor_id || ''}')">Editar</button>
+              <button class="btn btn-sm btn-outline-info py-0" onclick="irAsignarMateriasCurso(${c.id})">
+                <i class="bi bi-journal-plus me-1"></i> Asignar Materias
+              </button>
+            </td>
+            <td>
+              <button class="btn btn-sm btn-outline-primary py-0" onclick="abrirModalCurso(${c.id})">Editar</button>
               <button class="btn btn-sm btn-outline-danger py-0" onclick="eliminarRegistro('cursos', ${c.id})">Eliminar</button>
             </td>
           </tr>
@@ -332,33 +434,141 @@
       }).join('');
     }
 
-    async function modalCurso() {
-      const nombre = prompt('Nombre del curso (Ej: INICIAL I "A", 10MO EGB "B"):');
-      if (!nombre) return;
-      const { error } = await supabaseClient.from('cursos').insert([{ nombre }]);
-      if (error) alert(error.message);
-      else cargarCursos();
+    function abrirModalCurso(id = null) {
+      document.getElementById('cursoModalId').value = id || '';
+      const tutorSelect = document.getElementById('cursoModalTutor');
+      tutorSelect.innerHTML = '<option value="">Sin Tutor asignado</option>' + 
+        docentesList.map(d => `<option value="${d.id}">${d.nombres} (${d.email})</option>`).join('');
+
+      if (id) {
+        const c = cursosList.find(item => item.id === id);
+        document.getElementById('cursoModalNombre').value = c.nombre;
+        document.getElementById('cursoModalSeccion').value = c.seccion || 'Matutina';
+        tutorSelect.value = c.tutor_id || '';
+      } else {
+        document.getElementById('cursoModalNombre').value = '';
+        document.getElementById('cursoModalSeccion').value = 'Matutina';
+        tutorSelect.value = '';
+      }
+      modalCursoInst.show();
     }
 
-    async function editarCurso(id, nombreActual, tutorActual) {
-      const nuevoNombre = prompt('Nombre del curso:', nombreActual);
-      if (!nuevoNombre) return;
+    async function guardarCursoModal(e) {
+      e.preventDefault();
+      const id = document.getElementById('cursoModalId').value;
+      const nombre = document.getElementById('cursoModalNombre').value.trim();
+      const seccion = document.getElementById('cursoModalSeccion').value.trim();
+      const tutor_id = document.getElementById('cursoModalTutor').value || null;
 
-      let opcionesTutores = "Seleccione el número del Tutor:\n0: Sin Tutor\n" + 
-        docentesList.map((d, i) => `${i+1}: ${d.nombres} (${d.email})`).join('\n');
-      
-      const sel = prompt(opcionesTutores);
-      let nuevoTutor = null;
-      if (sel && parseInt(sel) > 0 && docentesList[parseInt(sel) - 1]) {
-        nuevoTutor = docentesList[parseInt(sel) - 1].id;
+      if (id) {
+        const { error } = await supabaseClient.from('cursos').update({ nombre, seccion, tutor_id }).eq('id', id);
+        if (error) alert(error.message);
+      } else {
+        const { error } = await supabaseClient.from('cursos').insert([{ nombre, seccion, tutor_id }]);
+        if (error) alert(error.message);
+      }
+      modalCursoInst.hide();
+      cargarCursos();
+    }
+
+    // 3. Asignación de Materias DENTRO del Curso Seleccionado
+    async function cargarVistaAsignaciones() {
+      await cargarDatosIniciales();
+      const select = document.getElementById('selectCursoAsignar');
+      const actual = select.value;
+      select.innerHTML = '<option value="">Seleccione curso...</option>' + 
+        cursosList.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
+      if (actual) select.value = actual;
+      cargarMateriasDelCurso();
+    }
+
+    function irAsignarMateriasCurso(cursoId) {
+      mostrarModulo('asignaciones', document.getElementById('nav-asignaciones'));
+      document.getElementById('selectCursoAsignar').value = cursoId;
+      cargarMateriasDelCurso();
+    }
+
+    async function cargarMateriasDelCurso() {
+      const cursoId = document.getElementById('selectCursoAsignar').value;
+      const tbody = document.getElementById('tablaMateriasCurso');
+      const btn = document.getElementById('btnNuevaAsignacion');
+
+      if (!cursoId) {
+        btn.disabled = true;
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-muted">Seleccione un curso arriba para ver sus materias asignadas.</td></tr>';
+        return;
       }
 
-      const { error } = await supabaseClient.from('cursos').update({ nombre: nuevoNombre, tutor_id: nuevoTutor }).eq('id', id);
-      if (error) alert(error.message);
-      else cargarCursos();
+      btn.disabled = false;
+      const { data } = await supabaseClient
+        .from('curso_materia_docente')
+        .select(`id, curso_id, materia_id, docente_id, es_optativa, materias(id, nombre), perfiles:docente_id(nombres, email)`)
+        .eq('curso_id', cursoId);
+
+      if (!data || data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-muted">Este curso aún no tiene materias asignadas. Haga clic en "+ Asignar Materia a este Curso".</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = data.map(a => {
+        const esOpt = a.es_optativa ? true : false;
+        return `
+          <tr>
+            <td class="fw-bold fs-6">${a.materias?.nombre || ''}</td>
+            <td>
+              ${esOpt 
+                ? '<span class="badge bg-warning text-dark"><i class="bi bi-info-circle me-1"></i>Optativa (No suma notas)</span>' 
+                : '<span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Obligatoria (Suma notas)</span>'}
+            </td>
+            <td>${a.perfiles ? a.perfiles.nombres : 'Docente no asignado'}</td>
+            <td>
+              <button class="btn btn-sm btn-outline-danger py-0" onclick="eliminarRegistro('curso_materia_docente', ${a.id})">
+                <i class="bi bi-trash me-1"></i> Quitar
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
     }
 
-    // 3. Materias
+    function abrirModalAsignacion() {
+      const cursoId = document.getElementById('selectCursoAsignar').value;
+      if (!cursoId) return alert('Seleccione un curso primero.');
+
+      document.getElementById('asigCursoId').value = cursoId;
+      const c = cursosList.find(item => item.id == cursoId);
+      document.getElementById('modalAsigTitulo').innerText = `Asignar Materia a: ${c.nombre}`;
+
+      const selM = document.getElementById('asigSelectMateria');
+      selM.innerHTML = materiasList.map(m => `<option value="${m.id}" data-optativa="${m.es_optativa}">${m.nombre}</option>`).join('');
+
+      const selD = document.getElementById('asigSelectDocente');
+      selD.innerHTML = docentesList.map(d => `<option value="${d.id}">${d.nombres} (${d.email})</option>`).join('');
+
+      document.getElementById('asigEsOptativa').checked = false;
+      modalAsignarInst.show();
+    }
+
+    async function guardarAsignacionModal(e) {
+      e.preventDefault();
+      const curso_id = parseInt(document.getElementById('asigCursoId').value);
+      const materia_id = parseInt(document.getElementById('asigSelectMateria').value);
+      const docente_id = document.getElementById('asigSelectDocente').value;
+      const es_optativa = document.getElementById('asigEsOptativa').checked;
+
+      const { error } = await supabaseClient.from('curso_materia_docente').insert([{
+        curso_id, materia_id, docente_id, es_optativa
+      }]);
+
+      if (error) {
+        alert('Error al asignar: ' + error.message);
+      } else {
+        modalAsignarInst.hide();
+        cargarMateriasDelCurso();
+      }
+    }
+
+    // 4. Materias (Catálogo General)
     async function cargarMaterias() {
       await cargarDatosIniciales();
       const tbody = document.getElementById('tablaMaterias');
@@ -366,77 +576,31 @@
         <tr>
           <td>${m.id}</td>
           <td class="fw-bold">${m.nombre}</td>
+          <td>${m.es_optativa ? '<span class="badge bg-warning text-dark">Optativa</span>' : '<span class="badge bg-secondary">Estándar</span>'}</td>
           <td>
-            <button class="btn btn-sm btn-outline-primary py-0" onclick="editarMateria(${m.id}, '${m.nombre}')">Editar</button>
+            <button class="btn btn-sm btn-outline-primary py-0" onclick="editarMateriaModal(${m.id}, '${m.nombre}', ${m.es_optativa})">Editar</button>
             <button class="btn btn-sm btn-outline-danger py-0" onclick="eliminarRegistro('materias', ${m.id})">Eliminar</button>
           </td>
         </tr>
       `).join('');
     }
 
-    async function modalMateria() {
+    async function abrirModalMateria() {
       const nombre = prompt('Nombre de la Materia / Asignatura:');
       if (!nombre) return;
-      const { error } = await supabaseClient.from('materias').insert([{ nombre }]);
+      const esOpt = confirm('¿Esta materia es Optativa (no sumará al promedio general)?');
+      const { error } = await supabaseClient.from('materias').insert([{ nombre, es_optativa: esOpt }]);
       if (error) alert(error.message);
       else cargarMaterias();
     }
 
-    async function editarMateria(id, nombreActual) {
+    async function editarMateriaModal(id, nombreActual, optActual) {
       const nuevoNombre = prompt('Nombre de la Materia:', nombreActual);
       if (!nuevoNombre) return;
-      const { error } = await supabaseClient.from('materias').update({ nombre: nuevoNombre }).eq('id', id);
+      const nuevoOpt = confirm('¿Esta materia es Optativa (no sumará al promedio general)?', optActual);
+      const { error } = await supabaseClient.from('materias').update({ nombre: nuevoNombre, es_optativa: nuevoOpt }).eq('id', id);
       if (error) alert(error.message);
       else cargarMaterias();
-    }
-
-    // 4. Asignaciones
-    async function cargarAsignaciones() {
-      await cargarDatosIniciales();
-      const { data } = await supabaseClient.from('curso_materia_docente').select(`
-        id, curso_id, materia_id, docente_id,
-        cursos(nombre), materias(nombre)
-      `);
-      const tbody = document.getElementById('tablaAsignaciones');
-      tbody.innerHTML = (data || []).map(a => {
-        const doc = docentesList.find(d => d.id === a.docente_id);
-        return `
-          <tr>
-            <td class="fw-bold">${a.cursos?.nombre || ''}</td>
-            <td>${a.materias?.nombre || ''}</td>
-            <td>${doc ? doc.nombres : a.docente_id}</td>
-            <td><button class="btn btn-sm btn-outline-danger py-0" onclick="eliminarRegistro('curso_materia_docente', ${a.id})">Quitar Asignación</button></td>
-          </tr>
-        `;
-      }).join('');
-    }
-
-    async function modalAsignacion() {
-      if (cursosList.length === 0 || materiasList.length === 0 || docentesList.length === 0) {
-        alert('Debe tener cursos, materias y docentes registrados.');
-        return;
-      }
-
-      const cursoPrompt = "Seleccione el Curso:\n" + cursosList.map((c, i) => `${i+1}: ${c.nombre}`).join('\n');
-      const cIdx = parseInt(prompt(cursoPrompt)) - 1;
-      if (isNaN(cIdx) || !cursosList[cIdx]) return;
-
-      const matPrompt = "Seleccione la Materia:\n" + materiasList.map((m, i) => `${i+1}: ${m.nombre}`).join('\n');
-      const mIdx = parseInt(prompt(matPrompt)) - 1;
-      if (isNaN(mIdx) || !materiasList[mIdx]) return;
-
-      const docPrompt = "Seleccione el Docente:\n" + docentesList.map((d, i) => `${i+1}: ${d.nombres}`).join('\n');
-      const dIdx = parseInt(prompt(docPrompt)) - 1;
-      if (isNaN(dIdx) || !docentesList[dIdx]) return;
-
-      const { error } = await supabaseClient.from('curso_materia_docente').insert([{
-        curso_id: cursosList[cIdx].id,
-        materia_id: materiasList[mIdx].id,
-        docente_id: docentesList[dIdx].id
-      }]);
-
-      if (error) alert(error.message);
-      else cargarAsignaciones();
     }
 
     // 5. Estudiantes y Representantes
@@ -472,7 +636,7 @@
       `).join('');
     }
 
-    async function modalEstudiante() {
+    async function abrirModalEstudiante() {
       const cursoId = document.getElementById('filtroCursoEstudiantes').value;
       if (!cursoId) return alert('Seleccione primero el curso en el filtro superior.');
 
@@ -551,7 +715,7 @@
       `).join('');
     }
 
-    async function modalActividad() {
+    async function abrirModalActividad() {
       const nombre = prompt('Nombre del nuevo tipo de actividad:');
       if (!nombre) return;
       const { error } = await supabaseClient.from('catalogo_actividades').insert([{ nombre }]);
@@ -567,7 +731,7 @@
       else {
         if (tabla === 'cursos') cargarCursos();
         if (tabla === 'materias') cargarMaterias();
-        if (tabla === 'curso_materia_docente') cargarAsignaciones();
+        if (tabla === 'curso_materia_docente') cargarMateriasDelCurso();
         if (tabla === 'estudiantes') cargarEstudiantes();
         if (tabla === 'catalogo_actividades') cargarActividades();
       }
