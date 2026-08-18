@@ -14,6 +14,7 @@
     .sidebar .nav-link:hover, .sidebar .nav-link.active { color: #fff; background-color: #0d6efd; }
     .card { border: none; border-radius: 8px; box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.075); }
     .table th { font-size: 0.82rem; text-transform: uppercase; background-color: #f8fafc; }
+    .img-preview { width: 110px; height: 110px; object-fit: contain; border: 2px dashed #cbd5e1; border-radius: 6px; padding: 4px; background-color: #fff; }
   </style>
 </head>
 <body>
@@ -76,10 +77,15 @@
         <!-- MODULO 1: INSTITUCIÓN -->
         <div class="modulo" id="mod-institucion">
           <div class="d-flex justify-content-between align-items-center mb-3">
-            <h4 class="fw-bold mb-0">Datos de la Institución</h4>
-            <button class="btn btn-primary btn-sm" onclick="guardarDatosInstitucion()"><i class="bi bi-save me-1"></i> Guardar Cambios</button>
+            <div>
+              <h4 class="fw-bold mb-0">Datos de la Institución</h4>
+              <small class="text-muted">Configuración general y firmas institucionales para actas y libretas.</small>
+            </div>
+            <button class="btn btn-primary btn-sm px-4 fw-bold" id="btnGuardarInst" onclick="guardarDatosInstitucion()"><i class="bi bi-save me-1"></i> Guardar Cambios</button>
           </div>
-          <div class="card p-3">
+          
+          <div class="card p-3 mb-3">
+            <h6 class="fw-bold text-primary mb-3"><i class="bi bi-info-square me-1"></i> Información General y Territorial</h6>
             <form id="formInstitucion" class="row g-3">
               <div class="col-md-6">
                 <label class="form-label fw-semibold">Nombre Institucional</label>
@@ -109,11 +115,43 @@
                 <label class="form-label fw-semibold">Año Lectivo</label>
                 <input type="text" id="instPeriodo" class="form-control form-control-sm" placeholder="2026-2027">
               </div>
-              <div class="col-md-3">
-                <label class="form-label fw-semibold">Rector / Director</label>
-                <input type="text" id="instRector" class="form-control form-control-sm">
-              </div>
             </form>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <!-- Firmas Oficiales desde la Nómina -->
+            <div class="col-md-6">
+              <div class="card p-3 h-100">
+                <h6 class="fw-bold text-primary mb-3"><i class="bi bi-pen me-1"></i> Autoridades Oficiales (Nómina)</h6>
+                <div class="mb-3">
+                  <label class="form-label fw-semibold">Rector / Director:</label>
+                  <select id="instRectorSelect" class="form-select form-select-sm"></select>
+                </div>
+                <div class="mb-2">
+                  <label class="form-label fw-semibold">Secretario/a General:</label>
+                  <select id="instSecretariaSelect" class="form-select form-select-sm"></select>
+                </div>
+              </div>
+            </div>
+
+            <!-- Logos para Reportes PDF -->
+            <div class="col-md-6">
+              <div class="card p-3 h-100">
+                <h6 class="fw-bold text-primary mb-3"><i class="bi bi-images me-1"></i> Logos Oficiales para Reportes</h6>
+                <div class="row g-2 text-center">
+                  <div class="col-6">
+                    <label class="form-label fw-semibold d-block small">Logo del Colegio</label>
+                    <img id="previewLogoColegio" class="img-preview mb-2" src="https://via.placeholder.com/110?text=Logo+Colegio" alt="Logo Colegio">
+                    <input type="file" id="fileLogoColegio" class="form-control form-control-sm" accept="image/*" onchange="cargarImagenBase64(this, 'previewLogoColegio')">
+                  </div>
+                  <div class="col-6">
+                    <label class="form-label fw-semibold d-block small">Escudo Nacional</label>
+                    <img id="previewEscudoNacional" class="img-preview mb-2" src="https://via.placeholder.com/110?text=Escudo+Ecuador" alt="Escudo Nacional">
+                    <input type="file" id="fileEscudoNacional" class="form-control form-control-sm" accept="image/*" onchange="cargarImagenBase64(this, 'previewEscudoNacional')">
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -472,6 +510,17 @@
       return res || d.email;
     }
 
+    // Convertidor de archivos de imagen a Base64 para almacenar en Supabase
+    function cargarImagenBase64(input, previewId) {
+      if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          document.getElementById(previewId).src = e.target.result;
+        };
+        reader.readAsDataURL(input.files[0]);
+      }
+    }
+
     function mostrarModulo(id, link) {
       document.querySelectorAll('.modulo').forEach(m => m.classList.add('d-none'));
       document.querySelectorAll('.sidebar .nav-link').forEach(l => l.classList.remove('active'));
@@ -541,8 +590,20 @@
       materiasList = m || [];
     }
 
-    // 1. Institución
+    // 1. Institución con Rector, Secretaria y Logos
     async function cargarDatosInstitucion() {
+      await cargarDatosIniciales();
+
+      // Llenar selects de Rector y Secretaria desde la nómina
+      const selRector = document.getElementById('instRectorSelect');
+      const selSec = document.getElementById('instSecretariaSelect');
+
+      const opciones = '<option value="">Seleccione autoridad...</option>' + 
+        docentesList.map(d => `<option value="${d.id}">${formatNombreDocente(d)} (${d.cargo || 'Personal'})</option>`).join('');
+
+      selRector.innerHTML = opciones;
+      selSec.innerHTML = opciones;
+
       const { data } = await supabaseClient.from('institucion').select('*').eq('id', 1).single();
       if (data) {
         document.getElementById('instNombre').value = data.nombre || '';
@@ -552,11 +613,20 @@
         document.getElementById('instCanton').value = data.canton || '';
         document.getElementById('instProvincia').value = data.provincia || '';
         document.getElementById('instPeriodo').value = data.periodo_lectivo || '';
-        document.getElementById('instRector').value = data.rector || '';
+        
+        selRector.value = data.rector_id || '';
+        selSec.value = data.secretaria_id || '';
+
+        if (data.logo_institucion) document.getElementById('previewLogoColegio').src = data.logo_institucion;
+        if (data.escudo_nacional) document.getElementById('previewEscudoNacional').src = data.escudo_nacional;
       }
     }
 
     async function guardarDatosInstitucion() {
+      const btn = document.getElementById('btnGuardarInst');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Guardando...';
+
       const payload = {
         nombre: document.getElementById('instNombre').value,
         amie: document.getElementById('instAmie').value,
@@ -565,11 +635,18 @@
         canton: document.getElementById('instCanton').value,
         provincia: document.getElementById('instProvincia').value,
         periodo_lectivo: document.getElementById('instPeriodo').value,
-        rector: document.getElementById('instRector').value
+        rector_id: document.getElementById('instRectorSelect').value || null,
+        secretaria_id: document.getElementById('instSecretariaSelect').value || null,
+        logo_institucion: document.getElementById('previewLogoColegio').src,
+        escudo_nacional: document.getElementById('previewEscudoNacional').src
       };
+
       const { error } = await supabaseClient.from('institucion').update(payload).eq('id', 1);
+      btn.disabled = false;
+      btn.innerHTML = '<i class="bi bi-save me-1"></i> Guardar Cambios';
+
       if (error) alert('Error: ' + error.message);
-      else alert('¡Datos institucionales actualizados correctamente!');
+      else alert('¡Datos institucionales y logos guardados correctamente!');
     }
 
     // 2. Cursos y Tutores
@@ -632,13 +709,7 @@
       const promueve_a = document.getElementById('cursoModalPromueveA').value.trim();
       const tutor_id = document.getElementById('cursoModalTutor').value || null;
 
-      const payload = {
-        nombre,
-        nombre_largo_mayuscula,
-        nombre_largo_minuscula,
-        promueve_a,
-        tutor_id
-      };
+      const payload = { nombre, nombre_largo_mayuscula, nombre_largo_minuscula, promueve_a, tutor_id };
 
       if (id) {
         const { error } = await supabaseClient.from('cursos').update(payload).eq('id', id);
