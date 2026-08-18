@@ -283,14 +283,14 @@
     // Carga de asignaciones filtradas estrictamente por el usuario autenticado
     async function cargarCursosYMaterias(userId, userRol) {
       let query = supabaseClient.from('curso_materia_docente').select(`
-        id, curso_id, materia_id, docente_id, es_optativa,
+        id, curso_id, materia_id, docente_id, docente_id_2, docente_id_3, es_optativa,
         cursos(id, nombre),
         materias(id, nombre)
       `);
 
-      // Si no es admin, filtrar solo sus asignaciones
+      // Si no es admin, filtrar para que le salgan las materias donde es Principal, Auxiliar 1 o Auxiliar 2
       if (userRol !== 'admin') {
-        query = query.eq('docente_id', userId);
+        query = query.or(`docente_id.eq.${userId},docente_id_2.eq.${userId},docente_id_3.eq.${userId}`);
       }
 
       const { data, error } = await query;
@@ -307,7 +307,6 @@
         return;
       }
 
-      // Extraer cursos únicos pertenecientes al docente
       const cursosUnicosMap = new Map();
       todasAsignaciones.forEach(a => {
         if (a.cursos && !cursosUnicosMap.has(a.cursos.id)) {
@@ -320,7 +319,6 @@
         selectCurso.innerHTML += `<option value="${id}">${nombre}</option>`;
       });
 
-      // Si solo tiene un curso asignado, seleccionarlo automáticamente
       if (cursosUnicosMap.size === 1) {
         selectCurso.value = Array.from(cursosUnicosMap.keys())[0];
         alCambiarCurso();
