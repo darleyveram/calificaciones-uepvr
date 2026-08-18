@@ -119,7 +119,6 @@
           </div>
 
           <div class="row g-3 mb-3">
-            <!-- Firmas Oficiales desde la Nómina -->
             <div class="col-md-6">
               <div class="card p-3 h-100">
                 <h6 class="fw-bold text-primary mb-3"><i class="bi bi-pen me-1"></i> Autoridades Oficiales (Nómina)</h6>
@@ -134,7 +133,6 @@
               </div>
             </div>
 
-            <!-- Logos para Reportes PDF -->
             <div class="col-md-6">
               <div class="card p-3 h-100">
                 <h6 class="fw-bold text-primary mb-3"><i class="bi bi-images me-1"></i> Logos Oficiales para Reportes</h6>
@@ -257,7 +255,10 @@
         <!-- MODULO 6: NÓMINA DEL PERSONAL -->
         <div class="modulo d-none" id="mod-docentes">
           <div class="d-flex justify-content-between align-items-center mb-3">
-            <h4 class="fw-bold mb-0">Nómina del Personal Docente y Administrativo</h4>
+            <div>
+              <h4 class="fw-bold mb-0">Nómina del Personal Docente y Administrativo</h4>
+              <small class="text-muted">Gestión de accesos, cargos y perfiles del personal institucional.</small>
+            </div>
             <button class="btn btn-success btn-sm" onclick="abrirModalPersonal()"><i class="bi bi-person-plus me-1"></i> Nuevo Personal</button>
           </div>
           <div class="card p-0">
@@ -269,7 +270,7 @@
                   <th>Teléfono</th>
                   <th>Cargo</th>
                   <th>Permisos / Rol</th>
-                  <th>Acciones</th>
+                  <th style="min-width: 210px;">Acciones</th>
                 </tr>
               </thead>
               <tbody id="tablaDocentes"></tbody>
@@ -500,6 +501,7 @@
     let cursosList = [];
     let materiasList = [];
     let modalAsignarInst, modalCursoInst, modalPersonalInst, modalTituloInst;
+    let usuarioActualSesionId = null;
 
     function formatNombreDocente(d) {
       if (!d) return '';
@@ -510,7 +512,6 @@
       return res || d.email;
     }
 
-    // Convertidor de archivos de imagen a Base64 para almacenar en Supabase
     function cargarImagenBase64(input, previewId) {
       if (input.files && input.files[0]) {
         const reader = new FileReader();
@@ -540,6 +541,7 @@
     async function verificarSesion() {
       const { data: { session } } = await supabaseClient.auth.getSession();
       if (session) {
+        usuarioActualSesionId = session.user.id;
         const { data: perfil } = await supabaseClient.from('perfiles').select('*').eq('id', session.user.id).single();
         if (perfil && perfil.rol === 'admin') {
           document.getElementById('seccionLogin').classList.add('d-none');
@@ -590,11 +592,10 @@
       materiasList = m || [];
     }
 
-    // 1. Institución con Rector, Secretaria y Logos
+    // 1. Institución
     async function cargarDatosInstitucion() {
       await cargarDatosIniciales();
 
-      // Llenar selects de Rector y Secretaria desde la nómina
       const selRector = document.getElementById('instRectorSelect');
       const selSec = document.getElementById('instSecretariaSelect');
 
@@ -937,29 +938,53 @@
       else cargarEstudiantes();
     }
 
-    // 6. Nómina del Personal
+    // 6. Nómina del Personal (Con eliminación completa)
     async function cargarDocentes() {
       await cargarDatosIniciales();
       const tbody = document.getElementById('tablaDocentes');
-      tbody.innerHTML = docentesList.map(d => `
-        <tr>
-          <td class="fw-bold">${formatNombreDocente(d)}</td>
-          <td>${d.email}</td>
-          <td>${d.telefono || '<span class="text-muted">-</span>'}</td>
-          <td><span class="badge bg-light text-dark border">${d.cargo || 'Docente'}</span></td>
-          <td>
-            <span class="badge ${d.rol === 'admin' ? 'bg-danger' : 'bg-primary'}">
-              ${d.rol === 'admin' ? 'ADMINISTRADOR' : 'DOCENTE'}
-            </span>
-          </td>
-          <td>
-            <button class="btn btn-sm btn-outline-primary py-0" onclick="abrirModalPersonal('${d.id}')">Editar</button>
-            <button class="btn btn-sm btn-outline-secondary py-0" onclick="cambiarRolDocente('${d.id}', '${d.rol}')">
-              ${d.rol === 'admin' ? 'Cambiar a Docente' : 'Hacer Admin'}
-            </button>
-          </td>
-        </tr>
-      `).join('');
+      tbody.innerHTML = docentesList.map(d => {
+        const esMismoUsuario = d.id === usuarioActualSesionId;
+        const nombreCompleto = formatNombreDocente(d);
+
+        return `
+          <tr>
+            <td class="fw-bold">${nombreCompleto}</td>
+            <td>${d.email}</td>
+            <td>${d.telefono || '<span class="text-muted">-</span>'}</td>
+            <td><span class="badge bg-light text-dark border">${d.cargo || 'Docente'}</span></td>
+            <td>
+              <span class="badge ${d.rol === 'admin' ? 'bg-danger' : 'bg-primary'}">
+                ${d.rol === 'admin' ? 'ADMINISTRADOR' : 'DOCENTE'}
+              </span>
+            </td>
+            <td>
+              <button class="btn btn-sm btn-outline-primary py-0 me-1" onclick="abrirModalPersonal('${d.id}')">Editar</button>
+              <button class="btn btn-sm btn-outline-secondary py-0 me-1" onclick="cambiarRolDocente('${d.id}', '${d.rol}')">
+                ${d.rol === 'admin' ? 'Hacer Docente' : 'Hacer Admin'}
+              </button>
+              ${!esMismoUsuario ? `
+                <button class="btn btn-sm btn-outline-danger py-0" onclick="confirmarEliminarPersonal('${d.id}', '${nombreCompleto.replace(/'/g, "\\'")}', '${d.email}')">
+                  <i class="bi bi-trash"></i> Eliminar
+                </button>
+              ` : '<span class="badge bg-secondary">Tu sesión</span>'}
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    async function confirmarEliminarPersonal(id, nombre, email) {
+      const confirmacion = confirm(`¿Está seguro de eliminar al usuario ${nombre} (${email})?\n\nEsta acción eliminará su cuenta de acceso, su perfil y lo desvinculará de las materias asignadas de forma definitiva.`);
+      if (!confirmacion) return;
+
+      try {
+        const { error } = await supabaseClient.rpc('eliminar_usuario_completo', { p_user_id: id });
+        if (error) throw error;
+        alert(`El usuario ${nombre} ha sido eliminado con éxito.`);
+        await cargarDocentes();
+      } catch (err) {
+        alert('Error al eliminar el usuario: ' + err.message);
+      }
     }
 
     function abrirModalPersonal(id = null) {
@@ -1121,6 +1146,7 @@
       else cargarActividades();
     }
 
+    // Eliminación genérica para entidades auxiliares
     async function eliminarRegistro(tabla, id) {
       if (!confirm('¿Está seguro de eliminar este registro? Esta acción no se puede deshacer.')) return;
       const { error } = await supabaseClient.from(tabla).delete().eq('id', id);
