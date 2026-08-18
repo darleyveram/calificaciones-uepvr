@@ -120,14 +120,28 @@
         <!-- MODULO 2: CURSOS Y TUTORES -->
         <div class="modulo d-none" id="mod-cursos">
           <div class="d-flex justify-content-between align-items-center mb-3">
-            <h4 class="fw-bold mb-0">Gestión de Cursos y Tutores</h4>
+            <div>
+              <h4 class="fw-bold mb-0">Gestión de Cursos y Tutores</h4>
+              <small class="text-muted">Listado institucional para generación de sábanas y reportes.</small>
+            </div>
             <button class="btn btn-success btn-sm" onclick="abrirModalCurso()"><i class="bi bi-plus-circle me-1"></i> Nuevo Curso</button>
           </div>
           <div class="card p-0">
-            <table class="table table-hover mb-0 align-middle">
-              <thead><tr><th>ID</th><th>Nombre del Curso</th><th>Sección</th><th>Docente Tutor</th><th>Malla Curricular</th><th>Acciones</th></tr></thead>
-              <tbody id="tablaCursos"></tbody>
-            </table>
+            <div class="table-responsive">
+              <table class="table table-hover mb-0 align-middle">
+                <thead>
+                  <tr>
+                    <th>Nombre Corto</th>
+                    <th>Nombre Largo Mayúscula</th>
+                    <th>Docente Tutor</th>
+                    <th>Promueve A</th>
+                    <th>Malla</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody id="tablaCursos"></tbody>
+              </table>
+            </div>
           </div>
         </div>
 
@@ -225,7 +239,7 @@
           </div>
         </div>
 
-        <!-- MODULO 7: TÍTULOS ACADÉMICOS (NUEVO MÓDULO) -->
+        <!-- MODULO 7: TÍTULOS ACADÉMICOS -->
         <div class="modulo d-none" id="mod-titulos">
           <div class="d-flex justify-content-between align-items-center mb-3">
             <div>
@@ -268,6 +282,49 @@
 
   <!-- ================= MODALES ================= -->
 
+  <!-- Modal Curso Ampliado -->
+  <div class="modal fade" id="modalCursoBox" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header bg-dark text-white py-2">
+          <h6 class="modal-title fw-bold" id="modalCursoTitulo">Gestión de Curso</h6>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form onsubmit="guardarCursoModal(event)">
+            <input type="hidden" id="cursoModalId">
+            <div class="row g-2">
+              <div class="col-md-6">
+                <label class="form-label fw-bold">Nombre Corto (Ej: INICIAL I "A")</label>
+                <input type="text" id="cursoModalNombre" class="form-control form-control-sm" placeholder="Ej: 8VO BASICA 'A'" required>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-bold">Docente Tutor</label>
+                <select id="cursoModalTutor" class="form-select form-select-sm"></select>
+              </div>
+              <div class="col-md-12">
+                <label class="form-label fw-bold">Nombre Largo Mayúscula</label>
+                <input type="text" id="cursoModalLargoMayus" class="form-control form-control-sm" placeholder="Ej: OCTAVO GRADO DE EDUCACIÓN GENERAL BÁSICA PARALELO 'A'">
+              </div>
+              <div class="col-md-12">
+                <label class="form-label fw-bold">Nombre Largo Minúscula</label>
+                <input type="text" id="cursoModalLargoMinus" class="form-control form-control-sm" placeholder="Ej: Octavo Grado de Educación General Básica Paralelo 'A'">
+              </div>
+              <div class="col-md-12">
+                <label class="form-label fw-bold">Promueve A (Grado Siguiente)</label>
+                <input type="text" id="cursoModalPromueveA" class="form-control form-control-sm" placeholder="Ej: Noveno Grado de Educación General Básica">
+              </div>
+            </div>
+            <div class="text-end mt-4">
+              <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+              <button type="submit" class="btn btn-primary btn-sm fw-bold">Guardar Curso</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Modal Título Académico -->
   <div class="modal fade" id="modalTituloBox" tabindex="-1">
     <div class="modal-dialog">
@@ -297,7 +354,7 @@
     </div>
   </div>
 
-  <!-- Modal Personal / Docente -->
+  <!-- Modal Personal -->
   <div class="modal fade" id="modalPersonalBox" tabindex="-1">
     <div class="modal-dialog modal-lg">
       <div class="modal-content">
@@ -394,39 +451,6 @@
     </div>
   </div>
 
-  <!-- Modal Curso -->
-  <div class="modal fade" id="modalCursoBox" tabindex="-1">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header bg-dark text-white py-2">
-          <h6 class="modal-title fw-bold">Gestión de Curso</h6>
-          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body">
-          <form onsubmit="guardarCursoModal(event)">
-            <input type="hidden" id="cursoModalId">
-            <div class="mb-3">
-              <label class="form-label fw-bold">Nombre del Curso</label>
-              <input type="text" id="cursoModalNombre" class="form-control form-control-sm" placeholder="Ej: INICIAL I 'A'" required>
-            </div>
-            <div class="mb-3">
-              <label class="form-label fw-bold">Sección</label>
-              <input type="text" id="cursoModalSeccion" class="form-control form-control-sm" value="Matutina">
-            </div>
-            <div class="mb-3">
-              <label class="form-label fw-bold">Docente Tutor</label>
-              <select id="cursoModalTutor" class="form-select form-select-sm"></select>
-            </div>
-            <div class="text-end">
-              <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
-              <button type="submit" class="btn btn-primary btn-sm fw-bold">Guardar Curso</button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script>
     const SUPABASE_URL = 'https://sbomuqwntosvdsojlfyr.supabase.co';
@@ -511,53 +535,10 @@
       titulosList = t || [];
       const { data: d } = await supabaseClient.from('perfiles').select('*').order('nombres');
       docentesList = d || [];
-      const { data: c } = await supabaseClient.from('cursos').select('*').order('nombre');
+      const { data: c } = await supabaseClient.from('cursos').select('*').order('id');
       cursosList = c || [];
       const { data: m } = await supabaseClient.from('materias').select('*').order('nombre');
       materiasList = m || [];
-    }
-
-    // ==========================================
-    // MÓDULO: TÍTULOS ACADÉMICOS (CRUD)
-    // ==========================================
-    async function cargarTitulos() {
-      await cargarDatosIniciales();
-      const tbody = document.getElementById('tablaTitulos');
-      tbody.innerHTML = titulosList.map(t => `
-        <tr>
-          <td class="fw-bold fs-6 text-primary">${t.abreviatura}</td>
-          <td>${t.descripcion || '<span class="text-muted fst-italic">Sin descripción</span>'}</td>
-          <td>
-            <button class="btn btn-sm btn-outline-primary py-0" onclick="abrirModalTitulo(${t.id}, '${t.abreviatura}', '${t.descripcion || ''}')">Editar</button>
-            <button class="btn btn-sm btn-outline-danger py-0" onclick="eliminarRegistro('catalogo_titulos', ${t.id})">Eliminar</button>
-          </td>
-        </tr>
-      `).join('');
-    }
-
-    function abrirModalTitulo(id = null, abrev = '', desc = '') {
-      document.getElementById('tituloModalId').value = id || '';
-      document.getElementById('tituloModalAbrev').value = abrev;
-      document.getElementById('tituloModalDesc').value = desc;
-      document.getElementById('modalTituloTitulo').innerText = id ? 'Editar Título Académico' : 'Registrar Nuevo Título';
-      modalTituloInst.show();
-    }
-
-    async function guardarTituloModal(e) {
-      e.preventDefault();
-      const id = document.getElementById('tituloModalId').value;
-      const abreviatura = document.getElementById('tituloModalAbrev').value.trim();
-      const descripcion = document.getElementById('tituloModalDesc').value.trim();
-
-      if (id) {
-        const { error } = await supabaseClient.from('catalogo_titulos').update({ abreviatura, descripcion }).eq('id', id);
-        if (error) alert('Error al actualizar: ' + error.message);
-      } else {
-        const { error } = await supabaseClient.from('catalogo_titulos').insert([{ abreviatura, descripcion }]);
-        if (error) alert('Error al registrar: ' + error.message);
-      }
-      modalTituloInst.hide();
-      await cargarTitulos();
     }
 
     // 1. Institución
@@ -599,13 +580,13 @@
         const tutor = docentesList.find(d => d.id === c.tutor_id);
         return `
           <tr>
-            <td>${c.id}</td>
-            <td class="fw-bold">${c.nombre}</td>
-            <td>${c.seccion || 'Matutina'}</td>
-            <td>${tutor ? `<i class="bi bi-person-check text-success me-1"></i>${formatNombreDocente(tutor)}` : '<span class="text-muted">Sin tutor asignado</span>'}</td>
+            <td class="fw-bold fs-6 text-primary">${c.nombre}</td>
+            <td><small class="fw-bold text-dark">${c.nombre_largo_mayuscula || '-'}</small></td>
+            <td>${tutor ? `<span class="badge bg-light text-dark border"><i class="bi bi-person-check text-success me-1"></i>${formatNombreDocente(tutor)}</span>` : '<span class="text-muted fst-italic">Sin tutor</span>'}</td>
+            <td><small class="text-muted">${c.promueve_a || '-'}</small></td>
             <td>
               <button class="btn btn-sm btn-outline-info py-0" onclick="irAsignarMateriasCurso(${c.id})">
-                <i class="bi bi-journal-plus me-1"></i> Asignar Materias
+                <i class="bi bi-journal-plus me-1"></i> Asignar
               </button>
             </td>
             <td>
@@ -625,12 +606,18 @@
 
       if (id) {
         const c = cursosList.find(item => item.id === id);
+        document.getElementById('modalCursoTitulo').innerText = 'Editar Datos del Curso';
         document.getElementById('cursoModalNombre').value = c.nombre;
-        document.getElementById('cursoModalSeccion').value = c.seccion || 'Matutina';
+        document.getElementById('cursoModalLargoMayus').value = c.nombre_largo_mayuscula || '';
+        document.getElementById('cursoModalLargoMinus').value = c.nombre_largo_minuscula || '';
+        document.getElementById('cursoModalPromueveA').value = c.promueve_a || '';
         tutorSelect.value = c.tutor_id || '';
       } else {
+        document.getElementById('modalCursoTitulo').innerText = 'Registrar Nuevo Curso';
         document.getElementById('cursoModalNombre').value = '';
-        document.getElementById('cursoModalSeccion').value = 'Matutina';
+        document.getElementById('cursoModalLargoMayus').value = '';
+        document.getElementById('cursoModalLargoMinus').value = '';
+        document.getElementById('cursoModalPromueveA').value = '';
         tutorSelect.value = '';
       }
       modalCursoInst.show();
@@ -640,15 +627,25 @@
       e.preventDefault();
       const id = document.getElementById('cursoModalId').value;
       const nombre = document.getElementById('cursoModalNombre').value.trim();
-      const seccion = document.getElementById('cursoModalSeccion').value.trim();
+      const nombre_largo_mayuscula = document.getElementById('cursoModalLargoMayus').value.trim();
+      const nombre_largo_minuscula = document.getElementById('cursoModalLargoMinus').value.trim();
+      const promueve_a = document.getElementById('cursoModalPromueveA').value.trim();
       const tutor_id = document.getElementById('cursoModalTutor').value || null;
 
+      const payload = {
+        nombre,
+        nombre_largo_mayuscula,
+        nombre_largo_minuscula,
+        promueve_a,
+        tutor_id
+      };
+
       if (id) {
-        const { error } = await supabaseClient.from('cursos').update({ nombre, seccion, tutor_id }).eq('id', id);
-        if (error) alert(error.message);
+        const { error } = await supabaseClient.from('cursos').update(payload).eq('id', id);
+        if (error) alert('Error al actualizar curso: ' + error.message);
       } else {
-        const { error } = await supabaseClient.from('cursos').insert([{ nombre, seccion, tutor_id }]);
-        if (error) alert(error.message);
+        const { error } = await supabaseClient.from('cursos').insert([payload]);
+        if (error) alert('Error al registrar curso: ' + error.message);
       }
       modalCursoInst.hide();
       cargarCursos();
@@ -898,7 +895,6 @@
       document.getElementById('personalModalId').value = id || '';
       const passBox = document.getElementById('boxPasswordPersonal');
       
-      // Llenar selector de títulos desde el catálogo
       const selTitulo = document.getElementById('personalTitulo');
       selTitulo.innerHTML = titulosList.map(t => `<option value="${t.abreviatura}">${t.abreviatura} - ${t.descripcion || ''}</option>`).join('');
 
@@ -992,6 +988,47 @@
       else cargarDocentes();
     }
 
+    // 7. Catálogo de Títulos
+    async function cargarTitulos() {
+      await cargarDatosIniciales();
+      const tbody = document.getElementById('tablaTitulos');
+      tbody.innerHTML = titulosList.map(t => `
+        <tr>
+          <td class="fw-bold fs-6 text-primary">${t.abreviatura}</td>
+          <td>${t.descripcion || '<span class="text-muted fst-italic">Sin descripción</span>'}</td>
+          <td>
+            <button class="btn btn-sm btn-outline-primary py-0" onclick="abrirModalTitulo(${t.id}, '${t.abreviatura}', '${t.descripcion || ''}')">Editar</button>
+            <button class="btn btn-sm btn-outline-danger py-0" onclick="eliminarRegistro('catalogo_titulos', ${t.id})">Eliminar</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function abrirModalTitulo(id = null, abrev = '', desc = '') {
+      document.getElementById('tituloModalId').value = id || '';
+      document.getElementById('tituloModalAbrev').value = abrev;
+      document.getElementById('tituloModalDesc').value = desc;
+      document.getElementById('modalTituloTitulo').innerText = id ? 'Editar Título Académico' : 'Registrar Nuevo Título';
+      modalTituloInst.show();
+    }
+
+    async function guardarTituloModal(e) {
+      e.preventDefault();
+      const id = document.getElementById('tituloModalId').value;
+      const abreviatura = document.getElementById('tituloModalAbrev').value.trim();
+      const descripcion = document.getElementById('tituloModalDesc').value.trim();
+
+      if (id) {
+        const { error } = await supabaseClient.from('catalogo_titulos').update({ abreviatura, descripcion }).eq('id', id);
+        if (error) alert('Error al actualizar: ' + error.message);
+      } else {
+        const { error } = await supabaseClient.from('catalogo_titulos').insert([{ abreviatura, descripcion }]);
+        if (error) alert('Error al registrar: ' + error.message);
+      }
+      modalTituloInst.hide();
+      await cargarTitulos();
+    }
+
     // 8. Actividades
     async function cargarActividades() {
       const { data } = await supabaseClient.from('catalogo_actividades').select('*').order('nombre');
@@ -1013,7 +1050,6 @@
       else cargarActividades();
     }
 
-    // Función Genérica para Eliminar
     async function eliminarRegistro(tabla, id) {
       if (!confirm('¿Está seguro de eliminar este registro? Esta acción no se puede deshacer.')) return;
       const { error } = await supabaseClient.from(tabla).delete().eq('id', id);
