@@ -58,6 +58,7 @@
         </div>
         <ul class="nav nav-pills flex-column">
           <li class="nav-item"><a href="#" class="nav-link active" id="nav-institucion" onclick="mostrarModulo('institucion', this)"><i class="bi bi-building me-2"></i> Institución</a></li>
+          <li class="nav-item"><a href="#" class="nav-link" id="nav-calendario" onclick="mostrarModulo('calendario', this)"><i class="bi bi-calendar3 me-2"></i> Calendario Asistencia</a></li>
           <li class="nav-item"><a href="#" class="nav-link" id="nav-cursos" onclick="mostrarModulo('cursos', this)"><i class="bi bi-grid-3x3-gap me-2"></i> Cursos y Tutores</a></li>
           <li class="nav-item"><a href="#" class="nav-link" id="nav-asignaciones" onclick="mostrarModulo('asignaciones', this)"><i class="bi bi-journal-check me-2"></i> Asignar Materias</a></li>
           <li class="nav-item"><a href="#" class="nav-link" id="nav-materias" onclick="mostrarModulo('materias', this)"><i class="bi bi-book me-2"></i> Materias</a></li>
@@ -149,6 +150,37 @@
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- MODULO: CALENDARIO ASISTENCIA GENERAL -->
+        <div class="modulo d-none" id="mod-calendario">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+              <h4 class="fw-bold mb-0">Datos Generales de Asistencia y Calendario</h4>
+              <small class="text-muted">Parámetros de fechas, festivos y cálculo de días laborales por trimestre/anual.</small>
+            </div>
+            <button class="btn btn-primary btn-sm px-4 fw-bold" onclick="guardarCalendarioAsistencia()"><i class="bi bi-save me-1"></i> Guardar Calendario</button>
+          </div>
+
+          <div class="card p-0">
+            <div class="table-responsive">
+              <table class="table table-bordered table-hover mb-0 align-middle text-center">
+                <thead class="table-primary text-dark">
+                  <tr>
+                    <th>PARCIAL</th>
+                    <th>TRIMESTRE</th>
+                    <th style="width: 170px;">INICIA</th>
+                    <th style="width: 170px;">FINALIZA</th>
+                    <th style="width: 130px;">DÍAS NO LABORADOS</th>
+                    <th>TOTAL DÍAS</th>
+                    <th>POR TRIMESTRE</th>
+                    <th>ANUAL</th>
+                  </tr>
+                </thead>
+                <tbody id="tablaPeriodosAsistencia"></tbody>
+              </table>
             </div>
           </div>
         </div>
@@ -246,7 +278,7 @@
           </div>
           <div class="card p-0">
             <table class="table table-hover mb-0 align-middle">
-              <thead><tr><th>N°</th><th>Cédula</th><th>Estudiante</th><th>Representante</th><th>Teléfono</th><th>Acciones</th></tr></thead>
+              <thead><tr><th>N°</th><th>Cédula</th><th>Estudiante</th><th>Representante</th><th>Acciones</th></tr></thead>
               <tbody id="tablaEstudiantes"></tbody>
             </table>
           </div>
@@ -257,7 +289,7 @@
           <div class="d-flex justify-content-between align-items-center mb-3">
             <div>
               <h4 class="fw-bold mb-0">Nómina del Personal Docente y Administrativo</h4>
-              <small class="text-muted">Gestión de accesos, cargos y perfiles del personal institucional.</small>
+              <small class="text-muted">Gestión de accesos, cargos y permisos especiales del personal.</small>
             </div>
             <button class="btn btn-success btn-sm" onclick="abrirModalPersonal()"><i class="bi bi-person-plus me-1"></i> Nuevo Personal</button>
           </div>
@@ -267,9 +299,9 @@
                 <tr>
                   <th>Nombres y Apellidos</th>
                   <th>Correo Electrónico</th>
-                  <th>Teléfono</th>
                   <th>Cargo</th>
-                  <th>Permisos / Rol</th>
+                  <th>Rol</th>
+                  <th>Asistencia</th>
                   <th style="min-width: 210px;">Acciones</th>
                 </tr>
               </thead>
@@ -321,79 +353,7 @@
 
   <!-- ================= MODALES ================= -->
 
-  <!-- Modal Curso Ampliado -->
-  <div class="modal fade" id="modalCursoBox" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-      <div class="modal-content">
-        <div class="modal-header bg-dark text-white py-2">
-          <h6 class="modal-title fw-bold" id="modalCursoTitulo">Gestión de Curso</h6>
-          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body">
-          <form onsubmit="guardarCursoModal(event)">
-            <input type="hidden" id="cursoModalId">
-            <div class="row g-2">
-              <div class="col-md-6">
-                <label class="form-label fw-bold">Nombre Corto (Ej: INICIAL I "A")</label>
-                <input type="text" id="cursoModalNombre" class="form-control form-control-sm" placeholder="Ej: 8VO BASICA 'A'" required>
-              </div>
-              <div class="col-md-6">
-                <label class="form-label fw-bold">Docente Tutor</label>
-                <select id="cursoModalTutor" class="form-select form-select-sm"></select>
-              </div>
-              <div class="col-md-12">
-                <label class="form-label fw-bold">Nombre Largo Mayúscula</label>
-                <input type="text" id="cursoModalLargoMayus" class="form-control form-control-sm" placeholder="Ej: OCTAVO GRADO DE EDUCACIÓN GENERAL BÁSICA PARALELO 'A'">
-              </div>
-              <div class="col-md-12">
-                <label class="form-label fw-bold">Nombre Largo Minúscula</label>
-                <input type="text" id="cursoModalLargoMinus" class="form-control form-control-sm" placeholder="Ej: Octavo Grado de Educación General Básica Paralelo 'A'">
-              </div>
-              <div class="col-md-12">
-                <label class="form-label fw-bold">Promueve A (Grado Siguiente)</label>
-                <input type="text" id="cursoModalPromueveA" class="form-control form-control-sm" placeholder="Ej: Noveno Grado de Educación General Básica">
-              </div>
-            </div>
-            <div class="text-end mt-4">
-              <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
-              <button type="submit" class="btn btn-primary btn-sm fw-bold">Guardar Curso</button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal Título Académico -->
-  <div class="modal fade" id="modalTituloBox" tabindex="-1">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header bg-dark text-white py-2">
-          <h6 class="modal-title fw-bold" id="modalTituloTitulo">Gestión de Título Académico</h6>
-          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body">
-          <form id="formModalTitulo" onsubmit="guardarTituloModal(event)">
-            <input type="hidden" id="tituloModalId">
-            <div class="mb-3">
-              <label class="form-label fw-bold">Abreviatura (Ej: Ing., Lcdo., Msc.)</label>
-              <input type="text" id="tituloModalAbrev" class="form-control form-control-sm" placeholder="Ej: Ing." required>
-            </div>
-            <div class="mb-3">
-              <label class="form-label fw-bold">Descripción / Grado</label>
-              <input type="text" id="tituloModalDesc" class="form-control form-control-sm" placeholder="Ej: Ingeniero/a">
-            </div>
-            <div class="text-end">
-              <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
-              <button type="submit" class="btn btn-primary btn-sm fw-bold">Guardar Título</button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal Personal -->
+  <!-- Modal Personal con Checkbox de Asistencia -->
   <div class="modal fade" id="modalPersonalBox" tabindex="-1">
     <div class="modal-dialog modal-lg">
       <div class="modal-content">
@@ -429,7 +389,7 @@
 
               <div class="col-md-6">
                 <label class="form-label fw-bold">Cargo</label>
-                <input type="text" id="personalCargo" class="form-control form-control-sm" placeholder="Ej: Docente de Aula, Vicerrector, etc." required>
+                <input type="text" id="personalCargo" class="form-control form-control-sm" placeholder="Ej: Docente de Aula, Inspectora, etc." required>
               </div>
               <div class="col-md-6">
                 <label class="form-label fw-bold">Rol en la Plataforma</label>
@@ -437,6 +397,15 @@
                   <option value="docente">Docente (Acceso solo a sus notas y tutorías)</option>
                   <option value="admin">Administrador (Acceso total + Docencia)</option>
                 </select>
+              </div>
+
+              <div class="col-md-12 my-2">
+                <div class="form-check form-switch p-2 bg-light rounded border">
+                  <input class="form-check-input ms-0 me-2" type="checkbox" id="personalPuedeAsistencia">
+                  <label class="form-check-label fw-bold text-primary" for="personalPuedeAsistencia">
+                    <i class="bi bi-calendar-check me-1"></i> Autorizado para Configurar y Gestionar Asistencia General
+                  </label>
+                </div>
               </div>
 
               <div class="col-md-12" id="boxPasswordPersonal">
@@ -456,7 +425,79 @@
     </div>
   </div>
 
-  <!-- Modal Asignar Materia con Múltiples Docentes -->
+  <!-- Modal Curso -->
+  <div class="modal fade" id="modalCursoBox" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header bg-dark text-white py-2">
+          <h6 class="modal-title fw-bold" id="modalCursoTitulo">Gestión de Curso</h6>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form onsubmit="guardarCursoModal(event)">
+            <input type="hidden" id="cursoModalId">
+            <div class="row g-2">
+              <div class="col-md-6">
+                <label class="form-label fw-bold">Nombre Corto</label>
+                <input type="text" id="cursoModalNombre" class="form-control form-control-sm" required>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-bold">Docente Tutor</label>
+                <select id="cursoModalTutor" class="form-select form-select-sm"></select>
+              </div>
+              <div class="col-md-12">
+                <label class="form-label fw-bold">Nombre Largo Mayúscula</label>
+                <input type="text" id="cursoModalLargoMayus" class="form-control form-control-sm">
+              </div>
+              <div class="col-md-12">
+                <label class="form-label fw-bold">Nombre Largo Minúscula</label>
+                <input type="text" id="cursoModalLargoMinus" class="form-control form-control-sm">
+              </div>
+              <div class="col-md-12">
+                <label class="form-label fw-bold">Promueve A</label>
+                <input type="text" id="cursoModalPromueveA" class="form-control form-control-sm">
+              </div>
+            </div>
+            <div class="text-end mt-4">
+              <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+              <button type="submit" class="btn btn-primary btn-sm fw-bold">Guardar Curso</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Título -->
+  <div class="modal fade" id="modalTituloBox" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header bg-dark text-white py-2">
+          <h6 class="modal-title fw-bold" id="modalTituloTitulo">Gestión de Título</h6>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="formModalTitulo" onsubmit="guardarTituloModal(event)">
+            <input type="hidden" id="tituloModalId">
+            <div class="mb-3">
+              <label class="form-label fw-bold">Abreviatura</label>
+              <input type="text" id="tituloModalAbrev" class="form-control form-control-sm" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-bold">Descripción</label>
+              <input type="text" id="tituloModalDesc" class="form-control form-control-sm">
+            </div>
+            <div class="text-end">
+              <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+              <button type="submit" class="btn btn-primary btn-sm fw-bold">Guardar Título</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Asignar Materia -->
   <div class="modal fade" id="modalAsignarMateria" tabindex="-1">
     <div class="modal-dialog">
       <div class="modal-content">
@@ -473,21 +514,20 @@
             </div>
             
             <div class="p-2 border rounded bg-light mb-3">
-              <label class="form-label fw-bold text-primary mb-1"><i class="bi bi-person-video3 me-1"></i> Docente Principal (Obligatorio)</label>
+              <label class="form-label fw-bold text-primary mb-1"><i class="bi bi-person-video3 me-1"></i> Docente Principal</label>
               <select id="asigSelectDocente" class="form-select form-select-sm" required></select>
               
               <hr class="my-2">
-              <label class="form-label fw-bold text-muted mb-1"><i class="bi bi-person-add me-1"></i> Docente Auxiliar 1 (Opcional)</label>
+              <label class="form-label fw-bold text-muted mb-1"><i class="bi bi-person-add me-1"></i> Docente Auxiliar 1</label>
               <select id="asigSelectDocente2" class="form-select form-select-sm mb-2"></select>
 
-              <label class="form-label fw-bold text-muted mb-1"><i class="bi bi-person-add me-1"></i> Docente Auxiliar 2 (Opcional)</label>
+              <label class="form-label fw-bold text-muted mb-1"><i class="bi bi-person-add me-1"></i> Docente Auxiliar 2</label>
               <select id="asigSelectDocente3" class="form-select form-select-sm"></select>
             </div>
 
             <div class="mb-3 form-check form-switch">
               <input class="form-check-input" type="checkbox" id="asigEsOptativa">
               <label class="form-check-label fw-semibold" for="asigEsOptativa">Materia Optativa / Cualitativa</label>
-              <div class="form-text" style="font-size: 0.75rem;">No sumará al promedio general de calificaciones, pero su comportamiento sí cuenta.</div>
             </div>
             <div class="text-end">
               <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
@@ -509,6 +549,7 @@
     let docentesList = [];
     let cursosList = [];
     let materiasList = [];
+    let periodosList = [];
     let modalAsignarInst, modalCursoInst, modalPersonalInst, modalTituloInst;
     let usuarioActualSesionId = null;
 
@@ -531,6 +572,22 @@
       }
     }
 
+    function contarDiasLaborables(fechaInicioStr, fechaFinStr) {
+      if (!fechaInicioStr || !fechaFinStr) return 0;
+      let dInicio = new Date(fechaInicioStr + 'T00:00:00');
+      let dFin = new Date(fechaFinStr + 'T00:00:00');
+      if (dInicio > dFin) return 0;
+
+      let laborables = 0;
+      let cur = new Date(dInicio);
+      while (cur <= dFin) {
+        const day = cur.getDay();
+        if (day !== 0 && day !== 6) laborables++;
+        cur.setDate(cur.getDate() + 1);
+      }
+      return laborables;
+    }
+
     function mostrarModulo(id, link) {
       document.querySelectorAll('.modulo').forEach(m => m.classList.add('d-none'));
       document.querySelectorAll('.sidebar .nav-link').forEach(l => l.classList.remove('active'));
@@ -538,6 +595,7 @@
       if (link) link.classList.add('active');
 
       if (id === 'institucion') cargarDatosInstitucion();
+      if (id === 'calendario') cargarCalendarioAsistencia();
       if (id === 'cursos') cargarCursos();
       if (id === 'materias') cargarMaterias();
       if (id === 'asignaciones') cargarVistaAsignaciones();
@@ -659,6 +717,103 @@
       else alert('¡Datos institucionales y logos guardados correctamente!');
     }
 
+    // ==========================================
+    // MÓDULO: CALENDARIO ASISTENCIA GENERAL
+    // ==========================================
+    async function cargarCalendarioAsistencia() {
+      const { data } = await supabaseClient.from('asistencia_periodos').select('*').order('trimestre').order('parcial');
+      periodosList = data || [];
+
+      if (periodosList.length === 0) {
+        periodosList = [
+          { trimestre: 1, parcial: 1, fecha_inicio: '2026-05-04', fecha_fin: '2026-06-19', dias_no_laborados: 1, total_dias_laborados: 34 },
+          { trimestre: 1, parcial: 2, fecha_inicio: '2026-06-22', fecha_fin: '2026-08-07', dias_no_laborados: 0, total_dias_laborados: 35 },
+          { trimestre: 2, parcial: 1, fecha_inicio: '2026-08-10', fecha_fin: '2026-09-18', dias_no_laborados: 1, total_dias_laborados: 29 },
+          { trimestre: 2, parcial: 2, fecha_inicio: '2026-09-21', fecha_fin: '2026-11-13', dias_no_laborados: 3, total_dias_laborados: 37 },
+          { trimestre: 3, parcial: 1, fecha_inicio: '2026-11-16', fecha_fin: '2026-12-18', dias_no_laborados: 0, total_dias_laborados: 25 },
+          { trimestre: 3, parcial: 2, fecha_inicio: '2026-12-21', fecha_fin: '2027-02-19', dias_no_laborados: 5, total_dias_laborados: 40 }
+        ];
+      }
+
+      renderizarTablaPeriodos();
+    }
+
+    function renderizarTablaPeriodos() {
+      const tbody = document.getElementById('tablaPeriodosAsistencia');
+      
+      const t1 = (periodosList[0]?.total_dias_laborados || 0) + (periodosList[1]?.total_dias_laborados || 0);
+      const t2 = (periodosList[2]?.total_dias_laborados || 0) + (periodosList[3]?.total_dias_laborados || 0);
+      const t3 = (periodosList[4]?.total_dias_laborados || 0) + (periodosList[5]?.total_dias_laborados || 0);
+      const anual = t1 + t2 + t3;
+
+      let html = '';
+      periodosList.forEach((p, idx) => {
+        const esPrimeroTrimestre = (idx % 2 === 0);
+        const totalTrim = idx === 0 ? t1 : (idx === 2 ? t2 : t3);
+
+        html += `
+          <tr data-index="${idx}">
+            <td class="fw-bold">${p.parcial === 1 ? '1ER PARCIAL' : '2DO PARCIAL'}</td>
+            <td class="fw-bold">${p.trimestre}ER TRIMESTRE</td>
+            <td><input type="date" class="form-control form-control-sm text-center in-inicio" value="${p.fecha_inicio}" onchange="recalcularFilaCalendario(${idx})"></td>
+            <td><input type="date" class="form-control form-control-sm text-center in-fin" value="${p.fecha_fin}" onchange="recalcularFilaCalendario(${idx})"></td>
+            <td><input type="number" min="0" max="20" class="form-control form-control-sm text-center in-nolab" value="${p.dias_no_laborados}" oninput="recalcularFilaCalendario(${idx})"></td>
+            <td class="fw-bold fs-6 text-primary col-total-parcial">${p.total_dias_laborados}</td>
+            ${esPrimeroTrimestre ? `<td rowspan="2" class="fw-bold fs-6 bg-light align-middle col-trim-${p.trimestre}">${totalTrim}</td>` : ''}
+            ${idx === 0 ? `<td rowspan="6" class="fw-bold fs-5 bg-warning bg-opacity-25 align-middle text-dark col-total-anual">${anual}</td>` : ''}
+          </tr>
+        `;
+      });
+
+      tbody.innerHTML = html;
+    }
+
+    function recalcularFilaCalendario(idx) {
+      const fila = document.querySelectorAll('#tablaPeriodosAsistencia tr')[idx];
+      const fInicio = fila.querySelector('.in-inicio').value;
+      const fFin = fila.querySelector('.in-fin').value;
+      const noLab = parseInt(fila.querySelector('.in-nolab').value) || 0;
+
+      const diasHabiles = contarDiasLaborables(fInicio, fFin);
+      const totalReal = Math.max(diasHabiles - noLab, 0);
+
+      periodosList[idx].fecha_inicio = fInicio;
+      periodosList[idx].fecha_fin = fFin;
+      periodosList[idx].dias_no_laborados = noLab;
+      periodosList[idx].total_dias_laborados = totalReal;
+
+      fila.querySelector('.col-total-parcial').innerText = totalReal;
+
+      // Actualizar subtotales
+      const t1 = (periodosList[0]?.total_dias_laborados || 0) + (periodosList[1]?.total_dias_laborados || 0);
+      const t2 = (periodosList[2]?.total_dias_laborados || 0) + (periodosList[3]?.total_dias_laborados || 0);
+      const t3 = (periodosList[4]?.total_dias_laborados || 0) + (periodosList[5]?.total_dias_laborados || 0);
+      const anual = t1 + t2 + t3;
+
+      const cT1 = document.querySelector('.col-trim-1'); if (cT1) cT1.innerText = t1;
+      const cT2 = document.querySelector('.col-trim-2'); if (cT2) cT2.innerText = t2;
+      const cT3 = document.querySelector('.col-trim-3'); if (cT3) cT3.innerText = t3;
+      const cAnual = document.querySelector('.col-total-anual'); if (cAnual) cAnual.innerText = anual;
+    }
+
+    async function guardarCalendarioAsistencia() {
+      const payload = periodosList.map(p => ({
+        trimestre: p.trimestre,
+        parcial: p.parcial,
+        fecha_inicio: p.fecha_inicio,
+        fecha_fin: p.fecha_fin,
+        dias_no_laborados: p.dias_no_laborados,
+        total_dias_laborados: p.total_dias_laborados
+      }));
+
+      const { error } = await supabaseClient.from('asistencia_periodos').upsert(payload, {
+        onConflict: 'trimestre,parcial'
+      });
+
+      if (error) alert('Error al guardar calendario: ' + error.message);
+      else alert('¡Calendario de asistencia y días laborables guardados con éxito!');
+    }
+
     // 2. Cursos
     async function cargarCursos() {
       await cargarDatosIniciales();
@@ -732,7 +887,7 @@
       cargarCursos();
     }
 
-    // 3. Asignación de Materias (Múltiples Docentes)
+    // 3. Asignación de Materias
     async function cargarVistaAsignaciones() {
       await cargarDatosIniciales();
       const select = document.getElementById('selectCursoAsignar');
@@ -774,17 +929,16 @@
       }
 
       if (!data || data.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-muted">Este curso aún no tiene materias asignadas. Haga clic en "+ Asignar Materia a este Curso".</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-muted">Este curso aún no tiene materias asignadas.</td></tr>';
         return;
       }
 
       tbody.innerHTML = data.map(a => {
         const esOpt = a.es_optativa ? true : false;
         
-        // Recopilar a todos los docentes asignados a esta materia
         let nombresDocentes = [];
         const d1 = docentesList.find(d => d.id === a.docente_id);
-        if (d1) nombresDocentes.push(`<i class="bi bi-person-fill"></i> ${formatNombreDocente(d1)}`);
+        if (d1) nombresDocentes.push(`<i class="bi bi-person-fill text-primary"></i> ${formatNombreDocente(d1)}`);
         
         const d2 = docentesList.find(d => d.id === a.docente_id_2);
         if (d2) nombresDocentes.push(`<i class="bi bi-person me-1"></i>${formatNombreDocente(d2)}`);
@@ -799,8 +953,8 @@
             <td class="fw-bold fs-6">${a.materias?.nombre || 'Materia no encontrada'}</td>
             <td>
               ${esOpt 
-                ? '<span class="badge bg-warning text-dark"><i class="bi bi-info-circle me-1"></i>Optativa (No suma notas)</span>' 
-                : '<span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Obligatoria (Suma notas)</span>'}
+                ? '<span class="badge bg-warning text-dark"><i class="bi bi-info-circle me-1"></i>Optativa</span>' 
+                : '<span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Obligatoria</span>'}
             </td>
             <td><small>${strDocentes}</small></td>
             <td>
@@ -843,7 +997,6 @@
       document.getElementById('asigCursoId').value = cursoId;
       document.getElementById('modalAsigTitulo').innerText = `Editar Asignación de Materia`;
 
-      // Cargar materias, pero bloquear para que no cambien la asignatura y rompan la BD
       const selM = document.getElementById('asigSelectMateria');
       selM.innerHTML = materiasList.map(m => `<option value="${m.id}">${m.nombre}</option>`).join('');
       selM.value = materiaId;
@@ -861,7 +1014,6 @@
       document.getElementById('asigSelectDocente3').value = doc3;
 
       document.getElementById('asigEsOptativa').checked = esOpt;
-
       modalAsignarInst.show();
     }
 
@@ -878,9 +1030,8 @@
         curso_id, materia_id, docente_id, docente_id_2, docente_id_3, es_optativa
       }], { onConflict: 'curso_id,materia_id' });
 
-      if (error) {
-        alert('Error al guardar asignación: ' + error.message);
-      } else {
+      if (error) alert('Error al guardar: ' + error.message);
+      else {
         modalAsignarInst.hide();
         await cargarMateriasDelCurso();
       }
@@ -934,7 +1085,7 @@
       const cursoId = document.getElementById('filtroCursoEstudiantes').value;
       const tbody = document.getElementById('tablaEstudiantes');
       if (!cursoId) {
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-3 text-muted">Seleccione un curso para ver la nómina.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-3 text-muted">Seleccione un curso para ver la nómina.</td></tr>';
         return;
       }
 
@@ -993,7 +1144,7 @@
       else cargarEstudiantes();
     }
 
-    // 6. Nómina del Personal (Con eliminación completa)
+    // 6. Nómina del Personal
     async function cargarDocentes() {
       await cargarDatosIniciales();
       const tbody = document.getElementById('tablaDocentes');
@@ -1005,12 +1156,16 @@
           <tr>
             <td class="fw-bold">${nombreCompleto}</td>
             <td>${d.email}</td>
-            <td>${d.telefono || '<span class="text-muted">-</span>'}</td>
             <td><span class="badge bg-light text-dark border">${d.cargo || 'Docente'}</span></td>
             <td>
               <span class="badge ${d.rol === 'admin' ? 'bg-danger' : 'bg-primary'}">
                 ${d.rol === 'admin' ? 'ADMINISTRADOR' : 'DOCENTE'}
               </span>
+            </td>
+            <td>
+              ${d.puede_gestionar_asistencia 
+                ? '<span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Autorizado</span>' 
+                : '<span class="badge bg-light text-muted border">No</span>'}
             </td>
             <td>
               <button class="btn btn-sm btn-outline-primary py-0 me-1 mb-1" onclick="abrirModalPersonal('${d.id}')">Editar</button>
@@ -1019,9 +1174,9 @@
               </button>
               ${!esMismoUsuario ? `
                 <button class="btn btn-sm btn-outline-danger py-0 mb-1" onclick="confirmarEliminarPersonal('${d.id}', '${nombreCompleto.replace(/'/g, "\\'")}', '${d.email}')">
-                  <i class="bi bi-trash"></i> Eliminar
+                  <i class="bi bi-trash"></i>
                 </button>
-              ` : '<span class="badge bg-secondary">Tu sesión</span>'}
+              ` : ''}
             </td>
           </tr>
         `;
@@ -1029,16 +1184,16 @@
     }
 
     async function confirmarEliminarPersonal(id, nombre, email) {
-      const confirmacion = confirm(`¿Está seguro de eliminar al usuario ${nombre} (${email})?\n\nEsta acción eliminará su cuenta de acceso, su perfil y lo desvinculará de las materias asignadas de forma definitiva.`);
+      const confirmacion = confirm(`¿Está seguro de eliminar al usuario ${nombre} (${email})?`);
       if (!confirmacion) return;
 
       try {
         const { error } = await supabaseClient.rpc('eliminar_usuario_completo', { p_user_id: id });
         if (error) throw error;
-        alert(`El usuario ${nombre} ha sido eliminado con éxito.`);
+        alert(`El usuario ${nombre} ha sido eliminado.`);
         await cargarDocentes();
       } catch (err) {
-        alert('Error al eliminar el usuario: ' + err.message);
+        alert('Error: ' + err.message);
       }
     }
 
@@ -1060,11 +1215,13 @@
         document.getElementById('personalTelefono').value = p.telefono || '';
         document.getElementById('personalCargo').value = p.cargo || 'Docente';
         document.getElementById('personalRol').value = p.rol || 'docente';
+        document.getElementById('personalPuedeAsistencia').checked = p.puede_gestionar_asistencia ? true : false;
         passBox.classList.add('d-none');
       } else {
         document.getElementById('modalPersonalTitulo').innerText = 'Registrar Nuevo Personal';
         document.getElementById('formModalPersonal').reset();
         document.getElementById('personalEmail').disabled = false;
+        document.getElementById('personalPuedeAsistencia').checked = false;
         passBox.classList.remove('d-none');
       }
       modalPersonalInst.show();
@@ -1080,6 +1237,7 @@
       const telefono = document.getElementById('personalTelefono').value.trim();
       const cargo = document.getElementById('personalCargo').value.trim();
       const rol = document.getElementById('personalRol').value;
+      const puede_gestionar_asistencia = document.getElementById('personalPuedeAsistencia').checked;
       const password = document.getElementById('personalPassword').value;
 
       const btn = document.getElementById('btnGuardarPersonal');
@@ -1089,7 +1247,7 @@
       try {
         if (id) {
           const { error } = await supabaseClient.from('perfiles').update({
-            titulo, nombres, apellidos, telefono, cargo, rol
+            titulo, nombres, apellidos, telefono, cargo, rol, puede_gestionar_asistencia
           }).eq('id', id);
           if (error) throw error;
         } else {
@@ -1098,9 +1256,7 @@
           const { data: authData, error: authErr } = await supabaseClient.auth.signUp({
             email: email,
             password: password,
-            options: {
-              data: { nombres: `${nombres} ${apellidos}`, rol: rol }
-            }
+            options: { data: { nombres: `${nombres} ${apellidos}`, rol: rol } }
           });
 
           if (authErr) throw authErr;
@@ -1116,6 +1272,7 @@
               telefono: telefono,
               cargo: cargo,
               rol: rol,
+              puede_gestionar_asistencia: puede_gestionar_asistencia,
               es_docente_activo: true
             });
           }
@@ -1123,7 +1280,7 @@
 
         modalPersonalInst.hide();
         await cargarDocentes();
-        alert('¡Datos de personal guardados correctamente!');
+        alert('¡Personal guardado correctamente!');
       } catch (err) {
         alert('Error: ' + err.message);
       } finally {
@@ -1139,7 +1296,7 @@
       else cargarDocentes();
     }
 
-    // 7. Catálogo de Títulos
+    // 7. Títulos
     async function cargarTitulos() {
       await cargarDatosIniciales();
       const tbody = document.getElementById('tablaTitulos');
@@ -1159,7 +1316,7 @@
       document.getElementById('tituloModalId').value = id || '';
       document.getElementById('tituloModalAbrev').value = abrev;
       document.getElementById('tituloModalDesc').value = desc;
-      document.getElementById('modalTituloTitulo').innerText = id ? 'Editar Título Académico' : 'Registrar Nuevo Título';
+      document.getElementById('modalTituloTitulo').innerText = id ? 'Editar Título' : 'Registrar Nuevo Título';
       modalTituloInst.show();
     }
 
@@ -1171,10 +1328,10 @@
 
       if (id) {
         const { error } = await supabaseClient.from('catalogo_titulos').update({ abreviatura, descripcion }).eq('id', id);
-        if (error) alert('Error al actualizar: ' + error.message);
+        if (error) alert('Error: ' + error.message);
       } else {
         const { error } = await supabaseClient.from('catalogo_titulos').insert([{ abreviatura, descripcion }]);
-        if (error) alert('Error al registrar: ' + error.message);
+        if (error) alert('Error: ' + error.message);
       }
       modalTituloInst.hide();
       await cargarTitulos();
@@ -1201,11 +1358,10 @@
       else cargarActividades();
     }
 
-    // Eliminación genérica
     async function eliminarRegistro(tabla, id) {
-      if (!confirm('¿Está seguro de eliminar este registro? Esta acción no se puede deshacer.')) return;
+      if (!confirm('¿Está seguro de eliminar este registro?')) return;
       const { error } = await supabaseClient.from(tabla).delete().eq('id', id);
-      if (error) alert('Error al eliminar: ' + error.message);
+      if (error) alert('Error: ' + error.message);
       else {
         if (tabla === 'cursos') cargarCursos();
         if (tabla === 'materias') cargarMaterias();
