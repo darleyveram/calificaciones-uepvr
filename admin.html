@@ -210,8 +210,8 @@
                 <tr>
                   <th>Materia / Asignatura</th>
                   <th>Tipo de Materia</th>
-                  <th>Docente Responsable</th>
-                  <th>Acciones</th>
+                  <th>Docentes Responsables (Hasta 3)</th>
+                  <th style="width: 160px;">Acciones</th>
                 </tr>
               </thead>
               <tbody id="tablaMateriasCurso">
@@ -456,7 +456,7 @@
     </div>
   </div>
 
-  <!-- Modal Asignar Materia -->
+  <!-- Modal Asignar Materia con Múltiples Docentes -->
   <div class="modal fade" id="modalAsignarMateria" tabindex="-1">
     <div class="modal-dialog">
       <div class="modal-content">
@@ -471,14 +471,23 @@
               <label class="form-label fw-bold">Materia / Asignatura</label>
               <select id="asigSelectMateria" class="form-select form-select-sm" required></select>
             </div>
-            <div class="mb-3">
-              <label class="form-label fw-bold">Docente Responsable</label>
+            
+            <div class="p-2 border rounded bg-light mb-3">
+              <label class="form-label fw-bold text-primary mb-1"><i class="bi bi-person-video3 me-1"></i> Docente Principal (Obligatorio)</label>
               <select id="asigSelectDocente" class="form-select form-select-sm" required></select>
+              
+              <hr class="my-2">
+              <label class="form-label fw-bold text-muted mb-1"><i class="bi bi-person-add me-1"></i> Docente Auxiliar 1 (Opcional)</label>
+              <select id="asigSelectDocente2" class="form-select form-select-sm mb-2"></select>
+
+              <label class="form-label fw-bold text-muted mb-1"><i class="bi bi-person-add me-1"></i> Docente Auxiliar 2 (Opcional)</label>
+              <select id="asigSelectDocente3" class="form-select form-select-sm"></select>
             </div>
+
             <div class="mb-3 form-check form-switch">
               <input class="form-check-input" type="checkbox" id="asigEsOptativa">
               <label class="form-check-label fw-semibold" for="asigEsOptativa">Materia Optativa / Cualitativa</label>
-              <div class="form-text">No sumará al promedio general de calificaciones, pero su comportamiento sí cuenta.</div>
+              <div class="form-text" style="font-size: 0.75rem;">No sumará al promedio general de calificaciones, pero su comportamiento sí cuenta.</div>
             </div>
             <div class="text-end">
               <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
@@ -650,7 +659,7 @@
       else alert('¡Datos institucionales y logos guardados correctamente!');
     }
 
-    // 2. Cursos y Tutores
+    // 2. Cursos
     async function cargarCursos() {
       await cargarDatosIniciales();
       const tbody = document.getElementById('tablaCursos');
@@ -723,7 +732,7 @@
       cargarCursos();
     }
 
-    // 3. Asignación de Materias
+    // 3. Asignación de Materias (Múltiples Docentes)
     async function cargarVistaAsignaciones() {
       await cargarDatosIniciales();
       const select = document.getElementById('selectCursoAsignar');
@@ -756,7 +765,7 @@
 
       const { data, error } = await supabaseClient
         .from('curso_materia_docente')
-        .select(`id, curso_id, materia_id, docente_id, es_optativa, materias(id, nombre)`)
+        .select(`id, curso_id, materia_id, docente_id, docente_id_2, docente_id_3, es_optativa, materias(id, nombre)`)
         .eq('curso_id', parseInt(cursoId));
 
       if (error) {
@@ -771,8 +780,19 @@
 
       tbody.innerHTML = data.map(a => {
         const esOpt = a.es_optativa ? true : false;
-        const doc = docentesList.find(d => d.id === a.docente_id);
-        const nombreDocente = doc ? formatNombreDocente(doc) : (a.docente_id || 'Docente no asignado');
+        
+        // Recopilar a todos los docentes asignados a esta materia
+        let nombresDocentes = [];
+        const d1 = docentesList.find(d => d.id === a.docente_id);
+        if (d1) nombresDocentes.push(`<i class="bi bi-person-fill"></i> ${formatNombreDocente(d1)}`);
+        
+        const d2 = docentesList.find(d => d.id === a.docente_id_2);
+        if (d2) nombresDocentes.push(`<i class="bi bi-person me-1"></i>${formatNombreDocente(d2)}`);
+        
+        const d3 = docentesList.find(d => d.id === a.docente_id_3);
+        if (d3) nombresDocentes.push(`<i class="bi bi-person me-1"></i>${formatNombreDocente(d3)}`);
+
+        const strDocentes = nombresDocentes.length > 0 ? nombresDocentes.join('<br>') : '<span class="text-muted fst-italic">Sin asignar</span>';
 
         return `
           <tr>
@@ -782,10 +802,13 @@
                 ? '<span class="badge bg-warning text-dark"><i class="bi bi-info-circle me-1"></i>Optativa (No suma notas)</span>' 
                 : '<span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Obligatoria (Suma notas)</span>'}
             </td>
-            <td>${nombreDocente}</td>
+            <td><small>${strDocentes}</small></td>
             <td>
-              <button class="btn btn-sm btn-outline-danger py-0" onclick="eliminarRegistro('curso_materia_docente', ${a.id})">
-                <i class="bi bi-trash me-1"></i> Quitar
+              <button class="btn btn-sm btn-outline-primary py-0 me-1 mb-1" onclick="editarAsignacionModal(${a.id}, ${a.materia_id}, '${a.docente_id || ''}', '${a.docente_id_2 || ''}', '${a.docente_id_3 || ''}', ${esOpt})">
+                <i class="bi bi-pencil"></i> Editar
+              </button>
+              <button class="btn btn-sm btn-outline-danger py-0 mb-1" onclick="eliminarRegistro('curso_materia_docente', ${a.id})">
+                <i class="bi bi-trash"></i> Quitar
               </button>
             </td>
           </tr>
@@ -803,11 +826,42 @@
 
       const selM = document.getElementById('asigSelectMateria');
       selM.innerHTML = materiasList.map(m => `<option value="${m.id}" data-optativa="${m.es_optativa}">${m.nombre}</option>`).join('');
+      selM.disabled = false;
 
-      const selD = document.getElementById('asigSelectDocente');
-      selD.innerHTML = docentesList.map(d => `<option value="${d.id}">${formatNombreDocente(d)} (${d.email})</option>`).join('');
+      const opcionesDocentes = docentesList.map(d => `<option value="${d.id}">${formatNombreDocente(d)} (${d.email})</option>`).join('');
+      
+      document.getElementById('asigSelectDocente').innerHTML = '<option value="">Seleccione Principal...</option>' + opcionesDocentes;
+      document.getElementById('asigSelectDocente2').innerHTML = '<option value="">Ninguno</option>' + opcionesDocentes;
+      document.getElementById('asigSelectDocente3').innerHTML = '<option value="">Ninguno</option>' + opcionesDocentes;
 
       document.getElementById('asigEsOptativa').checked = false;
+      modalAsignarInst.show();
+    }
+
+    function editarAsignacionModal(asigId, materiaId, doc1, doc2, doc3, esOpt) {
+      const cursoId = document.getElementById('selectCursoAsignar').value;
+      document.getElementById('asigCursoId').value = cursoId;
+      document.getElementById('modalAsigTitulo').innerText = `Editar Asignación de Materia`;
+
+      // Cargar materias, pero bloquear para que no cambien la asignatura y rompan la BD
+      const selM = document.getElementById('asigSelectMateria');
+      selM.innerHTML = materiasList.map(m => `<option value="${m.id}">${m.nombre}</option>`).join('');
+      selM.value = materiaId;
+      selM.disabled = true;
+
+      const opcionesDocentes = docentesList.map(d => `<option value="${d.id}">${formatNombreDocente(d)} (${d.email})</option>`).join('');
+      
+      document.getElementById('asigSelectDocente').innerHTML = '<option value="">Seleccione Principal...</option>' + opcionesDocentes;
+      document.getElementById('asigSelectDocente').value = doc1;
+
+      document.getElementById('asigSelectDocente2').innerHTML = '<option value="">Ninguno</option>' + opcionesDocentes;
+      document.getElementById('asigSelectDocente2').value = doc2;
+
+      document.getElementById('asigSelectDocente3').innerHTML = '<option value="">Ninguno</option>' + opcionesDocentes;
+      document.getElementById('asigSelectDocente3').value = doc3;
+
+      document.getElementById('asigEsOptativa').checked = esOpt;
+
       modalAsignarInst.show();
     }
 
@@ -816,14 +870,16 @@
       const curso_id = parseInt(document.getElementById('asigCursoId').value);
       const materia_id = parseInt(document.getElementById('asigSelectMateria').value);
       const docente_id = document.getElementById('asigSelectDocente').value;
+      const docente_id_2 = document.getElementById('asigSelectDocente2').value || null;
+      const docente_id_3 = document.getElementById('asigSelectDocente3').value || null;
       const es_optativa = document.getElementById('asigEsOptativa').checked;
 
       const { error } = await supabaseClient.from('curso_materia_docente').upsert([{
-        curso_id, materia_id, docente_id, es_optativa
+        curso_id, materia_id, docente_id, docente_id_2, docente_id_3, es_optativa
       }], { onConflict: 'curso_id,materia_id' });
 
       if (error) {
-        alert('Error al asignar: ' + error.message);
+        alert('Error al guardar asignación: ' + error.message);
       } else {
         modalAsignarInst.hide();
         await cargarMateriasDelCurso();
@@ -882,14 +938,13 @@
         return;
       }
 
-      const { data } = await supabaseClient.from('estudiantes').select('*').eq('curso_id', cursoId).order('numero_lista');
+      const { data } = await supabaseClient.from('estudiantes').select('*').eq('curso_id', cursoId).order('nombres');
       tbody.innerHTML = (data || []).map((e, idx) => `
         <tr>
           <td>${idx + 1}</td>
           <td>${e.cedula || '-'}</td>
           <td class="fw-bold">${e.nombres}</td>
           <td>${e.representante_nombres || '-'}</td>
-          <td>${e.representante_telefono || '-'}</td>
           <td>
             <button class="btn btn-sm btn-outline-primary py-0" onclick="editarEstudiante(${e.id})">Editar</button>
             <button class="btn btn-sm btn-outline-danger py-0" onclick="eliminarRegistro('estudiantes', ${e.id})">Eliminar</button>
@@ -906,15 +961,16 @@
       if (!nombres) return;
       const cedula = prompt('Cédula del estudiante (opcional):') || '';
       const rep = prompt('Nombres del Representante Legal:') || '';
-      const telf = prompt('Teléfono del Representante:') || '';
 
-      const { error } = await supabaseClient.from('estudiantes').insert([{
-        curso_id: parseInt(cursoId),
-        nombres,
-        cedula,
-        representante_nombres: rep,
-        representante_telefono: telf
-      }]);
+      const { error } = await supabaseClient.rpc('registrar_estudiante_completo', {
+        p_curso_nombre: cursosList.find(c => c.id == cursoId).nombre,
+        p_est_cedula: cedula,
+        p_est_nombres: nombres,
+        p_rep_cedula: null,
+        p_rep_nombres: rep,
+        p_rep_telefono: null,
+        p_rep_correo: null
+      });
 
       if (error) alert(error.message);
       else cargarEstudiantes();
@@ -928,10 +984,9 @@
       if (!nombres) return;
       const cedula = prompt('Cédula del estudiante:', est.cedula || '') || '';
       const rep = prompt('Representante:', est.representante_nombres || '') || '';
-      const telf = prompt('Teléfono:', est.representante_telefono || '') || '';
 
       const { error } = await supabaseClient.from('estudiantes').update({
-        nombres, cedula, representante_nombres: rep, representante_telefono: telf
+        nombres, cedula, representante_nombres: rep
       }).eq('id', id);
 
       if (error) alert(error.message);
@@ -958,12 +1013,12 @@
               </span>
             </td>
             <td>
-              <button class="btn btn-sm btn-outline-primary py-0 me-1" onclick="abrirModalPersonal('${d.id}')">Editar</button>
-              <button class="btn btn-sm btn-outline-secondary py-0 me-1" onclick="cambiarRolDocente('${d.id}', '${d.rol}')">
+              <button class="btn btn-sm btn-outline-primary py-0 me-1 mb-1" onclick="abrirModalPersonal('${d.id}')">Editar</button>
+              <button class="btn btn-sm btn-outline-secondary py-0 me-1 mb-1" onclick="cambiarRolDocente('${d.id}', '${d.rol}')">
                 ${d.rol === 'admin' ? 'Hacer Docente' : 'Hacer Admin'}
               </button>
               ${!esMismoUsuario ? `
-                <button class="btn btn-sm btn-outline-danger py-0" onclick="confirmarEliminarPersonal('${d.id}', '${nombreCompleto.replace(/'/g, "\\'")}', '${d.email}')">
+                <button class="btn btn-sm btn-outline-danger py-0 mb-1" onclick="confirmarEliminarPersonal('${d.id}', '${nombreCompleto.replace(/'/g, "\\'")}', '${d.email}')">
                   <i class="bi bi-trash"></i> Eliminar
                 </button>
               ` : '<span class="badge bg-secondary">Tu sesión</span>'}
@@ -1146,7 +1201,7 @@
       else cargarActividades();
     }
 
-    // Eliminación genérica para entidades auxiliares
+    // Eliminación genérica
     async function eliminarRegistro(tabla, id) {
       if (!confirm('¿Está seguro de eliminar este registro? Esta acción no se puede deshacer.')) return;
       const { error } = await supabaseClient.from(tabla).delete().eq('id', id);
