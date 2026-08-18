@@ -3,45 +3,43 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sistema de Calificaciones - UEPVR</title>
+  <title>Sistema de Calificaciones y Asistencia - UEPVR</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
   
   <style>
-    th, td { font-size: 0.78rem; vertical-align: middle; text-align: center; }
-    .col-nombre { text-align: left !important; min-width: 240px; font-weight: 600; }
+    th, td { font-size: 0.76rem; vertical-align: middle; text-align: center; }
+    .col-nombre { text-align: left !important; min-width: 220px; font-weight: 600; }
     
     .th-actividad { width: 85px; min-width: 85px; padding: 4px 2px !important; background-color: #f8fafc; }
-    .th-comp-ind { width: 62px; min-width: 62px; font-size: 0.68rem; padding: 4px 1px !important; line-height: 1.1; }
+    .th-comp-ind { width: 60px; min-width: 60px; font-size: 0.68rem; padding: 4px 1px !important; line-height: 1.1; }
     
-    .select-act-custom { font-size: 0.70rem; width: 100%; border: 1px solid #cbd5e1; border-radius: 4px; padding: 2px; background-color: #fff; font-weight: 500; cursor: pointer; }
+    .select-act-custom { font-size: 0.70rem; width: 100%; border: 1px solid #cbd5e1; border-radius: 4px; padding: 2px; background-color: #fff; font-weight: 500; }
     .btn-del-col { font-size: 0.75rem; padding: 0 4px; line-height: 1; color: #dc3545; border: none; background: transparent; cursor: pointer; }
-    .btn-del-col:hover { color: #a71d2a; font-weight: bold; }
 
-    .input-nota-app { width: 58px; margin: 0 auto; text-align: center; font-weight: 500; padding: 2px 2px; }
+    .input-nota-app { width: 55px; margin: 0 auto; text-align: center; font-weight: 500; padding: 2px; }
 
-    /* Semáforo de Calificaciones */
+    /* Semáforo Notas */
     .nota-baja-roja { background-color: #f8d7da !important; color: #842029 !important; font-weight: bold; }
     .nota-media-amarilla { background-color: #fff3cd !important; color: #664d03 !important; font-weight: bold; }
     .nota-aprobada-verde { background-color: #d1e7dd !important; color: #0f5132 !important; font-weight: bold; }
     .nota-perfecta-10 { background-color: #198754 !important; color: #ffffff !important; font-weight: bold; }
 
-    /* Bloques de Comportamiento */
-    .bg-comp-puntual { background-color: #3b5998 !important; color: #fff; }
-    .bg-comp-limp { background-color: #b9770e !important; color: #fff; }
-    .bg-comp-resp { background-color: #58d68d !important; color: #000; }
-    .bg-comp-div { background-color: #e59866 !important; color: #000; }
-    .bg-comp-patr { background-color: #f5b041 !important; color: #000; }
-    .bg-comp-prop { background-color: #2e86c1 !important; color: #fff; }
+    /* Asistencia Cuadrícula Diaria */
+    .th-dia-asig { width: 32px; min-width: 32px; padding: 2px 1px !important; font-size: 0.65rem; }
+    .cell-asig-input { width: 28px; height: 26px; text-align: center; font-weight: bold; border-radius: 3px; border: 1px solid #cbd5e1; margin: 0 auto; text-transform: uppercase; }
+    .asig-a { background-color: #e8f5e9 !important; color: #2e7d32 !important; }
+    .asig-f { background-color: #ffebee !important; color: #c62828 !important; }
+    .asig-j { background-color: #e3f2fd !important; color: #1565c0 !important; }
 
     .bg-insumo1 { background-color: #0d6efd !important; color: #fff; }
     .bg-insumo2 { background-color: #0dcaf0 !important; color: #000; }
     .bg-prom-ins { background-color: #ffeb3b !important; font-weight: bold; color: #000; }
     .bg-nota-final { background-color: #198754 !important; color: #fff; font-weight: bold; }
     .bg-examen { background-color: #fd7e14 !important; color: #fff; font-weight: bold; }
-    .bg-resumen-header { background-color: #343a40 !important; color: #fff; }
   </style>
 </head>
 <body class="bg-light py-3">
@@ -51,7 +49,7 @@
     <div class="card shadow border-0">
       <div class="card-header bg-primary text-white text-center py-3">
         <h5 class="mb-0 fw-bold">UEP Vicente Rocafuerte</h5>
-        <small>Portal Docente</small>
+        <small>Portal Docente y Asistencia</small>
       </div>
       <div class="card-body p-4">
         <form onsubmit="iniciarSesion(event)">
@@ -63,7 +61,7 @@
             <label class="form-label">Contraseña</label>
             <input type="password" id="loginPassword" class="form-control" required>
           </div>
-          <div id="loginError" class="alert alert-danger py-2 d-none" role="alert"></div>
+          <div id="loginError" class="alert alert-danger py-2 d-none"></div>
           <button type="submit" class="btn btn-primary w-100 fw-bold" id="btnLogin">Ingresar</button>
         </form>
       </div>
@@ -87,13 +85,21 @@
         <div class="row g-2 align-items-center">
           
           <div class="col-md-2">
+            <label class="form-label mb-1 fw-bold">Modo del Sistema:</label>
+            <select id="selectModo" class="form-select form-select-sm fw-bold border-primary text-primary" onchange="alCambiarModo()">
+              <option value="calificaciones">📘 Calificaciones Académicas</option>
+              <option value="asistencia">📅 Control Diario de Asistencia</option>
+            </select>
+          </div>
+
+          <div class="col-md-2">
             <label class="form-label mb-1 fw-bold">Curso / Grado:</label>
             <select id="selectCurso" class="form-select form-select-sm" onchange="alCambiarCurso()">
               <option value="">Seleccione curso...</option>
             </select>
           </div>
 
-          <div class="col-md-3">
+          <div class="col-md-3" id="boxMateria">
             <label class="form-label mb-1 fw-bold">Materia / Asignatura:</label>
             <select id="selectMateria" class="form-select form-select-sm" onchange="cambiarFiltro()" disabled>
               <option value="">Seleccione materia...</option>
@@ -106,7 +112,7 @@
               <option value="1">Trimestre 1</option>
               <option value="2">Trimestre 2</option>
               <option value="3">Trimestre 3</option>
-              <option value="anual">📊 Resumen General Anual</option>
+              <option value="anual" id="optTrimAnual">📊 Resumen General Anual</option>
             </select>
           </div>
 
@@ -121,27 +127,38 @@
             </select>
           </div>
 
-          <!-- Botones Parciales Académicos -->
+          <div class="col-md-2 d-none" id="boxParcialAsistencia">
+            <label class="form-label mb-1 fw-bold">Parcial Asistencia:</label>
+            <select id="selectParcialAsistencia" class="form-select form-select-sm" onchange="cambiarFiltro()">
+              <option value="1">1er Parcial</option>
+              <option value="2">2do Parcial</option>
+            </select>
+          </div>
+
+          <!-- Botones de Acción Calificaciones -->
           <div class="col-md-3 text-end pt-3" id="accionesParcial">
             <button class="btn btn-outline-primary btn-sm me-1 btn-control" onclick="agregarActividad(1)" disabled>+ Ins. 1</button>
             <button class="btn btn-outline-info btn-sm me-1 text-dark btn-control" onclick="agregarActividad(2)" disabled>+ Ins. 2</button>
-            <button class="btn btn-success btn-sm px-3 fw-bold btn-control" id="btnGuardarParcial" onclick="guardarDatos()" disabled>💾 Guardar Parcial</button>
+            <button class="btn btn-success btn-sm px-3 fw-bold btn-control" id="btnGuardarParcial" onclick="guardarDatos()" disabled>💾 Guardar</button>
           </div>
 
-          <!-- Botones Comportamiento -->
           <div class="col-md-3 text-end pt-3 d-none" id="accionesComportamiento">
             <button class="btn btn-outline-secondary btn-sm me-1 btn-control" onclick="llenarTodoCon10Comportamiento()" disabled>⚡ Auto 10</button>
-            <button class="btn btn-success btn-sm px-3 fw-bold btn-control" id="btnGuardarComp" onclick="guardarDatos()" disabled>💾 Guardar Comp.</button>
+            <button class="btn btn-success btn-sm px-3 fw-bold btn-control" id="btnGuardarComp" onclick="guardarDatos()" disabled>💾 Guardar</button>
           </div>
 
-          <!-- Botón Resumen Trimestre -->
           <div class="col-md-3 text-end pt-3 d-none" id="accionesResumen">
-            <button class="btn btn-success btn-sm px-3 fw-bold btn-control" id="btnGuardarResumen" onclick="guardarDatos()" disabled>💾 Guardar Examen</button>
+            <button class="btn btn-success btn-sm px-3 fw-bold btn-control" id="btnGuardarResumen" onclick="guardarDatos()" disabled>💾 Guardar</button>
           </div>
 
-          <!-- Botón Exportar PDF Anual -->
           <div class="col-md-3 text-end pt-3 d-none" id="accionesAnual">
-            <button class="btn btn-danger btn-sm px-3 fw-bold btn-control" onclick="exportarResumenAnualPDF()">📄 Descargar PDF</button>
+            <button class="btn btn-danger btn-sm px-3 fw-bold btn-control" onclick="exportarResumenAnualPDF()">📄 PDF</button>
+          </div>
+
+          <!-- Botones Asistencia -->
+          <div class="col-md-3 text-end pt-3 d-none" id="accionesAsistencia">
+            <button class="btn btn-outline-success btn-sm me-1 btn-control" onclick="llenarTodoConAsistencia()" disabled>⚡ Auto 'A'</button>
+            <button class="btn btn-success btn-sm px-3 fw-bold btn-control" id="btnGuardarAsist" onclick="guardarAsistencia()" disabled>💾 Guardar Asistencia</button>
           </div>
 
         </div>
@@ -152,7 +169,7 @@
     <div class="card shadow-sm">
       <div class="card-body p-0">
         <div class="table-responsive" id="contenedorTabla">
-          <div class="py-4 text-muted text-center">Seleccione un Curso y una Materia para visualizar las calificaciones.</div>
+          <div class="py-4 text-muted text-center">Seleccione los filtros para visualizar la información.</div>
         </div>
       </div>
     </div>
@@ -166,10 +183,13 @@
 
     let catalogo = [];
     let todasAsignaciones = [];
+    let todosCursos = [];
     let estudiantes = [];
     let configActividades = { insumo1: [], insumo2: [] };
     let notasActualesMemoria = {};
     let datosResumenAnualActual = [];
+    let periodosAsistencia = [];
+    let diasHabilesParcialActual = [];
     let usuarioActualPerfil = null;
 
     function obtenerClaseColor(valor, esPromedio = false) {
@@ -192,49 +212,9 @@
       return 'ERROR';
     }
 
-    function resetearEstadoAplicacion() {
-      catalogo = [];
-      todasAsignaciones = [];
-      estudiantes = [];
-      configActividades = { insumo1: [], insumo2: [] };
-      notasActualesMemoria = {};
-      datosResumenAnualActual = [];
-      usuarioActualPerfil = null;
-
-      const selectCurso = document.getElementById('selectCurso');
-      if (selectCurso) selectCurso.innerHTML = '<option value="">Seleccione curso...</option>';
-
-      const selectMateria = document.getElementById('selectMateria');
-      if (selectMateria) {
-        selectMateria.innerHTML = '<option value="">Seleccione materia...</option>';
-        selectMateria.disabled = true;
-      }
-
-      const selectTrim = document.getElementById('selectTrimestre');
-      if (selectTrim) selectTrim.value = '1';
-
-      const selectVista = document.getElementById('selectVista');
-      if (selectVista) selectVista.value = 'p1';
-
-      const loginEmail = document.getElementById('loginEmail');
-      const loginPass = document.getElementById('loginPassword');
-      if (loginEmail) loginEmail.value = '';
-      if (loginPass) loginPass.value = '';
-
-      const loginError = document.getElementById('loginError');
-      if (loginError) {
-        loginError.innerText = '';
-        loginError.classList.add('d-none');
-      }
-
-      document.querySelectorAll('.btn-control').forEach(b => b.disabled = true);
-      document.getElementById('contenedorTabla').innerHTML = '<div class="py-4 text-muted text-center">Seleccione un Curso y una Materia para visualizar las calificaciones.</div>';
-    }
-
     async function verificarSesion() {
       const { data: { session } } = await supabaseClient.auth.getSession();
       if (session) {
-        // Cargar perfil del docente autenticado
         const { data: perfil } = await supabaseClient.from('perfiles').select('*').eq('id', session.user.id).maybeSingle();
         usuarioActualPerfil = perfil;
 
@@ -247,9 +227,9 @@
         document.getElementById('usuarioConectado').innerText = `Docente: ${nombreDocente}`;
         
         await cargarCatalogo();
-        await cargarCursosYMaterias(session.user.id, perfil?.rol);
+        await cargarPeriodosAsistenciaDB();
+        await cargarCursosYMaterias(session.user.id, perfil?.rol, perfil?.puede_gestionar_asistencia);
       } else {
-        resetearEstadoAplicacion();
         document.getElementById('seccionLogin').classList.remove('d-none');
         document.getElementById('seccionApp').classList.add('d-none');
       }
@@ -271,8 +251,7 @@
 
     async function cerrarSesion() {
       await supabaseClient.auth.signOut();
-      resetearEstadoAplicacion();
-      verificarSesion();
+      location.reload();
     }
 
     async function cargarCatalogo() {
@@ -280,106 +259,145 @@
       catalogo = data && data.length > 0 ? data.map(d => d.nombre) : ['Deber', 'Lección en clases', 'Actuación en clases', 'Trabajo Grupal', 'Colaboración en el Aula'];
     }
 
-    // Carga de asignaciones filtradas estrictamente por el usuario autenticado
-    async function cargarCursosYMaterias(userId, userRol) {
+    async function cargarPeriodosAsistenciaDB() {
+      const { data } = await supabaseClient.from('asistencia_periodos').select('*').order('trimestre').order('parcial');
+      periodosAsistencia = data || [];
+    }
+
+    async function cargarCursosYMaterias(userId, userRol, puedeAsistencia) {
+      // 1. Cargar todos los cursos si es admin o si está autorizado para asistencia
+      if (userRol === 'admin' || puedeAsistencia) {
+        const { data: cData } = await supabaseClient.from('cursos').select('id, nombre').order('id');
+        todosCursos = cData || [];
+      }
+
+      // 2. Cargar asignaciones del docente
       let query = supabaseClient.from('curso_materia_docente').select(`
         id, curso_id, materia_id, docente_id, docente_id_2, docente_id_3, es_optativa,
         cursos(id, nombre),
         materias(id, nombre)
       `);
 
-      // Si no es admin, filtrar para que le salgan las materias donde es Principal, Auxiliar 1 o Auxiliar 2
       if (userRol !== 'admin') {
         query = query.or(`docente_id.eq.${userId},docente_id_2.eq.${userId},docente_id_3.eq.${userId}`);
       }
 
-      const { data, error } = await query;
+      const { data } = await query;
       todasAsignaciones = data || [];
 
+      alCambiarModo();
+    }
+
+    function alCambiarModo() {
+      const modo = document.getElementById('selectModo').value;
+      const boxMateria = document.getElementById('boxMateria');
+      const boxVista = document.getElementById('boxVista');
+      const boxParcialAsist = document.getElementById('boxParcialAsistencia');
+      const optAnual = document.getElementById('optTrimAnual');
       const selectCurso = document.getElementById('selectCurso');
-      const selectMateria = document.getElementById('selectMateria');
 
-      if (todasAsignaciones.length === 0) {
-        selectCurso.innerHTML = '<option value="">No tiene cursos asignados</option>';
-        selectMateria.innerHTML = '<option value="">No tiene materias asignadas</option>';
-        selectMateria.disabled = true;
-        document.getElementById('contenedorTabla').innerHTML = '<div class="py-4 text-center text-danger fw-bold">Usted no tiene cursos ni materias asignadas actualmente. Contacte al Administrador.</div>';
-        return;
-      }
-
-      const cursosUnicosMap = new Map();
-      todasAsignaciones.forEach(a => {
-        if (a.cursos && !cursosUnicosMap.has(a.cursos.id)) {
-          cursosUnicosMap.set(a.cursos.id, a.cursos.nombre);
+      if (modo === 'asistencia') {
+        boxMateria.classList.add('d-none');
+        boxVista.classList.add('d-none');
+        boxParcialAsist.classList.remove('d-none');
+        optAnual.classList.add('d-none');
+        if (document.getElementById('selectTrimestre').value === 'anual') {
+          document.getElementById('selectTrimestre').value = '1';
         }
-      });
 
-      selectCurso.innerHTML = '<option value="">Seleccione curso...</option>';
-      cursosUnicosMap.forEach((nombre, id) => {
-        selectCurso.innerHTML += `<option value="${id}">${nombre}</option>`;
-      });
+        // Llenar cursos
+        const cursosDisponibles = (usuarioActualPerfil?.rol === 'admin' || usuarioActualPerfil?.puede_gestionar_asistencia) 
+          ? todosCursos 
+          : Array.from(new Map(todasAsignaciones.map(a => [a.cursos.id, a.cursos])).values());
 
-      if (cursosUnicosMap.size === 1) {
-        selectCurso.value = Array.from(cursosUnicosMap.keys())[0];
-        alCambiarCurso();
+        selectCurso.innerHTML = '<option value="">Seleccione curso...</option>' + 
+          cursosDisponibles.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
+
+      } else {
+        boxMateria.classList.remove('d-none');
+        boxVista.classList.remove('d-none');
+        boxParcialAsist.classList.add('d-none');
+        optAnual.classList.remove('d-none');
+
+        const cursosMap = new Map();
+        todasAsignaciones.forEach(a => {
+          if (a.cursos) cursosMap.set(a.cursos.id, a.cursos.nombre);
+        });
+
+        selectCurso.innerHTML = '<option value="">Seleccione curso...</option>';
+        cursosMap.forEach((nombre, id) => {
+          selectCurso.innerHTML += `<option value="${id}">${nombre}</option>`;
+        });
       }
+
+      alCambiarCurso();
     }
 
     function alCambiarCurso() {
+      const modo = document.getElementById('selectModo').value;
       const cursoId = document.getElementById('selectCurso').value;
       const selectMateria = document.getElementById('selectMateria');
 
-      if (!cursoId) {
-        selectMateria.innerHTML = '<option value="">Seleccione materia...</option>';
-        selectMateria.disabled = true;
-        cambiarFiltro();
-        return;
-      }
+      if (modo === 'calificaciones') {
+        if (!cursoId) {
+          selectMateria.innerHTML = '<option value="">Seleccione materia...</option>';
+          selectMateria.disabled = true;
+          cambiarFiltro();
+          return;
+        }
 
-      // Filtrar únicamente las materias de este curso asignadas al docente
-      const materiasDelCurso = todasAsignaciones.filter(a => a.curso_id == cursoId);
-      selectMateria.innerHTML = '<option value="">Seleccione materia...</option>' + 
-        materiasDelCurso.map(a => `<option value="${a.id}">${a.materias.nombre} ${a.es_optativa ? '(Optativa)' : ''}</option>`).join('');
-      
-      selectMateria.disabled = false;
-
-      // Si solo tiene una materia en ese curso, seleccionarla de inmediato
-      if (materiasDelCurso.length === 1) {
-        selectMateria.value = materiasDelCurso[0].id;
+        const materiasDelCurso = todasAsignaciones.filter(a => a.curso_id == cursoId);
+        selectMateria.innerHTML = '<option value="">Seleccione materia...</option>' + 
+          materiasDelCurso.map(a => `<option value="${a.id}">${a.materias.nombre} ${a.es_optativa ? '(Optativa)' : ''}</option>`).join('');
+        
+        selectMateria.disabled = false;
+        if (materiasDelCurso.length === 1) selectMateria.value = materiasDelCurso[0].id;
       }
 
       cambiarFiltro();
     }
 
     function cambiarFiltro() {
+      const modo = document.getElementById('selectModo').value;
+      const cursoId = document.getElementById('selectCurso').value;
       const asigId = document.getElementById('selectMateria').value;
       const trimestreVal = document.getElementById('selectTrimestre').value;
       const vistaVal = document.getElementById('selectVista').value;
       const controles = document.querySelectorAll('.btn-control');
       
-      const boxVista = document.getElementById('boxVista');
       const accParcial = document.getElementById('accionesParcial');
       const accComp = document.getElementById('accionesComportamiento');
       const accResumen = document.getElementById('accionesResumen');
       const accAnual = document.getElementById('accionesAnual');
+      const accAsist = document.getElementById('accionesAsistencia');
 
       accParcial.classList.add('d-none');
       accComp.classList.add('d-none');
       accResumen.classList.add('d-none');
       accAnual.classList.add('d-none');
+      accAsist.classList.add('d-none');
 
+      if (modo === 'asistencia') {
+        accAsist.classList.remove('d-none');
+        if (!cursoId) {
+          controles.forEach(b => b.disabled = true);
+          document.getElementById('contenedorTabla').innerHTML = '<div class="py-4 text-muted text-center">Seleccione un Curso para gestionar la Asistencia.</div>';
+          return;
+        }
+        controles.forEach(b => b.disabled = false);
+        cargarVistaAsistencia();
+        return;
+      }
+
+      // MODO CALIFICACIONES
       if (trimestreVal === 'anual') {
-        boxVista.classList.add('d-none');
+        document.getElementById('boxVista').classList.add('d-none');
         accAnual.classList.remove('d-none');
       } else {
-        boxVista.classList.remove('d-none');
-        if (vistaVal === 'comp1' || vistaVal === 'comp2') {
-          accComp.classList.remove('d-none');
-        } else if (vistaVal === 'resumen_trimestre') {
-          accResumen.classList.remove('d-none');
-        } else {
-          accParcial.classList.remove('d-none');
-        }
+        document.getElementById('boxVista').classList.remove('d-none');
+        if (vistaVal === 'comp1' || vistaVal === 'comp2') accComp.classList.remove('d-none');
+        else if (vistaVal === 'resumen_trimestre') accResumen.classList.remove('d-none');
+        else accParcial.classList.remove('d-none');
       }
 
       if (!asigId) {
@@ -389,89 +407,143 @@
       }
       controles.forEach(b => b.disabled = false);
 
-      if (trimestreVal === 'anual') {
-        cargarVistaResumenAnual();
-      } else if (vistaVal === 'comp1' || vistaVal === 'comp2') {
-        cargarVistaComportamiento(vistaVal === 'comp1' ? 1 : 2);
-      } else if (vistaVal === 'resumen_trimestre') {
-        cargarVistaResumenTrimestre();
-      } else {
-        cargarVistaParcial(vistaVal === 'p1' ? 1 : 2);
-      }
+      if (trimestreVal === 'anual') cargarVistaResumenAnual();
+      else if (vistaVal === 'comp1' || vistaVal === 'comp2') cargarVistaComportamiento(vistaVal === 'comp1' ? 1 : 2);
+      else if (vistaVal === 'resumen_trimestre') cargarVistaResumenTrimestre();
+      else cargarVistaParcial(vistaVal === 'p1' ? 1 : 2);
     }
 
     // ==========================================
-    // VISTA: COMPORTAMIENTO (Parcial 1 o Parcial 2)
+    // VISTA: CONTROL DIARIO DE ASISTENCIA
     // ==========================================
-    async function cargarVistaComportamiento(parcialNum) {
-      const asigId = document.getElementById('selectMateria').value;
-      const trimestre = parseInt(document.getElementById('selectTrimestre').value);
-      const contenedor = document.getElementById('contenedorTabla');
-      contenedor.innerHTML = `<div class="py-4 text-center">Cargando informe de comportamiento (Parcial ${parcialNum})...</div>`;
+    function generarDiasHabilesRango(fInicioStr, fFinStr) {
+      const dias = [];
+      const nombresDias = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+      const nombresMeses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
 
-      const asig = todasAsignaciones.find(a => a.id == asigId);
-      const { data: estData } = await supabaseClient.from('estudiantes').select('*').eq('curso_id', asig.curso_id).order('numero_lista');
+      let cur = new Date(fInicioStr + 'T00:00:00');
+      const fin = new Date(fFinStr + 'T00:00:00');
+
+      while (cur <= fin) {
+        const day = cur.getDay();
+        if (day !== 0 && day !== 6) {
+          const yyyy = cur.getFullYear();
+          const mm = String(cur.getMonth() + 1).padStart(2, '0');
+          const dd = String(cur.getDate()).padStart(2, '0');
+          dias.push({
+            iso: `${yyyy}-${mm}-${dd}`,
+            diaNum: dd,
+            nombreDia: nombresDias[day],
+            nombreMes: nombresMeses[cur.getMonth()]
+          });
+        }
+        cur.setDate(cur.getDate() + 1);
+      }
+      return dias;
+    }
+
+    async function cargarVistaAsistencia() {
+      const cursoId = document.getElementById('selectCurso').value;
+      const trimestre = parseInt(document.getElementById('selectTrimestre').value);
+      const parcial = parseInt(document.getElementById('selectParcialAsistencia').value);
+      const contenedor = document.getElementById('contenedorTabla');
+
+      contenedor.innerHTML = '<div class="py-4 text-center">Cargando sábana de control diario de asistencia...</div>';
+
+      // 1. Obtener período
+      const per = periodosAsistencia.find(p => p.trimestre === trimestre && p.parcial === parcial) || {
+        fecha_inicio: '2026-05-04', fecha_fin: '2026-06-19', dias_no_laborados: 1, total_dias_laborados: 34
+      };
+
+      diasHabilesParcialActual = generarDiasHabilesRango(per.fecha_inicio, per.fecha_fin);
+
+      // 2. Cargar Estudiantes
+      const { data: estData } = await supabaseClient.from('estudiantes').select('*').eq('curso_id', cursoId).order('nombres');
       estudiantes = estData || [];
 
-      const { data: compData } = await supabaseClient
-        .from('comportamiento_parcial')
+      // 3. Cargar Asistencia Existente
+      const { data: asistData } = await supabaseClient
+        .from('asistencia_estudiantes')
         .select('*')
-        .eq('asignacion_id', asigId)
+        .eq('curso_id', cursoId)
         .eq('trimestre', trimestre)
-        .eq('parcial', parcialNum);
+        .eq('parcial', parcial);
 
-      const compMap = {};
-      (compData || []).forEach(c => { compMap[c.estudiante_id] = c; });
+      const asistMap = {};
+      (asistData || []).forEach(a => { asistMap[a.estudiante_id] = a.registro_diario || {}; });
+
+      // Agrupar encabezados de meses
+      const mesesColspan = {};
+      diasHabilesParcialActual.forEach(d => {
+        mesesColspan[d.nombreMes] = (mesesColspan[d.nombreMes] || 0) + 1;
+      });
+
+      let thMeses = '';
+      for (const [mes, span] of Object.entries(mesesColspan)) {
+        thMeses += `<th colspan="${span}" class="bg-light text-uppercase fw-bold">${mes}</th>`;
+      }
+
+      let thDiasNum = diasHabilesParcialActual.map(d => `<th class="th-dia-asig bg-white">${d.diaNum}</th>`).join('');
+      let thDiasNom = diasHabilesParcialActual.map(d => `<th class="th-dia-asig bg-light text-muted" style="font-size:0.58rem;">${d.nombreDia.substring(0,2)}</th>`).join('');
 
       let html = `
+        <div class="p-2 bg-light border-bottom d-flex justify-content-between align-items-center">
+          <div>
+            <span class="badge bg-primary me-2">Trimestre ${trimestre} - Parcial ${parcial}</span>
+            <small class="fw-bold text-dark">Inicio: ${per.fecha_inicio} | Término: ${per.fecha_fin} | Días Hábiles: ${diasHabilesParcialActual.length} | Festivos/No Lab: ${per.dias_no_laborados} | <b>Total Días: ${per.total_dias_laborados}</b></small>
+          </div>
+          <small class="text-muted">Leyenda: <b>A</b> (Asistencia) | <b>F</b> (Falta) | <b>J</b> (Justificada)</small>
+        </div>
+
         <table class="table table-bordered table-sm mb-0 align-middle">
           <thead>
             <tr>
-              <th rowspan="2" style="width: 30px;">N°</th>
-              <th rowspan="2" class="col-nombre text-center">NÓMINA / INDICADORES (PARCIAL ${parcialNum})</th>
-              <th class="bg-comp-puntual">Puntualidad</th>
-              <th colspan="3" class="bg-comp-limp">Limpieza</th>
-              <th colspan="2" class="bg-comp-resp">Respeto y Consideración</th>
-              <th colspan="2" class="bg-comp-div">Valoración Diversidad</th>
-              <th class="bg-comp-patr">Patrimonio</th>
-              <th class="bg-comp-prop">Propiedad</th>
-              <th rowspan="2" class="bg-prom-ins" style="width: 75px;">TOTAL CUANT.</th>
-              <th rowspan="2" class="bg-nota-final" style="width: 75px;">TOTAL CUALIT.</th>
+              <th rowspan="3" style="width: 30px;">N°</th>
+              <th rowspan="3" class="col-nombre text-center">NÓMINA DE ESTUDIANTES</th>
+              ${thMeses}
+              <th colspan="3" class="bg-primary text-white">SUMAN</th>
+              <th rowspan="3" class="bg-success text-white" style="width: 50px;">TOTAL</th>
+              <th rowspan="3" class="bg-secondary text-white" style="width: 60px;">DÍAS FALTANTES</th>
             </tr>
-            <tr class="bg-light">
-              <th class="th-comp-ind">1. Asiste puntual</th>
-              <th class="th-comp-ind">2. Aseo personal</th>
-              <th class="th-comp-ind">3. Aseo lugar trab.</th>
-              <th class="th-comp-ind">4. Aseo del aula</th>
-              <th class="th-comp-ind">5. Saludo cordial</th>
-              <th class="th-comp-ind">6. Evita leng. soez</th>
-              <th class="th-comp-ind">7. Leng. no agresivo</th>
-              <th class="th-comp-ind">8. Tolerancia div.</th>
-              <th class="th-comp-ind">9. Cuida infraest.</th>
-              <th class="th-comp-ind">10. Respeta objeto</th>
+            <tr>
+              ${thDiasNum}
+              <th rowspan="2" class="bg-light text-success fw-bold" style="width: 35px;">A</th>
+              <th rowspan="2" class="bg-light text-danger fw-bold" style="width: 35px;">F</th>
+              <th rowspan="2" class="bg-light text-primary fw-bold" style="width: 35px;">J</th>
+            </tr>
+            <tr>
+              ${thDiasNom}
             </tr>
           </thead>
-          <tbody id="tablaCuerpoComp">
+          <tbody id="tablaCuerpoAsistencia">
             ${estudiantes.map((est, idx) => {
-              const c = compMap[est.id] || {};
-              const v = (val) => val !== undefined && val !== null ? val : '10';
+              const regEst = asistMap[est.id] || {};
+
+              const celdasDias = diasHabilesParcialActual.map(d => {
+                const val = (regEst[d.iso] || '').toUpperCase();
+                let claseColor = '';
+                if (val === 'A') claseColor = 'asig-a';
+                else if (val === 'F') claseColor = 'asig-f';
+                else if (val === 'J') claseColor = 'asig-j';
+
+                return `
+                  <td class="p-0">
+                    <input type="text" maxlength="1" class="cell-asig-input ${claseColor}" 
+                      data-iso="${d.iso}" value="${val}" oninput="validarYCalcularAsistenciaFila(this)">
+                  </td>
+                `;
+              }).join('');
 
               return `
-                <tr data-estudiante-id="${est.id}">
+                <tr data-est-id="${est.id}">
                   <td>${idx + 1}</td>
                   <td class="col-nombre">${est.nombres}</td>
-                  <td><input type="number" step="0.1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind1" value="${v(c.ind1)}" oninput="validarYCalcularComp(this)"></td>
-                  <td><input type="number" step="0.1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind2" value="${v(c.ind2)}" oninput="validarYCalcularComp(this)"></td>
-                  <td><input type="number" step="0.1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind3" value="${v(c.ind3)}" oninput="validarYCalcularComp(this)"></td>
-                  <td><input type="number" step="0.1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind4" value="${v(c.ind4)}" oninput="validarYCalcularComp(this)"></td>
-                  <td><input type="number" step="0.1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind5" value="${v(c.ind5)}" oninput="validarYCalcularComp(this)"></td>
-                  <td><input type="number" step="0.1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind6" value="${v(c.ind6)}" oninput="validarYCalcularComp(this)"></td>
-                  <td><input type="number" step="0.1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind7" value="${v(c.ind7)}" oninput="validarYCalcularComp(this)"></td>
-                  <td><input type="number" step="0.1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind8" value="${v(c.ind8)}" oninput="validarYCalcularComp(this)"></td>
-                  <td><input type="number" step="0.1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind9" value="${v(c.ind9)}" oninput="validarYCalcularComp(this)"></td>
-                  <td><input type="number" step="0.1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind10" value="${v(c.ind10)}" oninput="validarYCalcularComp(this)"></td>
-                  <td class="total-cuant fw-bold">10.00</td>
-                  <td class="total-cualit fw-bold">A</td>
+                  ${celdasDias}
+                  <td class="sum-a fw-bold text-success">0</td>
+                  <td class="sum-f fw-bold text-danger">0</td>
+                  <td class="sum-j fw-bold text-primary">0</td>
+                  <td class="total-asist fw-bold bg-light">0</td>
+                  <td class="dias-faltantes fw-bold text-muted">${per.total_dias_laborados}</td>
                 </tr>
               `;
             }).join('')}
@@ -480,46 +552,111 @@
       `;
 
       contenedor.innerHTML = html;
-      document.querySelectorAll('#tablaCuerpoComp tr').forEach(fila => calcularFilaComp(fila));
+      document.querySelectorAll('#tablaCuerpoAsistencia tr').forEach(fila => calcularFilaAsistencia(fila));
     }
 
-    function validarYCalcularComp(input) {
-      if (parseFloat(input.value) > 10) input.value = 10;
-      if (parseFloat(input.value) < 0) input.value = 0;
-      
-      input.className = `form-control form-control-sm input-nota-app comp-ind ${input.className.split(' ').filter(c => c.startsWith('c-ind')).join(' ')} ${obtenerClaseColor(input.value, false)}`;
-      calcularFilaComp(input.closest('tr'));
+    function validarYCalcularAsistenciaFila(input) {
+      let val = input.value.toUpperCase();
+      if (val !== 'A' && val !== 'F' && val !== 'J') val = '';
+      input.value = val;
+
+      input.className = 'cell-asig-input';
+      if (val === 'A') input.classList.add('asig-a');
+      else if (val === 'F') input.classList.add('asig-f');
+      else if (val === 'J') input.classList.add('asig-j');
+
+      calcularFilaAsistencia(input.closest('tr'));
     }
 
-    function calcularFilaComp(tr) {
-      const inputs = Array.from(tr.querySelectorAll('.comp-ind'));
-      inputs.forEach(i => {
-        i.className = `form-control form-control-sm input-nota-app comp-ind ${i.className.split(' ').filter(c => c.startsWith('c-ind')).join(' ')} ${obtenerClaseColor(i.value, false)}`;
+    function calcularFilaAsistencia(tr) {
+      const inputs = Array.from(tr.querySelectorAll('.cell-asig-input'));
+      let a = 0, f = 0, j = 0;
+
+      inputs.forEach(inp => {
+        const v = inp.value.toUpperCase();
+        if (v === 'A') a++;
+        else if (v === 'F') f++;
+        else if (v === 'J') j++;
       });
 
-      const valores = inputs.map(i => parseFloat(i.value)).filter(n => !isNaN(n));
-      const promedio = valores.length > 0 ? (valores.reduce((a, b) => a + b, 0) / valores.length) : 0;
-      const cualitativo = convertirCualitativo(promedio);
+      const totalLleno = a + f + j;
+      const trimestre = parseInt(document.getElementById('selectTrimestre').value);
+      const parcial = parseInt(document.getElementById('selectParcialAsistencia').value);
+      const per = periodosAsistencia.find(p => p.trimestre === trimestre && p.parcial === parcial);
+      const metaDias = per ? per.total_dias_laborados : diasHabilesParcialActual.length;
 
-      const celdaCuant = tr.querySelector('.total-cuant');
-      const celdaCualit = tr.querySelector('.total-cualit');
+      const faltantes = Math.max(metaDias - a, 0);
 
-      celdaCuant.innerText = promedio.toFixed(2);
-      celdaCualit.innerText = cualitativo;
-
-      celdaCuant.className = `total-cuant fw-bold ${obtenerClaseColor(promedio, true)}`;
-      celdaCualit.className = `total-cualit fw-bold ${obtenerClaseColor(promedio, true)}`;
+      tr.querySelector('.sum-a').innerText = a;
+      tr.querySelector('.sum-f').innerText = f;
+      tr.querySelector('.sum-j').innerText = j;
+      tr.querySelector('.total-asist').innerText = a;
+      tr.querySelector('.dias-faltantes').innerText = faltantes;
     }
 
-    function llenarTodoCon10Comportamiento() {
-      document.querySelectorAll('#tablaCuerpoComp .comp-ind').forEach(inp => {
-        inp.value = '10';
+    function llenarTodoConAsistencia() {
+      document.querySelectorAll('#tablaCuerpoAsistencia .cell-asig-input').forEach(inp => {
+        if (!inp.value) {
+          inp.value = 'A';
+          inp.className = 'cell-asig-input asig-a';
+        }
       });
-      document.querySelectorAll('#tablaCuerpoComp tr').forEach(fila => calcularFilaComp(fila));
+      document.querySelectorAll('#tablaCuerpoAsistencia tr').forEach(fila => calcularFilaAsistencia(fila));
+    }
+
+    async function guardarAsistencia() {
+      const cursoId = parseInt(document.getElementById('selectCurso').value);
+      const trimestre = parseInt(document.getElementById('selectTrimestre').value);
+      const parcial = parseInt(document.getElementById('selectParcialAsistencia').value);
+      const btn = document.getElementById('btnGuardarAsist');
+
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Guardando...';
+
+      try {
+        const filas = document.querySelectorAll('#tablaCuerpoAsistencia tr');
+        const payload = [];
+
+        filas.forEach(tr => {
+          const estId = parseInt(tr.getAttribute('data-est-id'));
+          if (estId) {
+            const regDiario = {};
+            tr.querySelectorAll('.cell-asig-input').forEach(inp => {
+              const iso = inp.getAttribute('data-iso');
+              if (inp.value) regDiario[iso] = inp.value.toUpperCase();
+            });
+
+            payload.push({
+              curso_id: cursoId,
+              estudiante_id: estId,
+              trimestre: trimestre,
+              parcial: parcial,
+              registro_diario: regDiario,
+              total_asistencias: parseInt(tr.querySelector('.sum-a').innerText) || 0,
+              total_faltas: parseInt(tr.querySelector('.sum-f').innerText) || 0,
+              total_justificadas: parseInt(tr.querySelector('.sum-j').innerText) || 0,
+              total_dias: parseInt(tr.querySelector('.total-asist').innerText) || 0,
+              dias_faltantes: parseInt(tr.querySelector('.dias-faltantes').innerText) || 0
+            });
+          }
+        });
+
+        const { error } = await supabaseClient.from('asistencia_estudiantes').upsert(payload, {
+          onConflict: 'curso_id,estudiante_id,trimestre,parcial'
+        });
+
+        if (error) throw error;
+        alert('¡Control de Asistencia guardado con éxito en la base de datos!');
+      } catch (err) {
+        alert('Error al guardar asistencia: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerText = '💾 Guardar Asistencia';
+      }
     }
 
     // ==========================================
-    // VISTA: PARCIAL ACADÉMICO (Insumos 1 y 2)
+    // FUNCIONES ACADÉMICAS EXISTENTES
     // ==========================================
     function capturarNotasDeLaTabla() {
       const filas = document.querySelectorAll('#tablaCuerpo tr');
@@ -571,7 +708,7 @@
       const asigId = document.getElementById('selectMateria').value;
       const trimestre = parseInt(document.getElementById('selectTrimestre').value);
       const contenedor = document.getElementById('contenedorTabla');
-      contenedor.innerHTML = '<div class="py-4 text-center">Cargando datos del parcial...</div>';
+      contenedor.innerHTML = '<div class="py-4 text-center">Cargando parcial académico...</div>';
 
       const asig = todasAsignaciones.find(a => a.id == asigId);
 
@@ -586,7 +723,7 @@
       configActividades.insumo1 = confData?.actividades_insumo1 || ['Actuación en clases', 'Participación en Clases', 'Actuación en clases', 'Lección en clases'];
       configActividades.insumo2 = confData?.actividades_insumo2 || ['Colaboración en el Aula'];
 
-      const { data: estData } = await supabaseClient.from('estudiantes').select('*').eq('curso_id', asig.curso_id).order('numero_lista');
+      const { data: estData } = await supabaseClient.from('estudiantes').select('*').eq('curso_id', asig.curso_id).order('nombres');
       estudiantes = estData || [];
 
       const { data: notasData } = await supabaseClient
@@ -598,10 +735,7 @@
 
       notasActualesMemoria = {};
       (notasData || []).forEach(n => {
-        notasActualesMemoria[n.estudiante_id] = {
-          i1: n.insumo1_notas || [],
-          i2: n.insumo2_notas || []
-        };
+        notasActualesMemoria[n.estudiante_id] = { i1: n.insumo1_notas || [], i2: n.insumo2_notas || [] };
       });
 
       renderizarTablaParcial();
@@ -618,7 +752,7 @@
             <th class="th-actividad">
               <div class="d-flex justify-content-between align-items-center mb-1">
                 <span class="badge bg-primary">${i+1}</span>
-                <button type="button" class="btn-del-col" onclick="eliminarActividad(1, ${i})" title="Quitar actividad">✕</button>
+                <button type="button" class="btn-del-col" onclick="eliminarActividad(1, ${i})">✕</button>
               </div>
               <select class="select-act-custom" onchange="configActividades.insumo1[${i}]=this.value">
                 ${catalogo.map(c => `<option value="${c}" ${c === act ? 'selected' : ''}>${c}</option>`).join('')}
@@ -631,7 +765,7 @@
             <th class="th-actividad">
               <div class="d-flex justify-content-between align-items-center mb-1">
                 <span class="badge bg-info text-dark">${i+1}</span>
-                <button type="button" class="btn-del-col" onclick="eliminarActividad(2, ${i})" title="Quitar actividad">✕</button>
+                <button type="button" class="btn-del-col" onclick="eliminarActividad(2, ${i})">✕</button>
               </div>
               <select class="select-act-custom" onchange="configActividades.insumo2[${i}]=this.value">
                 ${catalogo.map(c => `<option value="${c}" ${c === act ? 'selected' : ''}>${c}</option>`).join('')}
@@ -661,17 +795,13 @@
               const i1Notas = memData.i1 || [];
               const i2Notas = memData.i2 || [];
 
-              const inp1 = configActividades.insumo1.length === 0 
-                ? '<td class="text-muted">-</td>' 
-                : configActividades.insumo1.map((_, i) => `
-                    <td><input type="number" step="0.01" min="0" max="10" class="form-control form-control-sm input-nota-app nota-i1" value="${i1Notas[i] !== undefined && i1Notas[i] !== null ? i1Notas[i] : ''}" oninput="validarYCalcularParcial(this)"></td>
-                  `).join('');
+              const inp1 = configActividades.insumo1.length === 0 ? '<td class="text-muted">-</td>' : configActividades.insumo1.map((_, i) => `
+                <td><input type="number" step="0.01" min="0" max="10" class="form-control form-control-sm input-nota-app nota-i1" value="${i1Notas[i] !== undefined && i1Notas[i] !== null ? i1Notas[i] : ''}" oninput="validarYCalcularParcial(this)"></td>
+              `).join('');
 
-              const inp2 = configActividades.insumo2.length === 0 
-                ? '<td class="text-muted">-</td>' 
-                : configActividades.insumo2.map((_, i) => `
-                    <td><input type="number" step="0.01" min="0" max="10" class="form-control form-control-sm input-nota-app nota-i2" value="${i2Notas[i] !== undefined && i2Notas[i] !== null ? i2Notas[i] : ''}" oninput="validarYCalcularParcial(this)"></td>
-                  `).join('');
+              const inp2 = configActividades.insumo2.length === 0 ? '<td class="text-muted">-</td>' : configActividades.insumo2.map((_, i) => `
+                <td><input type="number" step="0.01" min="0" max="10" class="form-control form-control-sm input-nota-app nota-i2" value="${i2Notas[i] !== undefined && i2Notas[i] !== null ? i2Notas[i] : ''}" oninput="validarYCalcularParcial(this)"></td>
+              `).join('');
 
               return `
                 <tr data-estudiante-id="${est.id}">
@@ -696,7 +826,6 @@
     function validarYCalcularParcial(input) {
       if (parseFloat(input.value) > 10) input.value = 10;
       if (parseFloat(input.value) < 0) input.value = 0;
-      
       input.className = `form-control form-control-sm input-nota-app ${input.classList.contains('nota-i1') ? 'nota-i1' : 'nota-i2'} ${obtenerClaseColor(input.value, false)}`;
       calcularFilaParcial(input.closest('tr'));
     }
@@ -731,9 +860,115 @@
       cTotal.className = `nota-parcial fw-bold ${obtenerClaseColor(total, true)}`;
     }
 
-    // ==========================================
-    // VISTA: RESUMEN TRIMESTRAL + EXAMEN
-    // ==========================================
+    // Comportamiento
+    async function cargarVistaComportamiento(parcialNum) {
+      const asigId = document.getElementById('selectMateria').value;
+      const trimestre = parseInt(document.getElementById('selectTrimestre').value);
+      const contenedor = document.getElementById('contenedorTabla');
+      contenedor.innerHTML = `<div class="py-4 text-center">Cargando comportamiento (Parcial ${parcialNum})...</div>`;
+
+      const asig = todasAsignaciones.find(a => a.id == asigId);
+      const { data: estData } = await supabaseClient.from('estudiantes').select('*').eq('curso_id', asig.curso_id).order('nombres');
+      estudiantes = estData || [];
+
+      const { data: compData } = await supabaseClient
+        .from('comportamiento_parcial')
+        .select('*')
+        .eq('asignacion_id', asigId)
+        .eq('trimestre', trimestre)
+        .eq('parcial', parcialNum);
+
+      const compMap = {};
+      (compData || []).forEach(c => { compMap[c.estudiante_id] = c; });
+
+      let html = `
+        <table class="table table-bordered table-sm mb-0 align-middle">
+          <thead>
+            <tr>
+              <th rowspan="2" style="width: 30px;">N°</th>
+              <th rowspan="2" class="col-nombre text-center">NÓMINA / INDICADORES (PARCIAL ${parcialNum})</th>
+              <th>Puntualidad</th>
+              <th colspan="3">Limpieza</th>
+              <th colspan="2">Respeto y Consideración</th>
+              <th colspan="2">Valoración Diversidad</th>
+              <th>Patrimonio</th>
+              <th>Propiedad</th>
+              <th rowspan="2" class="bg-prom-ins" style="width: 75px;">TOTAL CUANT.</th>
+              <th rowspan="2" class="bg-nota-final" style="width: 75px;">TOTAL CUALIT.</th>
+            </tr>
+            <tr class="bg-light">
+              <th class="th-comp-ind">1. Asiste puntual</th>
+              <th class="th-comp-ind">2. Aseo personal</th>
+              <th class="th-comp-ind">3. Aseo lugar trab.</th>
+              <th class="th-comp-ind">4. Aseo del aula</th>
+              <th class="th-comp-ind">5. Saludo cordial</th>
+              <th class="th-comp-ind">6. Evita leng. soez</th>
+              <th class="th-comp-ind">7. Leng. no agresivo</th>
+              <th class="th-comp-ind">8. Tolerancia div.</th>
+              <th class="th-comp-ind">9. Cuida infraest.</th>
+              <th class="th-comp-ind">10. Respeta objeto</th>
+            </tr>
+          </thead>
+          <tbody id="tablaCuerpoComp">
+            ${estudiantes.map((est, idx) => {
+              const c = compMap[est.id] || {};
+              const v = (val) => val !== undefined && val !== null ? val : '10';
+
+              return `
+                <tr data-estudiante-id="${est.id}">
+                  <td>${idx + 1}</td>
+                  <td class="col-nombre">${est.nombres}</td>
+                  <td><input type="number" step="0.1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind1" value="${v(c.ind1)}" oninput="validarYCalcularComp(this)"></td>
+                  <td><input type="number" step="0.1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind2" value="${v(c.ind2)}" oninput="validarYCalcularComp(this)"></td>
+                  <td><input type="number" step="0.1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind3" value="${v(c.ind3)}" oninput="validarYCalcularComp(this)"></td>
+                  <td><input type="number" step="0.1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind4" value="${v(c.ind4)}" oninput="validarYCalcularComp(this)"></td>
+                  <td><input type="number" step="0.1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind5" value="${v(c.ind5)}" oninput="validarYCalcularComp(this)"></td>
+                  <td><input type="number" step="0.1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind6" value="${v(c.ind6)}" oninput="validarYCalcularComp(this)"></td>
+                  <td><input type="number" step="0.1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind7" value="${v(c.ind7)}" oninput="validarYCalcularComp(this)"></td>
+                  <td><input type="number" step="0.1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind8" value="${v(c.ind8)}" oninput="validarYCalcularComp(this)"></td>
+                  <td><input type="number" step="0.1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind9" value="${v(c.ind9)}" oninput="validarYCalcularComp(this)"></td>
+                  <td><input type="number" step="0.1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind10" value="${v(c.ind10)}" oninput="validarYCalcularComp(this)"></td>
+                  <td class="total-cuant fw-bold">10.00</td>
+                  <td class="total-cualit fw-bold">A</td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      `;
+
+      contenedor.innerHTML = html;
+      document.querySelectorAll('#tablaCuerpoComp tr').forEach(fila => calcularFilaComp(fila));
+    }
+
+    function validarYCalcularComp(input) {
+      if (parseFloat(input.value) > 10) input.value = 10;
+      if (parseFloat(input.value) < 0) input.value = 0;
+      calcularFilaComp(input.closest('tr'));
+    }
+
+    function calcularFilaComp(tr) {
+      const inputs = Array.from(tr.querySelectorAll('.comp-ind'));
+      const valores = inputs.map(i => parseFloat(i.value)).filter(n => !isNaN(n));
+      const promedio = valores.length > 0 ? (valores.reduce((a, b) => a + b, 0) / valores.length) : 0;
+      const cualitativo = convertirCualitativo(promedio);
+
+      const celdaCuant = tr.querySelector('.total-cuant');
+      const celdaCualit = tr.querySelector('.total-cualit');
+
+      celdaCuant.innerText = promedio.toFixed(2);
+      celdaCualit.innerText = cualitativo;
+
+      celdaCuant.className = `total-cuant fw-bold ${obtenerClaseColor(promedio, true)}`;
+      celdaCualit.className = `total-cualit fw-bold ${obtenerClaseColor(promedio, true)}`;
+    }
+
+    function llenarTodoCon10Comportamiento() {
+      document.querySelectorAll('#tablaCuerpoComp .comp-ind').forEach(inp => { inp.value = '10'; });
+      document.querySelectorAll('#tablaCuerpoComp tr').forEach(fila => calcularFilaComp(fila));
+    }
+
+    // Resumen Trimestre
     async function cargarVistaResumenTrimestre() {
       const asigId = document.getElementById('selectMateria').value;
       const trimestre = parseInt(document.getElementById('selectTrimestre').value);
@@ -741,46 +976,30 @@
       contenedor.innerHTML = '<div class="py-4 text-center">Cargando consolidado del trimestre...</div>';
 
       const asig = todasAsignaciones.find(a => a.id == asigId);
-      const { data: estData } = await supabaseClient.from('estudiantes').select('*').eq('curso_id', asig.curso_id).order('numero_lista');
+      const { data: estData } = await supabaseClient.from('estudiantes').select('*').eq('curso_id', asig.curso_id).order('nombres');
       estudiantes = estData || [];
 
-      const { data: pData } = await supabaseClient
-        .from('notas_parcial_actividades')
-        .select('*')
-        .eq('asignacion_id', asigId)
-        .eq('trimestre', trimestre);
-
-      const notasP1 = {};
-      const notasP2 = {};
+      const { data: pData } = await supabaseClient.from('notas_parcial_actividades').select('*').eq('asignacion_id', asigId).eq('trimestre', trimestre);
+      const notasP1 = {}, notasP2 = {};
       (pData || []).forEach(n => {
         if (n.parcial === 1) notasP1[n.estudiante_id] = n.nota_parcial || 0;
         if (n.parcial === 2) notasP2[n.estudiante_id] = n.nota_parcial || 0;
       });
 
-      const { data: compData } = await supabaseClient
-        .from('comportamiento_parcial')
-        .select('*')
-        .eq('asignacion_id', asigId)
-        .eq('trimestre', trimestre);
-
+      const { data: compData } = await supabaseClient.from('comportamiento_parcial').select('*').eq('asignacion_id', asigId).eq('trimestre', trimestre);
       const compP1 = {}, compP2 = {};
       (compData || []).forEach(c => {
         if (c.parcial === 1) compP1[c.estudiante_id] = parseFloat(c.total_cuantitativo) || 0;
         if (c.parcial === 2) compP2[c.estudiante_id] = parseFloat(c.total_cuantitativo) || 0;
       });
 
-      const { data: tData } = await supabaseClient
-        .from('notas_trimestre')
-        .select('*')
-        .eq('asignacion_id', asigId)
-        .eq('trimestre', trimestre);
-
+      const { data: tData } = await supabaseClient.from('notas_trimestre').select('*').eq('asignacion_id', asigId).eq('trimestre', trimestre);
       const trimMap = {};
       (tData || []).forEach(t => { trimMap[t.estudiante_id] = t; });
 
       let html = `
         <table class="table table-bordered table-sm mb-0 align-middle">
-          <thead class="bg-resumen-header">
+          <thead class="table-dark">
             <tr>
               <th style="width: 35px;">No.</th>
               <th class="col-nombre text-center">Nómina del Estudiante</th>
@@ -809,13 +1028,9 @@
                   <td class="col-nombre">${est.nombres}</td>
                   <td class="p1-val">${p1.toFixed(2)}</td>
                   <td class="p2-val">${p2.toFixed(2)}</td>
-                  <td>
-                    <input type="number" step="0.01" min="0" max="10" class="form-control form-control-sm input-nota-app nota-examen" value="${ex}" oninput="validarYCalcularTrimestre(this)">
-                  </td>
+                  <td><input type="number" step="0.01" min="0" max="10" class="form-control form-control-sm input-nota-app nota-examen" value="${ex}" oninput="validarYCalcularTrimestre(this)"></td>
                   <td class="total-trimestre">0.00</td>
-                  <td class="comp-trimestral-badge fw-bold">
-                    ${compPromNum.toFixed(2)} (${compCualit})
-                  </td>
+                  <td class="comp-trimestral-badge fw-bold">${compPromNum.toFixed(2)} (${compCualit})</td>
                 </tr>
               `;
             }).join('')}
@@ -830,8 +1045,6 @@
     function validarYCalcularTrimestre(input) {
       if (parseFloat(input.value) > 10) input.value = 10;
       if (parseFloat(input.value) < 0) input.value = 0;
-      
-      input.className = `form-control form-control-sm input-nota-app nota-examen ${obtenerClaseColor(input.value, false)}`;
       calcularFilaTrimestre(input.closest('tr'));
     }
 
@@ -843,51 +1056,30 @@
 
       inputEx.className = `form-control form-control-sm input-nota-app nota-examen ${obtenerClaseColor(inputEx.value, false)}`;
 
-      const cP1 = tr.querySelector('.p1-val');
-      const cP2 = tr.querySelector('.p2-val');
-      cP1.className = `p1-val fw-bold ${obtenerClaseColor(p1, false)}`;
-      cP2.className = `p2-val fw-bold ${obtenerClaseColor(p2, false)}`;
-
       const total = (p1 * 0.35) + (p2 * 0.35) + (ex * 0.30);
       const celdaTotal = tr.querySelector('.total-trimestre');
       celdaTotal.innerText = total.toFixed(2);
       celdaTotal.className = `total-trimestre fw-bold ${obtenerClaseColor(total, true)}`;
-
-      const compNum = parseFloat(tr.getAttribute('data-comp-num')) || 10;
-      const celdaComp = tr.querySelector('.comp-trimestral-badge');
-      celdaComp.className = `comp-trimestral-badge fw-bold ${obtenerClaseColor(compNum, true)}`;
     }
 
-    // ==========================================
-    // VISTA: RESUMEN GENERAL ANUAL
-    // ==========================================
+    // Resumen Anual
     async function cargarVistaResumenAnual() {
       const asigId = document.getElementById('selectMateria').value;
       const contenedor = document.getElementById('contenedorTabla');
-      contenedor.innerHTML = '<div class="py-4 text-center">Cargando sábana anual de calificaciones en tiempo real...</div>';
+      contenedor.innerHTML = '<div class="py-4 text-center">Cargando sábana anual de calificaciones...</div>';
 
       const asig = todasAsignaciones.find(a => a.id == asigId);
-      const { data: estData } = await supabaseClient.from('estudiantes').select('*').eq('curso_id', asig.curso_id).order('numero_lista');
+      const { data: estData } = await supabaseClient.from('estudiantes').select('*').eq('curso_id', asig.curso_id).order('nombres');
       estudiantes = estData || [];
 
       const { data: pData } = await supabaseClient.from('notas_parcial_actividades').select('*').eq('asignacion_id', asigId);
       const { data: tData } = await supabaseClient.from('notas_trimestre').select('*').eq('asignacion_id', asigId);
       const { data: cData } = await supabaseClient.from('comportamiento_parcial').select('*').eq('asignacion_id', asigId);
 
-      const notasMatriz = {};
-      const compMatriz = {};
-
+      const notasMatriz = {}, compMatriz = {};
       estudiantes.forEach(e => {
-        notasMatriz[e.id] = {
-          1: { p1: 0, p2: 0, ex: 0 },
-          2: { p1: 0, p2: 0, ex: 0 },
-          3: { p1: 0, p2: 0, ex: 0 }
-        };
-        compMatriz[e.id] = {
-          1: { p1: 10, p2: 10 },
-          2: { p1: 10, p2: 10 },
-          3: { p1: 10, p2: 10 }
-        };
+        notasMatriz[e.id] = { 1: { p1: 0, p2: 0, ex: 0 }, 2: { p1: 0, p2: 0, ex: 0 }, 3: { p1: 0, p2: 0, ex: 0 } };
+        compMatriz[e.id] = { 1: { p1: 10, p2: 10 }, 2: { p1: 10, p2: 10 }, 3: { p1: 10, p2: 10 } };
       });
 
       (pData || []).forEach(n => {
@@ -949,22 +1141,7 @@
               const promCompAnual = (ct1 + ct2 + ct3) / 3;
               const letraCompAnual = convertirCualitativo(promCompAnual);
 
-              const obsTexto = promAnual >= 7 ? 'APROBADO' : (promAnual >= 4 ? 'SUPLETORIO' : 'REPROBADO');
               const obsBadge = promAnual >= 7 ? '<span class="badge bg-success">APROBADO</span>' : (promAnual >= 4 ? '<span class="badge bg-warning text-dark">SUPLETORIO</span>' : '<span class="badge bg-danger">REPROBADO</span>');
-
-              datosResumenAnualActual.push({
-                num: idx + 1,
-                nombre: est.nombres,
-                t1: t1.toFixed(2),
-                t2: t2.toFixed(2),
-                t3: t3.toFixed(2),
-                prom: promAnual.toFixed(2),
-                comp1: `${ct1.toFixed(2)} (${convertirCualitativo(ct1)})`,
-                comp2: `${ct2.toFixed(2)} (${convertirCualitativo(ct2)})`,
-                comp3: `${ct3.toFixed(2)} (${convertirCualitativo(ct3)})`,
-                compAnual: `${promCompAnual.toFixed(2)} (${letraCompAnual})`,
-                obs: obsTexto
-              });
 
               return `
                 <tr>
@@ -974,10 +1151,10 @@
                   <td class="${obtenerClaseColor(t2, false)}">${t2.toFixed(2)}</td>
                   <td class="${obtenerClaseColor(t3, false)}">${t3.toFixed(2)}</td>
                   <td class="${obtenerClaseColor(promAnual, true)}">${promAnual.toFixed(2)}</td>
-                  <td class="${obtenerClaseColor(ct1, false)}">${ct1.toFixed(2)} (${convertirCualitativo(ct1)})</td>
-                  <td class="${obtenerClaseColor(ct2, false)}">${ct2.toFixed(2)} (${convertirCualitativo(ct2)})</td>
-                  <td class="${obtenerClaseColor(ct3, false)}">${ct3.toFixed(2)} (${convertirCualitativo(ct3)})</td>
-                  <td class="${obtenerClaseColor(promCompAnual, true)}">${promCompAnual.toFixed(2)} (${letraCompAnual})</td>
+                  <td>${ct1.toFixed(2)} (${convertirCualitativo(ct1)})</td>
+                  <td>${ct2.toFixed(2)} (${convertirCualitativo(ct2)})</td>
+                  <td>${ct3.toFixed(2)} (${convertirCualitativo(ct3)})</td>
+                  <td class="fw-bold">${promCompAnual.toFixed(2)} (${letraCompAnual})</td>
                   <td>${obsBadge}</td>
                 </tr>
               `;
@@ -988,91 +1165,7 @@
       contenedor.innerHTML = html;
     }
 
-    // ==========================================
-    // EXPORTAR PDF
-    // ==========================================
-    function exportarResumenAnualPDF() {
-      if (datosResumenAnualActual.length === 0) return alert('No hay datos para exportar.');
-
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF('landscape', 'mm', 'a4');
-
-      const selectCurso = document.getElementById('selectCurso');
-      const nombreCurso = selectCurso.options[selectCurso.selectedIndex].text;
-      
-      const selectMateria = document.getElementById('selectMateria');
-      const nombreMateria = selectMateria.options[selectMateria.selectedIndex].text;
-
-      const docenteText = document.getElementById('usuarioConectado').innerText.replace('Docente: ', '');
-
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(14);
-      doc.setTextColor(13, 110, 253);
-      doc.text('UNIDAD EDUCATIVA PARTICULAR "VICENTE ROCAFUERTE"', 148, 16, { align: 'center' });
-
-      doc.setFontSize(11);
-      doc.setTextColor(50, 50, 50);
-      doc.text('CUADRO DE CALIFICACIONES GENERAL ANUAL Y COMPORTAMIENTO', 148, 22, { align: 'center' });
-
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(9);
-      doc.setTextColor(30, 30, 30);
-      doc.text(`Curso: ${nombreCurso}`, 14, 29);
-      doc.text(`Materia: ${nombreMateria}`, 14, 34);
-      doc.text(`Docente: ${docenteText}`, 200, 29);
-      doc.text(`Fecha emisión: ${new Date().toLocaleDateString('es-EC')}`, 200, 34);
-
-      const tableRows = datosResumenAnualActual.map(r => [
-        r.num, r.nombre, r.t1, r.t2, r.t3, r.prom, r.comp1, r.comp2, r.comp3, r.compAnual, r.obs
-      ]);
-
-      doc.autoTable({
-        startY: 38,
-        head: [['No.', 'Nómina del Estudiante', '1er T.', '2do T.', '3er T.', 'Prom.', 'Comp. 1', 'Comp. 2', 'Comp. 3', 'Comp. Anual', 'Estado']],
-        body: tableRows,
-        theme: 'grid',
-        headStyles: { fillColor: [33, 37, 41], textColor: [255, 255, 255], fontSize: 8, halign: 'center' },
-        columnStyles: {
-          0: { cellWidth: 10, halign: 'center' },
-          1: { cellWidth: 70, halign: 'left' },
-          2: { cellWidth: 16, halign: 'center' },
-          3: { cellWidth: 16, halign: 'center' },
-          4: { cellWidth: 16, halign: 'center' },
-          5: { cellWidth: 18, halign: 'center', fontStyle: 'bold' },
-          6: { cellWidth: 22, halign: 'center' },
-          7: { cellWidth: 22, halign: 'center' },
-          8: { cellWidth: 22, halign: 'center' },
-          9: { cellWidth: 26, halign: 'center', fontStyle: 'bold' },
-          10: { cellWidth: 22, halign: 'center' }
-        },
-        styles: { fontSize: 7.5, valign: 'middle' },
-        didParseCell: function(data) {
-          if (data.section === 'body') {
-            if (data.column.index === 10) {
-              if (data.cell.raw === 'APROBADO') data.cell.styles.textColor = [25, 135, 84];
-              else if (data.cell.raw === 'SUPLETORIO') data.cell.styles.textColor = [255, 193, 7];
-              else data.cell.styles.textColor = [220, 53, 69];
-              data.cell.styles.fontStyle = 'bold';
-            }
-          }
-        }
-      });
-
-      const finalY = doc.lastAutoTable.finalY + 25;
-      if (finalY < 190) {
-        doc.line(40, finalY, 100, finalY);
-        doc.text('Docente Responsable', 70, finalY + 5, { align: 'center' });
-
-        doc.line(190, finalY, 250, finalY);
-        doc.text('Rectorado / Vicerrectorado', 220, finalY + 5, { align: 'center' });
-      }
-
-      doc.save(`Resumen_Anual_${nombreCurso.replace(/[^a-zA-Z0-9]/g, '_')}_${nombreMateria}.pdf`);
-    }
-
-    // ==========================================
-    // GUARDADO GENERAL
-    // ==========================================
+    // Guardar Notas
     async function guardarDatos() {
       const asigId = document.getElementById('selectMateria').value;
       const trimestreVal = document.getElementById('selectTrimestre').value;
@@ -1083,7 +1176,6 @@
         const trimestre = parseInt(trimestreVal);
         const btn = document.getElementById('btnGuardarComp');
         btn.disabled = true;
-        btn.innerText = 'Guardando...';
 
         try {
           const filas = document.querySelectorAll('#tablaCuerpoComp tr');
@@ -1118,12 +1210,11 @@
           });
 
           if (error) throw error;
-          alert(`¡Informe de comportamiento (Parcial ${parcialNum}) guardado con éxito!`);
+          alert('¡Comportamiento guardado con éxito!');
         } catch (err) {
           alert('Error: ' + err.message);
         } finally {
           btn.disabled = false;
-          btn.innerText = '💾 Guardar Comp.';
         }
 
       } else if (trimestreVal !== 'anual' && (vistaVal === 'p1' || vistaVal === 'p2')) {
@@ -1131,7 +1222,6 @@
         const trimestre = parseInt(trimestreVal);
         const btn = document.getElementById('btnGuardarParcial');
         btn.disabled = true;
-        btn.innerText = 'Guardando...';
 
         try {
           await supabaseClient.from('config_parcial_cabeceras').upsert({
@@ -1173,59 +1263,17 @@
           });
           if (errNotas) throw errNotas;
 
-          const { data: allPData } = await supabaseClient
-            .from('notas_parcial_actividades')
-            .select('*')
-            .eq('asignacion_id', asigId)
-            .eq('trimestre', trimestre);
-
-          const { data: existingTData } = await supabaseClient
-            .from('notas_trimestre')
-            .select('*')
-            .eq('asignacion_id', asigId)
-            .eq('trimestre', trimestre);
-
-          const existingTMap = {};
-          (existingTData || []).forEach(t => { existingTMap[t.estudiante_id] = t; });
-
-          const p1Map = {}, p2Map = {};
-          (allPData || []).forEach(n => {
-            if (n.parcial === 1) p1Map[n.estudiante_id] = n.nota_parcial || 0;
-            if (n.parcial === 2) p2Map[n.estudiante_id] = n.nota_parcial || 0;
-          });
-
-          const trimPayload = estudiantes.map(e => {
-            const currentT = existingTMap[e.id] || {};
-            return {
-              asignacion_id: parseInt(asigId),
-              estudiante_id: e.id,
-              trimestre: trimestre,
-              p1_insumo1: p1Map[e.id] || 0,
-              p1_insumo2: p1Map[e.id] || 0,
-              p2_insumo1: p2Map[e.id] || 0,
-              p2_insumo2: p2Map[e.id] || 0,
-              examen: currentT.examen || 0,
-              comportamiento: currentT.comportamiento || 'A'
-            };
-          });
-
-          await supabaseClient.from('notas_trimestre').upsert(trimPayload, {
-            onConflict: 'asignacion_id,estudiante_id,trimestre'
-          });
-
-          alert('¡Notas del Parcial guardadas y sincronizadas!');
+          alert('¡Notas del parcial guardadas con éxito!');
         } catch (err) {
           alert('Error al guardar: ' + err.message);
         } finally {
           btn.disabled = false;
-          btn.innerText = '💾 Guardar Parcial';
         }
 
       } else if (trimestreVal !== 'anual' && vistaVal === 'resumen_trimestre') {
         const trimestre = parseInt(trimestreVal);
         const btn = document.getElementById('btnGuardarResumen');
         btn.disabled = true;
-        btn.innerText = 'Guardando...';
 
         try {
           const filas = document.querySelectorAll('#tablaCuerpoTrimestre tr');
@@ -1258,12 +1306,11 @@
           });
 
           if (error) throw error;
-          alert('¡Examen y Resumen Trimestral guardados con éxito!');
+          alert('¡Examen trimestral guardado con éxito!');
         } catch (err) {
           alert('Error al guardar: ' + err.message);
         } finally {
           btn.disabled = false;
-          btn.innerText = '💾 Guardar Examen';
         }
       }
     }
