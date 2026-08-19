@@ -1397,11 +1397,20 @@
     // ==========================================
     // EXPORTACIÓN OFICIAL DE PDF RESUMEN ANUAL
     // ==========================================
-    // Función auxiliar para convertir URL de imagen a Base64 sin problemas de CORS
+    // Función auxiliar para convertir URL de imagen (incluyendo Google Drive) a Base64
     async function obtenerBase64DesdeUrl(url) {
       if (!url) return null;
       try {
-        const res = await fetch(url, { mode: 'cors' });
+        let urlFinal = url;
+        // Si es enlace compartido de Google Drive, convertirlo a thumbnail público
+        if (url.includes('drive.google.com') && url.includes('/d/')) {
+          const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+          if (match && match[1]) {
+            urlFinal = `https://drive.google.com/thumbnail?id=${match[1]}&sz=w1000`;
+          }
+        }
+
+        const res = await fetch(urlFinal, { mode: 'cors' });
         const blob = await res.blob();
         return new Promise((resolve) => {
           const reader = new FileReader();
@@ -1416,7 +1425,7 @@
     }
 
     // ==========================================
-    // EXPORTACIÓN OFICIAL DE PDF RESUMEN ANUAL MULTI-PÁGINA
+    // EXPORTACIÓN OFICIAL DE PDF RESUMEN ANUAL CORREGIDA
     // ==========================================
     async function exportarResumenAnualPDF() {
       if (!datosResumenAnualActual || datosResumenAnualActual.length === 0) {
@@ -1446,9 +1455,12 @@
         const dir1 = infoInstitucion?.direccion_1 || 'Pichincha - Manabí - Ecuador';
         const frase1 = infoInstitucion?.frase_1 ? `"${infoInstitucion.frase_1}"` : '';
 
-        // 2. Nombre largo del curso
-        const cursoInfo = cursosList.find(c => c.id === asig.curso_id);
-        const nombreCursoLargo = (cursoInfo?.nombre_largo_mayuscula || cursoInfo?.nombre || asig.cursos?.nombre || '').toUpperCase();
+        // 2. Obtener Nombre del Curso (usando todosCursos o asig.cursos)
+        const cursoEncontrado = (todosCursos && todosCursos.length > 0) 
+          ? todosCursos.find(c => c.id === asig.curso_id) 
+          : asig.cursos;
+          
+        const nombreCursoLargo = (cursoEncontrado?.nombre_largo_mayuscula || cursoEncontrado?.nombre || asig.cursos?.nombre || '').toUpperCase();
         const nombreMateria = (asig.materias?.nombre || '').toUpperCase();
 
         // 3. Nombres de Autoridades
@@ -1463,7 +1475,7 @@
         const imgLogoIzq = await obtenerBase64DesdeUrl(infoInstitucion?.logo_izquierdo || infoInstitucion?.logo_institucion);
         const imgLogoDer = await obtenerBase64DesdeUrl(infoInstitucion?.logo_derecho || infoInstitucion?.escudo_nacional);
 
-        // Estructura de la Tabla
+        // 5. Estructura de la Tabla
         const headers = [
           [
             { content: 'N°', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } },
@@ -1527,9 +1539,7 @@
           didDrawPage: function (data) {
             const pageNumber = doc.internal.getNumberOfPages();
 
-            // ----------------------------------------------------
             // A. LOGOS IZQUIERDO Y DERECHO
-            // ----------------------------------------------------
             if (imgLogoIzq) {
               try { doc.addImage(imgLogoIzq, 'PNG', 12, 8, 20, 20); } catch(e){}
             }
@@ -1537,9 +1547,7 @@
               try { doc.addImage(imgLogoDer, 'PNG', 265, 8, 20, 20); } catch(e){}
             }
 
-            // ----------------------------------------------------
-            // B. MEMBRETE INSTITUCIONAL (Líneas 1 a 4)
-            // ----------------------------------------------------
+            // B. MEMBRETE INSTITUCIONAL
             doc.setFont('helvetica', 'bold');
             doc.setFontSize(11);
             doc.setTextColor(30, 41, 59);
@@ -1560,14 +1568,11 @@
               doc.text(frase1, 148.5, 29, { align: 'center' });
             }
 
-            // ----------------------------------------------------
             // C. DATOS DEL CURSO Y ASIGNATURA
-            // ----------------------------------------------------
             doc.setFont('helvetica', 'bold');
             doc.setFontSize(8);
             doc.setTextColor(15, 23, 42);
 
-            // Barra delimitadora
             doc.setDrawColor(203, 213, 225);
             doc.setLineWidth(0.3);
             doc.line(12, 33, 285, 33);
@@ -1578,15 +1583,12 @@
 
             doc.line(12, 45, 285, 45);
 
-            // ----------------------------------------------------
-            // D. PIE DE PÁGINA Y FIRMAS EN TODAS LAS HOJAS
-            // ----------------------------------------------------
+            // D. PIE DE PÁGINA Y FIRMAS
             const footerY = 188;
             doc.setFont('helvetica', 'normal');
             doc.setFontSize(7.5);
             doc.setTextColor(30, 41, 59);
 
-            // Líneas de firma
             doc.setLineWidth(0.2);
             doc.line(25, footerY, 85, footerY);
             doc.line(118, footerY, 178, footerY);
@@ -1610,14 +1612,14 @@
             doc.setFont('helvetica', 'normal');
             doc.text(nombreRector, 242, footerY + 8, { align: 'center' });
 
-            // Numeración de página
+            // Numeración
             doc.setFontSize(7);
             doc.setTextColor(148, 163, 184);
             doc.text(`Página ${pageNumber}`, 285, 202, { align: 'right' });
           }
         });
 
-        doc.save(`Sábana_Anual_${nombreCursoLargo.replace(/\s+/g, '_')}_${nombreMateria.replace(/\s+/g, '_')}.pdf`);
+        doc.save(`Sabana_Anual_${nombreCursoLargo.replace(/\s+/g, '_')}_${nombreMateria.replace(/\s+/g, '_')}.pdf`);
       } catch (err) {
         alert('Error al exportar PDF: ' + err.message);
         console.error(err);
