@@ -9,7 +9,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
-  <!-- Soporte para descarga en lote individual en ZIP -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
   
@@ -212,6 +211,7 @@
             <select id="selectParcialTutoria" class="form-select form-select-sm fw-bold text-dark" onchange="cambiarFiltro()">
               <option value="1">Libretas del 1er Parcial</option>
               <option value="2">Libretas del 2do Parcial</option>
+              <option value="trimestre">Informe / Libreta Trimestral</option>
             </select>
           </div>
 
@@ -247,7 +247,7 @@
               <i class="bi bi-file-earmark-pdf-fill me-1"></i>Consolidado (PDF)
             </button>
             <button class="btn btn-outline-primary btn-sm px-2 fw-bold" id="btnDescargarZipIndividuales" onclick="descargarTodasBoletasEnZip()" title="Descargar cada boleta individual en formato ZIP">
-              <i class="bi bi-file-earmark-zip-fill me-1"></i>Descargar Individuales (ZIP)
+              <i class="bi bi-file-earmark-zip-fill me-1"></i>Individuales (ZIP)
             </button>
           </div>
 
@@ -595,6 +595,7 @@
         return;
       }
 
+      // Modo Calificaciones
       if (trimestreVal === 'anual') {
         document.getElementById('boxVista').classList.add('d-none');
         accAnual.classList.remove('d-none');
@@ -619,136 +620,153 @@
     }
 
     // =========================================================================
-    // VISTA DE TUTORÍA: SÁBANA GENERAL Y PREPARACIÓN DE DATOS
+    // VISTA DE TUTORÍA: SÁBANA GENERAL Y EMISIÓN (PARCIAL Y TRIMESTRAL)
     // =========================================================================
     async function cargarVistaConsolidadoTutoria() {
       const cursoId = document.getElementById('selectCurso').value;
       const trimestre = parseInt(document.getElementById('selectTrimestre').value);
-      const parcial = parseInt(document.getElementById('selectParcialTutoria').value);
+      const reporteTipo = document.getElementById('selectParcialTutoria').value; // '1', '2' o 'trimestre'
       const contenedor = document.getElementById('contenedorTabla');
 
       contenedor.innerHTML = '<div class="py-4 text-center">Cargando consolidado de calificaciones y asistencias para tutoría...</div>';
 
-      // 1. Cargar Estudiantes completos (con datos del representante)
-      const { data: estData } = await supabaseClient
-        .from('estudiantes')
-        .select('*')
-        .eq('curso_id', cursoId)
-        .order('nombres');
+      // 1. Estudiantes
+      const { data: estData } = await supabaseClient.from('estudiantes').select('*').eq('curso_id', cursoId).order('nombres');
       estudiantes = estData || [];
 
-      // 2. Cargar Asignaciones (Obligatorias primero, Optativas al final)
-      const { data: asigCurso } = await supabaseClient
-        .from('curso_materia_docente')
-        .select(`id, curso_id, materia_id, es_optativa, materias(id, nombre)`)
-        .eq('curso_id', cursoId);
-
+      // 2. Asignaciones (Obligatorias primero, Optativas al final)
+      const { data: asigCurso } = await supabaseClient.from('curso_materia_docente').select(`id, curso_id, materia_id, es_optativa, materias(id, nombre)`).eq('curso_id', cursoId);
       let listaAsignaciones = asigCurso || [];
       listaAsignaciones.sort((a, b) => {
-        if (a.es_optativa === b.es_optativa) {
-          return (a.materias?.nombre || '').localeCompare(b.materias?.nombre || '');
-        }
+        if (a.es_optativa === b.es_optativa) return (a.materias?.nombre || '').localeCompare(b.materias?.nombre || '');
         return a.es_optativa ? 1 : -1;
       });
 
       const asigIds = listaAsignaciones.map(a => a.id);
 
-      // 3. Cargar Notas del Parcial
-      let notasMap = {};
+      // 3. Notas Parciales
+      let notasP1 = {}, notasP2 = {};
       if (asigIds.length > 0) {
-        const { data: notasData } = await supabaseClient
-          .from('notas_parcial_actividades')
-          .select('asignacion_id, estudiante_id, nota_parcial')
-          .in('asignacion_id', asigIds)
-          .eq('trimestre', trimestre)
-          .eq('parcial', parcial);
-
-        (notasData || []).forEach(n => {
-          if (!notasMap[n.estudiante_id]) notasMap[n.estudiante_id] = {};
-          notasMap[n.estudiante_id][n.asignacion_id] = n.nota_parcial;
+        const { data: nData } = await supabaseClient.from('notas_parcial_actividades').select('asignacion_id, estudiante_id, parcial, nota_parcial').in('asignacion_id', asigIds).eq('trimestre', trimestre);
+        (nData || []).forEach(n => {
+          if (n.parcial === 1) {
+            if (!notasP1[n.estudiante_id]) notasP1[n.estudiante_id] = {};
+            notasP1[n.estudiante_id][n.asignacion_id] = n.nota_parcial;
+          } else if (n.parcial === 2) {
+            if (!notasP2[n.estudiante_id]) notasP2[n.estudiante_id] = {};
+            notasP2[n.estudiante_id][n.asignacion_id] = n.nota_parcial;
+          }
         });
       }
 
-      // 4. Cargar Comportamiento del Parcial
-      let compMap = {};
-      if (asigIds.length > 0) {
-        const { data: cData } = await supabaseClient
-          .from('comportamiento_parcial')
-          .select('estudiante_id, total_cuantitativo')
-          .in('asignacion_id', asigIds)
-          .eq('trimestre', trimestre)
-          .eq('parcial', parcial);
+      // 4. Examen Trimestral
+      let examenesMap = {};
+      if (reporteTipo === 'trimestre' && asigIds.length > 0) {
+        const { data: tData } = await supabaseClient.from('notas_trimestre').select('asignacion_id, estudiante_id, examen').in('asignacion_id', asigIds).eq('trimestre', trimestre);
+        (tData || []).forEach(t => {
+          if (!examenesMap[t.estudiante_id]) examenesMap[t.estudiante_id] = {};
+          examenesMap[t.estudiante_id][t.asignacion_id] = parseFloat(t.examen) || 0;
+        });
+      }
 
+      // 5. Comportamiento
+      let compMapP1 = {}, compMapP2 = {};
+      if (asigIds.length > 0) {
+        const { data: cData } = await supabaseClient.from('comportamiento_parcial').select('estudiante_id, parcial, total_cuantitativo').in('asignacion_id', asigIds).eq('trimestre', trimestre);
         (cData || []).forEach(c => {
-          if (!compMap[c.estudiante_id]) compMap[c.estudiante_id] = [];
-          compMap[c.estudiante_id].push(parseFloat(c.total_cuantitativo) || 10);
+          if (c.parcial === 1) {
+            if (!compMapP1[c.estudiante_id]) compMapP1[c.estudiante_id] = [];
+            compMapP1[c.estudiante_id].push(parseFloat(c.total_cuantitativo) || 10);
+          } else if (c.parcial === 2) {
+            if (!compMapP2[c.estudiante_id]) compMapP2[c.estudiante_id] = [];
+            compMapP2[c.estudiante_id].push(parseFloat(c.total_cuantitativo) || 10);
+          }
         });
       }
 
-      // 5. Cargar Registro de Asistencia Detallado
-      const { data: asistData } = await supabaseClient
-        .from('asistencia_estudiantes')
-        .select('*')
-        .eq('curso_id', cursoId)
-        .eq('trimestre', trimestre)
-        .eq('parcial', parcial);
+      // 6. Asistencia
+      const { data: asistData } = await supabaseClient.from('asistencia_estudiantes').select('*').eq('curso_id', cursoId).eq('trimestre', trimestre);
+      const asistMapP1 = {}, asistMapP2 = {};
+      (asistData || []).forEach(a => {
+        if (a.parcial === 1) asistMapP1[a.estudiante_id] = a;
+        if (a.parcial === 2) asistMapP2[a.estudiante_id] = a;
+      });
 
-      const asistMap = {};
-      (asistData || []).forEach(a => { asistMap[a.estudiante_id] = a; });
+      const perP1 = periodosAsistencia.find(p => p.trimestre === trimestre && p.parcial === 1) || { total_dias_laborados: 34 };
+      const perP2 = periodosAsistencia.find(p => p.trimestre === trimestre && p.parcial === 2) || { total_dias_laborados: 35 };
 
-      const per = periodosAsistencia.find(p => p.trimestre === trimestre && p.parcial === parcial) || { total_dias_laborados: 34 };
-
-      // Estructurar Datos
+      // Estructurar Datos Consolidados
       datosConsolidadoTutoria = estudiantes.map((est, idx) => {
         let sumaNotasObligatorias = 0;
         let cantObligatorias = 0;
         let materiasDetalle = [];
 
         listaAsignaciones.forEach(a => {
-          const nota = notasMap[est.id] && notasMap[est.id][a.id] !== undefined ? parseFloat(notasMap[est.id][a.id]) : 0;
-          const cualit = obtenerEscalaCualitativa(nota);
+          const nP1 = notasP1[est.id] && notasP1[est.id][a.id] !== undefined ? parseFloat(notasP1[est.id][a.id]) : 0;
+          const nP2 = notasP2[est.id] && notasP2[est.id][a.id] !== undefined ? parseFloat(notasP2[est.id][a.id]) : 0;
+          const nEx = examenesMap[est.id] && examenesMap[est.id][a.id] !== undefined ? parseFloat(examenesMap[est.id][a.id]) : 0;
+
+          let notaFinalMateria = 0;
+          if (reporteTipo === '1') notaFinalMateria = nP1;
+          else if (reporteTipo === '2') notaFinalMateria = nP2;
+          else {
+            // Trimestre: 35% P1 + 35% P2 + 30% Examen
+            notaFinalMateria = (nP1 * 0.35) + (nP2 * 0.35) + (nEx * 0.30);
+          }
+
+          const cualit = obtenerEscalaCualitativa(notaFinalMateria);
 
           if (!a.es_optativa) {
-            sumaNotasObligatorias += nota;
+            sumaNotasObligatorias += notaFinalMateria;
             cantObligatorias++;
           }
 
           materiasDetalle.push({
             materiaNombre: a.materias?.nombre || 'Materia',
-            notaNum: nota.toFixed(2),
+            p1: nP1.toFixed(2),
+            p2: nP2.toFixed(2),
+            examen: nEx.toFixed(2),
+            notaNum: notaFinalMateria.toFixed(2),
             notaCualit: cualit,
             esOptativa: a.es_optativa
           });
         });
 
-        const promParcial = cantObligatorias > 0 ? (sumaNotasObligatorias / cantObligatorias) : 0;
-        const promCualit = obtenerEscalaCualitativa(promParcial);
+        const promGeneral = cantObligatorias > 0 ? (sumaNotasObligatorias / cantObligatorias) : 0;
+        const promCualit = obtenerEscalaCualitativa(promGeneral);
 
-        const compArr = compMap[est.id] || [10];
-        const promComp = compArr.reduce((a, b) => a + b, 0) / compArr.length;
-        const compObj = obtenerEscalaComportamiento(promComp);
+        // Comportamiento
+        const arrP1 = compMapP1[est.id] || [10];
+        const promP1Comp = arrP1.reduce((a, b) => a + b, 0) / arrP1.length;
+        const arrP2 = compMapP2[est.id] || [10];
+        const promP2Comp = arrP2.reduce((a, b) => a + b, 0) / arrP2.length;
 
-        // Desglose de asistencia: A (Asistidos), J (Justificadas) y F (Injustificadas = F o Vacías)
-        const regAsist = asistMap[est.id] || {};
-        let conteoA = 0, conteoJ = 0;
+        let compFinalNum = 10;
+        if (reporteTipo === '1') compFinalNum = promP1Comp;
+        else if (reporteTipo === '2') compFinalNum = promP2Comp;
+        else compFinalNum = (promP1Comp + promP2Comp) / 2;
 
-        if (regAsist.registro_diario && typeof regAsist.registro_diario === 'object') {
-          Object.values(regAsist.registro_diario).forEach(v => {
-            const val = String(v).toUpperCase();
-            if (val === 'A') conteoA++;
-            else if (val === 'J') conteoJ++;
-          });
+        const compObj = obtenerEscalaComportamiento(compFinalNum);
+
+        // Asistencia Exacta
+        const r1 = asistMapP1[est.id] || {};
+        const r2 = asistMapP2[est.id] || {};
+
+        let a1 = r1.total_asistencias || 0, j1 = r1.total_justificadas || 0, t1 = perP1.total_dias_laborados;
+        let f1 = Math.max(t1 - a1 - j1, 0);
+
+        let a2 = r2.total_asistencias || 0, j2 = r2.total_justificadas || 0, t2 = perP2.total_dias_laborados;
+        let f2 = Math.max(t2 - a2 - j2, 0);
+
+        let finalAsist = { asistidos: 0, faltasInjust: 0, faltasJust: 0, totalDias: 0 };
+        if (reporteTipo === '1') {
+          finalAsist = { asistidos: a1, faltasInjust: f1, faltasJust: j1, totalDias: t1 };
+        } else if (reporteTipo === '2') {
+          finalAsist = { asistidos: a2, faltasInjust: f2, faltasJust: j2, totalDias: t2 };
         } else {
-          conteoA = regAsist.total_asistencias || 0;
-          conteoJ = regAsist.total_justificadas || 0;
+          finalAsist = { asistidos: a1 + a2, faltasInjust: f1 + f2, faltasJust: j1 + j2, totalDias: t1 + t2 };
         }
 
-        const totalDias = per.total_dias_laborados;
-
-        // Faltas injustificadas = Días restantes no asistidos ni justificados (Faltas 'F' + Días en blanco)
-        const conteoF = Math.max(totalDias - conteoA - conteoJ, 0);
-
-        // Formatear Representante Legal
         const repNom = est.representante_nombres || `${est.rep_apellidos || ''} ${est.rep_nombres || ''}`.trim() || 'REPRESENTANTE LEGAL';
         const repCed = est.rep_cedula ? `C.I.: ${est.rep_cedula}` : '';
 
@@ -760,22 +778,18 @@
           representanteNombre: repNom,
           representanteCedula: repCed,
           materias: materiasDetalle,
-          promedioGeneral: promParcial.toFixed(2),
+          promedioGeneral: promGeneral.toFixed(2),
           promedioCualitativo: promCualit,
-          comportamientoNum: promComp.toFixed(2),
+          comportamientoNum: compFinalNum.toFixed(2),
           comportamientoLetra: compObj.letra,
           comportamientoDesc: compObj.desc,
-          asistencia: { 
-            asistidos: conteoA, 
-            faltasInjust: conteoF, 
-            faltasJust: conteoJ, 
-            totalDias: totalDias 
-          }
+          asistencia: finalAsist
         };
       });
 
       // Renderizar Tabla
       let thMaterias = listaAsignaciones.map(a => `<th style="font-size:0.68rem; min-width: 85px;">${a.materias?.nombre}<br><span class="badge ${a.es_optativa ? 'bg-warning text-dark' : 'bg-secondary'}">${a.es_optativa ? 'Opt' : 'Obl'}</span></th>`).join('');
+      const tituloPeriodo = reporteTipo === 'trimestre' ? `${trimestre}° TRIMESTRE (CONSOLIDADO)` : `${trimestre}° TRIMESTRE - PARCIAL ${reporteTipo}`;
 
       let html = `
         <table class="table table-bordered table-sm mb-0 align-middle">
@@ -783,8 +797,8 @@
             <tr>
               <th rowspan="2" class="sticky-col-num">N°</th>
               <th rowspan="2" class="sticky-col-nombre text-center">NÓMINA DE ESTUDIANTES</th>
-              <th colspan="${listaAsignaciones.length}">CALIFICACIONES POR ASIGNATURA (${trimestre}° TRIMESTRE - PARCIAL ${parcial})</th>
-              <th rowspan="2" class="bg-primary text-white" style="width: 90px;">PROM. PARCIAL</th>
+              <th colspan="${listaAsignaciones.length}">CALIFICACIONES POR ASIGNATURA (${tituloPeriodo})</th>
+              <th rowspan="2" class="bg-primary text-white" style="width: 90px;">PROM. GENERAL</th>
               <th rowspan="2" class="bg-success text-white" style="width: 75px;">COMP.</th>
               <th rowspan="2" class="bg-secondary text-white" style="width: 70px;">ASIST.</th>
               <th rowspan="2" style="width: 90px;">LIBRETA</th>
@@ -829,9 +843,9 @@
     }
 
     // =========================================================================
-    // CONSTRUCTOR DEL PDF DE LIBRETA (CON REPRESENTANTE Y ASISTENCIAS EXACTAS)
+    // CONSTRUCTOR DEL PDF DE LIBRETA (PARCIAL Y TRIMESTRAL)
     // =========================================================================
-    function construirPaginaLibreta(doc, est, cursoNombreLargo, trimestre, parcial, nombreRector, imgLogoIzq, imgLogoDer) {
+    function construirPaginaLibreta(doc, est, cursoNombreLargo, trimestre, reporteTipo, nombreRector, imgLogoIzq, imgLogoDer) {
       const nomArriba = (infoInstitucion?.nombre_arriba || 'Unidad Educativa Particular').toUpperCase();
       const nomAbajo = (infoInstitucion?.nombre_abajo || '"Vicente Rocafuerte"').toUpperCase();
       const periodo = infoInstitucion?.periodo_lectivo || '2026-2027';
@@ -840,6 +854,15 @@
       const circuito = infoInstitucion?.circuito || '13D08C0_b';
       const dir1 = infoInstitucion?.direccion_1 || 'Pichincha - Manabí - Ecuador';
       const frase1 = infoInstitucion?.frase_1 ? `"${infoInstitucion.frase_1}"` : '';
+
+      const esTrimestral = (reporteTipo === 'trimestre');
+      const tituloDocumento = esTrimestral 
+        ? `INFORME DE APRENDIZAJE Y ASISTENCIA - ${trimestre}° TRIMESTRE`
+        : `INFORME DE APRENDIZAJE Y ASISTENCIA - PARCIAL ${reporteTipo}`;
+      
+      const periodoTexto = esTrimestral 
+        ? `${trimestre}° TRIMESTRE (CONSOLIDADO)` 
+        : `${trimestre}° TRIMESTRE - PARCIAL ${reporteTipo}`;
 
       // 1. Logos
       if (imgLogoIzq) { try { doc.addImage(imgLogoIzq, 'PNG', 12, 8, 18, 18); } catch(e){} }
@@ -855,14 +878,14 @@
       doc.text(nomAbajo, 105, 16, { align: 'center' });
 
       doc.setFontSize(9);
-      doc.text(`INFORME DE APRENDIZAJE Y ASISTENCIA - PARCIAL ${parcial}`, 105, 21, { align: 'center' });
+      doc.text(tituloDocumento, 105, 21, { align: 'center' });
 
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(7);
       doc.setTextColor(71, 85, 105);
       doc.text(`AMIE: ${amie} | DISTRITO: ${distrito} | CIRCUITO: ${circuito} | ${dir1} | AÑO LECTIVO: ${periodo}`, 105, 25, { align: 'center' });
 
-      // 3. Ficha del Estudiante
+      // 3. Ficha
       doc.setDrawColor(203, 213, 225);
       doc.setLineWidth(0.3);
       doc.line(12, 28, 198, 28);
@@ -873,55 +896,85 @@
       doc.text(`ESTUDIANTE: ${est.nombres}`, 12, 33);
       doc.text(`CÉDULA: ${est.cedula}`, 155, 33);
       doc.text(`CURSO: ${cursoNombreLargo}`, 12, 37.5);
-      doc.text(`PERIODO: ${trimestre}° TRIMESTRE - PARCIAL ${parcial}`, 155, 37.5);
+      doc.text(`PERIODO: ${periodoTexto}`, 155, 37.5);
 
       doc.line(12, 40, 198, 40);
 
-      // 4. Materias Obligatorias y Optativas Separadas
+      // 4. Tabla de Calificaciones
       const obligatorias = est.materias.filter(m => !m.esOptativa);
       const optativas = est.materias.filter(m => m.esOptativa);
 
+      const tableHead = esTrimestral 
+        ? [['ASIGNATURA / ÁREA DE CONOCIMIENTO', 'PARCIAL 1 (35%)', 'PARCIAL 2 (35%)', 'EXAMEN (30%)', 'NOTA TRIMESTRAL', 'CUALITATIVA']]
+        : [['ASIGNATURA / ÁREA DE CONOCIMIENTO', 'CUALITATIVA', 'CUANTITATIVA']];
+
       const tableBody = [];
 
-      obligatorias.forEach(m => {
-        tableBody.push([m.materiaNombre, m.notaCualit, m.notaNum]);
-      });
-
-      if (optativas.length > 0) {
+      if (esTrimestral) {
+        obligatorias.forEach(m => {
+          tableBody.push([m.materiaNombre, m.p1, m.p2, m.examen, m.notaNum, m.notaCualit]);
+        });
+        if (optativas.length > 0) {
+          tableBody.push([{ content: 'ASIGNATURAS OPTATIVAS / CUALITATIVAS', colSpan: 6, styles: { fillColor: [248, 250, 252], textColor: [71, 85, 105], fontStyle: 'bold', fontSize: 7, halign: 'left' } }]);
+          optativas.forEach(m => {
+            tableBody.push([m.materiaNombre, m.p1, m.p2, m.examen, m.notaNum, m.notaCualit]);
+          });
+        }
         tableBody.push([
-          { content: 'ASIGNATURAS OPTATIVAS / CUALITATIVAS', colSpan: 3, styles: { fillColor: [248, 250, 252], textColor: [71, 85, 105], fontStyle: 'bold', fontSize: 7, halign: 'left' } }
+          { content: `COMPORTAMIENTO: ${est.comportamientoDesc}`, colSpan: 4, styles: { fontStyle: 'bold', fillColor: [241, 245, 249] } },
+          { content: est.comportamientoNum, styles: { halign: 'center', fontStyle: 'bold', fillColor: [241, 245, 249] } },
+          { content: est.comportamientoLetra, styles: { halign: 'center', fontStyle: 'bold', fillColor: [241, 245, 249] } }
         ]);
-        optativas.forEach(m => {
+      } else {
+        obligatorias.forEach(m => {
           tableBody.push([m.materiaNombre, m.notaCualit, m.notaNum]);
         });
+        if (optativas.length > 0) {
+          tableBody.push([{ content: 'ASIGNATURAS OPTATIVAS / CUALITATIVAS', colSpan: 3, styles: { fillColor: [248, 250, 252], textColor: [71, 85, 105], fontStyle: 'bold', fontSize: 7, halign: 'left' } }]);
+          optativas.forEach(m => {
+            tableBody.push([m.materiaNombre, m.notaCualit, m.notaNum]);
+          });
+        }
+        tableBody.push([
+          { content: `COMPORTAMIENTO: ${est.comportamientoDesc}`, styles: { fontStyle: 'bold', fillColor: [241, 245, 249] } },
+          { content: est.comportamientoLetra, styles: { halign: 'center', fontStyle: 'bold', fillColor: [241, 245, 249] } },
+          { content: est.comportamientoNum, styles: { halign: 'center', fontStyle: 'bold', fillColor: [241, 245, 249] } }
+        ]);
       }
 
-      tableBody.push([
-        { content: `COMPORTAMIENTO: ${est.comportamientoDesc}`, styles: { fontStyle: 'bold', fillColor: [241, 245, 249] } },
-        { content: est.comportamientoLetra, styles: { halign: 'center', fontStyle: 'bold', fillColor: [241, 245, 249] } },
-        { content: est.comportamientoNum, styles: { halign: 'center', fontStyle: 'bold', fillColor: [241, 245, 249] } }
-      ]);
+      const colStylesObj = esTrimestral ? {
+        0: { cellWidth: 86, halign: 'left' },
+        1: { cellWidth: 20, halign: 'center' },
+        2: { cellWidth: 20, halign: 'center' },
+        3: { cellWidth: 20, halign: 'center' },
+        4: { cellWidth: 20, halign: 'center', fontStyle: 'bold', fillColor: [241, 245, 249] },
+        5: { cellWidth: 20, halign: 'center', fontStyle: 'bold' }
+      } : {
+        0: { cellWidth: 136, halign: 'left' },
+        1: { cellWidth: 25, halign: 'center', fontStyle: 'bold' },
+        2: { cellWidth: 25, halign: 'center', fontStyle: 'bold' }
+      };
 
       doc.autoTable({
         startY: 42,
-        head: [['ASIGNATURA / ÁREA DE CONOCIMIENTO', 'CUALITATIVA', 'CUANTITATIVA']],
+        head: tableHead,
         body: tableBody,
         margin: { left: 12, right: 12 },
         theme: 'grid',
-        styles: { fontSize: 7.5, cellPadding: 1.5, lineColor: [200, 200, 200], lineWidth: 0.1 },
+        styles: { fontSize: 7.2, cellPadding: 1.3, lineColor: [200, 200, 200], lineWidth: 0.1 },
         headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255], fontStyle: 'bold', halign: 'center' },
-        columnStyles: {
-          0: { cellWidth: 136, halign: 'left' },
-          1: { cellWidth: 25, halign: 'center', fontStyle: 'bold' },
-          2: { cellWidth: 25, halign: 'center', fontStyle: 'bold' }
-        }
+        columnStyles: colStylesObj
       });
 
-      // 5. Tabla de Asistencia (A, F, J y Total)
+      // 5. Tabla de Asistencia
       const asistY = doc.lastAutoTable.finalY + 3;
+      const headAsist = esTrimestral
+        ? [['Faltas Justificadas (Trimestre)', 'Faltas Injustificadas (Trimestre)', 'Días Asistidos (Trimestre)', 'Total Días del Trimestre']]
+        : [['Faltas Justificadas (J)', 'Faltas Injustificadas (F)', 'Días Asistidos (A)', 'Total de Días Parcial']];
+
       doc.autoTable({
         startY: asistY,
-        head: [['Faltas Justificadas (J)', 'Faltas Injustificadas (F)', 'Días Asistidos (A)', 'Total de Días Parcial']],
+        head: headAsist,
         body: [[
           est.asistencia.faltasJust,
           est.asistencia.faltasInjust,
@@ -930,13 +983,12 @@
         ]],
         margin: { left: 12, right: 12 },
         theme: 'grid',
-        styles: { fontSize: 7.5, cellPadding: 1.5, halign: 'center' },
+        styles: { fontSize: 7.2, cellPadding: 1.3, halign: 'center' },
         headStyles: { fillColor: [71, 85, 105], textColor: [255, 255, 255], fontStyle: 'bold' }
       });
 
-      // 6. Cuadro de Escalas y Promedio General Dividido
+      // 6. Cuadro de Escalas y Promedio Dividido
       const escalasY = doc.lastAutoTable.finalY + 3;
-
       doc.autoTable({
         startY: escalasY,
         head: [['Eval. Comportamiento', 'Escala Cualitativa y Cuantitativa', 'PROMEDIO GENERAL']],
@@ -951,31 +1003,21 @@
         theme: 'grid',
         styles: { fontSize: 6.8, cellPadding: 1.2 },
         headStyles: { fillColor: [15, 23, 42], textColor: [255, 255, 255], fontStyle: 'bold', halign: 'center' },
-        columnStyles: {
-          0: { cellWidth: 45 },
-          1: { cellWidth: 100 },
-          2: { cellWidth: 41 }
-        },
+        columnStyles: { 0: { cellWidth: 45 }, 1: { cellWidth: 100 }, 2: { cellWidth: 41 } },
         didDrawCell: function (data) {
           if (data.column.index === 2 && data.row.index === 0 && data.section === 'body') {
-            const x = data.cell.x;
-            const y = data.cell.y;
-            const w = data.cell.width;
-            const h = data.cell.height;
+            const x = data.cell.x, y = data.cell.y, w = data.cell.width, h = data.cell.height;
             const midY = y + (h / 2);
 
-            // Número cuantitativo grande arriba
             doc.setFont('helvetica', 'bold');
             doc.setFontSize(16);
             doc.setTextColor(15, 23, 42);
             doc.text(`${est.promedioGeneral}`, x + (w / 2), y + (h * 0.38), { align: 'center' });
 
-            // Línea divisoria
             doc.setDrawColor(203, 213, 225);
             doc.setLineWidth(0.4);
             doc.line(x + 5, midY, x + w - 5, midY);
 
-            // Letra cualitativa grande abajo
             doc.setFontSize(14);
             doc.setTextColor(13, 110, 253);
             doc.text(`${est.promedioCualitativo}`, x + (w / 2), y + (h * 0.82), { align: 'center' });
@@ -983,32 +1025,31 @@
         }
       });
 
-      // 7. Firmas Oficiales: NOMBRE ARRIBA Y CARGO ABAJO
+      // 7. Firmas: NOMBRE ARRIBA Y CARGO ABAJO
       const firmasY = 262;
       doc.setLineWidth(0.2);
       doc.setDrawColor(100, 116, 139);
 
-      // Líneas de firma
-      doc.line(14, firmasY, 68, firmasY);   // Rector
-      doc.line(78, firmasY, 132, firmasY);  // Secretaria
-      doc.line(142, firmasY, 196, firmasY); // Representante
+      doc.line(14, firmasY, 68, firmasY);
+      doc.line(78, firmasY, 132, firmasY);
+      doc.line(142, firmasY, 196, firmasY);
 
       doc.setFontSize(7.2);
       doc.setTextColor(30, 41, 59);
 
-      // 1. Rector / Director
+      // Rector
       doc.setFont('helvetica', 'bold');
       doc.text('Ing. Dídimo A. Saltos S.', 41, firmasY + 4, { align: 'center' });
       doc.setFont('helvetica', 'normal');
       doc.text('RECTOR / DIRECTOR', 41, firmasY + 8, { align: 'center' });
 
-      // 2. Secretaria General
+      // Secretaria
       doc.setFont('helvetica', 'bold');
       doc.text('C.P.A. Mercedes A. Salamea M.', 105, firmasY + 4, { align: 'center' });
       doc.setFont('helvetica', 'normal');
       doc.text('SECRETARIO/A GENERAL', 105, firmasY + 8, { align: 'center' });
 
-      // 3. Representante Legal
+      // Representante Legal
       doc.setFont('helvetica', 'bold');
       doc.text(est.representanteNombre, 169, firmasY + 4, { align: 'center', maxWidth: 54 });
       doc.setFont('helvetica', 'normal');
@@ -1017,7 +1058,8 @@
         doc.text(est.representanteCedula, 169, firmasY + 11.5, { align: 'center' });
       }
     }
-    // A. Descarga del Consolidado Completo (Todas las libretas juntas en 1 PDF)
+
+    // A. Descarga Consolidada (Todas juntas en 1 PDF)
     async function generarLibretasLotePDF() {
       if (!datosConsolidadoTutoria || datosConsolidadoTutoria.length === 0) return alert('No hay datos para generar libretas.');
 
@@ -1026,7 +1068,7 @@
 
       const cursoId = document.getElementById('selectCurso').value;
       const trimestre = parseInt(document.getElementById('selectTrimestre').value);
-      const parcial = parseInt(document.getElementById('selectParcialTutoria').value);
+      const reporteTipo = document.getElementById('selectParcialTutoria').value;
 
       const cursoInfo = todosCursos.find(c => c.id == cursoId);
       const nombreCursoLargo = (cursoInfo?.nombre_largo_mayuscula || cursoInfo?.nombre || '').toUpperCase();
@@ -1037,14 +1079,15 @@
 
       datosConsolidadoTutoria.forEach((est, idx) => {
         if (idx > 0) doc.addPage();
-        construirPaginaLibreta(doc, est, nombreCursoLargo, trimestre, parcial, nombreRector, imgLogoIzq, imgLogoDer);
+        construirPaginaLibreta(doc, est, nombreCursoLargo, trimestre, reporteTipo, nombreRector, imgLogoIzq, imgLogoDer);
       });
 
       const nombreLimpioCurso = nombreCursoLargo.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
-      doc.save(`CONSOLIDADO_${nombreLimpioCurso}_TRIMESTRE_${trimestre}_PARCIAL_${parcial}.pdf`);
+      const sufijo = (reporteTipo === 'trimestre') ? `TRIMESTRE_${trimestre}` : `TRIMESTRE_${trimestre}_PARCIAL_${reporteTipo}`;
+      doc.save(`CONSOLIDADO_${nombreLimpioCurso}_${sufijo}.pdf`);
     }
 
-    // B. Descarga de la Boleta Individual
+    // B. Descarga Boleta Individual
     async function generarBoletaIndividualPDF(indice) {
       const est = datosConsolidadoTutoria[indice];
       if (!est) return;
@@ -1054,7 +1097,7 @@
 
       const cursoId = document.getElementById('selectCurso').value;
       const trimestre = parseInt(document.getElementById('selectTrimestre').value);
-      const parcial = parseInt(document.getElementById('selectParcialTutoria').value);
+      const reporteTipo = document.getElementById('selectParcialTutoria').value;
 
       const cursoInfo = todosCursos.find(c => c.id == cursoId);
       const nombreCursoLargo = (cursoInfo?.nombre_largo_mayuscula || cursoInfo?.nombre || '').toUpperCase();
@@ -1063,16 +1106,16 @@
       const imgLogoIzq = await obtenerBase64DesdeUrl(infoInstitucion?.logo_izquierdo || infoInstitucion?.logo_institucion);
       const imgLogoDer = await obtenerBase64DesdeUrl(infoInstitucion?.logo_derecho || infoInstitucion?.escudo_nacional);
 
-      construirPaginaLibreta(doc, est, nombreCursoLargo, trimestre, parcial, nombreRector, imgLogoIzq, imgLogoDer);
+      construirPaginaLibreta(doc, est, nombreCursoLargo, trimestre, reporteTipo, nombreRector, imgLogoIzq, imgLogoDer);
 
       const nombreCursoFormat = (cursoInfo?.nombre || nombreCursoLargo).replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
       const nombreEstFormat = est.nombres.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
+      const sufijo = (reporteTipo === 'trimestre') ? `TRIMESTRE_${trimestre}` : `TRIMESTRE_${trimestre}_PARCIAL_${reporteTipo}`;
 
-      // Formato solicitado: NOMBRE DEL CURSO_NOMBRE DEL ESTUDIANTE_TRIMESTRE_PARCIAL.pdf
-      doc.save(`${nombreCursoFormat}_${nombreEstFormat}_TRIMESTRE_${trimestre}_PARCIAL_${parcial}.pdf`);
+      doc.save(`${nombreCursoFormat}_${nombreEstFormat}_${sufijo}.pdf`);
     }
 
-    // C. Descarga de Todas las Boletas Individuales en Archivo ZIP
+    // C. Descarga ZIP de todas las libretas individuales
     async function descargarTodasBoletasEnZip() {
       if (!datosConsolidadoTutoria || datosConsolidadoTutoria.length === 0) return alert('No hay datos para exportar.');
 
@@ -1086,7 +1129,7 @@
 
         const cursoId = document.getElementById('selectCurso').value;
         const trimestre = parseInt(document.getElementById('selectTrimestre').value);
-        const parcial = parseInt(document.getElementById('selectParcialTutoria').value);
+        const reporteTipo = document.getElementById('selectParcialTutoria').value;
 
         const cursoInfo = todosCursos.find(c => c.id == cursoId);
         const nombreCursoLargo = (cursoInfo?.nombre_largo_mayuscula || cursoInfo?.nombre || '').toUpperCase();
@@ -1099,22 +1142,24 @@
         for (let i = 0; i < datosConsolidadoTutoria.length; i++) {
           const est = datosConsolidadoTutoria[i];
           const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-          construirPaginaLibreta(doc, est, nombreCursoLargo, trimestre, parcial, nombreRector, imgLogoIzq, imgLogoDer);
+          construirPaginaLibreta(doc, est, nombreCursoLargo, trimestre, reporteTipo, nombreRector, imgLogoIzq, imgLogoDer);
 
           const nombreEstFormat = est.nombres.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
-          const nombreArchivo = `${nombreCursoFormat}_${nombreEstFormat}_TRIMESTRE_${trimestre}_PARCIAL_${parcial}.pdf`;
+          const sufijo = (reporteTipo === 'trimestre') ? `TRIMESTRE_${trimestre}` : `TRIMESTRE_${trimestre}_PARCIAL_${reporteTipo}`;
+          const nombreArchivo = `${nombreCursoFormat}_${nombreEstFormat}_${sufijo}.pdf`;
 
           const pdfBlob = doc.output('blob');
           zip.file(nombreArchivo, pdfBlob);
         }
 
         const zipBlob = await zip.generateAsync({ type: 'blob' });
-        saveAs(zipBlob, `BOLETAS_INDIVIDUALES_${nombreCursoFormat}_TRIMESTRE_${trimestre}_PARCIAL_${parcial}.zip`);
+        const sufijoZip = (reporteTipo === 'trimestre') ? `TRIMESTRE_${trimestre}` : `TRIMESTRE_${trimestre}_PARCIAL_${reporteTipo}`;
+        saveAs(zipBlob, `BOLETAS_${nombreCursoFormat}_${sufijoZip}.zip`);
       } catch (err) {
-        alert('Error al generar archivo ZIP: ' + err.message);
+        alert('Error al generar ZIP: ' + err.message);
       } finally {
         btn.disabled = false;
-        btn.innerHTML = '<i class="bi bi-file-earmark-zip-fill me-1"></i>Descargar Individuales (ZIP)';
+        btn.innerHTML = '<i class="bi bi-file-earmark-zip-fill me-1"></i>Individuales (ZIP)';
       }
     }
 
@@ -1380,428 +1425,6 @@
       cProm1.className = `prom-i1 fw-bold ${obtenerClaseColor(prom1, true)}`;
       cProm2.className = `prom-i2 fw-bold ${obtenerClaseColor(prom2, true)}`;
       cTotal.className = `nota-parcial fw-bold ${obtenerClaseColor(total, true)}`;
-    }
-
-    // ==========================================
-    // VISTA: ASISTENCIA
-    // ==========================================
-    function generarDiasHabilesRango(fInicioStr, fFinStr) {
-      const dias = [];
-      const nombresDias = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
-      const nombresMeses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
-      let cur = new Date(fInicioStr + 'T00:00:00');
-      const fin = new Date(fFinStr + 'T00:00:00');
-
-      while (cur <= fin) {
-        const day = cur.getDay();
-        if (day !== 0 && day !== 6) {
-          const yyyy = cur.getFullYear();
-          const mm = String(cur.getMonth() + 1).padStart(2, '0');
-          const dd = String(cur.getDate()).padStart(2, '0');
-          dias.push({ iso: `${yyyy}-${mm}-${dd}`, diaNum: dd, nombreDia: nombresDias[day], nombreMes: nombresMeses[cur.getMonth()] });
-        }
-        cur.setDate(cur.getDate() + 1);
-      }
-      return dias;
-    }
-
-    async function cargarVistaAsistencia() {
-      const cursoId = document.getElementById('selectCurso').value;
-      const trimestre = parseInt(document.getElementById('selectTrimestre').value);
-      const parcial = parseInt(document.getElementById('selectParcialAsistencia').value);
-      const contenedor = document.getElementById('contenedorTabla');
-      contenedor.innerHTML = '<div class="py-4 text-center">Cargando sábana de asistencia...</div>';
-
-      const per = periodosAsistencia.find(p => p.trimestre === trimestre && p.parcial === parcial) || { fecha_inicio: '2026-05-04', fecha_fin: '2026-06-19', total_dias_laborados: 34 };
-      diasHabilesParcialActual = generarDiasHabilesRango(per.fecha_inicio, per.fecha_fin);
-
-      const { data: estData } = await supabaseClient.from('estudiantes').select('*').eq('curso_id', cursoId).order('nombres');
-      estudiantes = estData || [];
-
-      const { data: asistData } = await supabaseClient.from('asistencia_estudiantes').select('*').eq('curso_id', cursoId).eq('trimestre', trimestre).eq('parcial', parcial);
-      const asistMap = {};
-      (asistData || []).forEach(a => { asistMap[a.estudiante_id] = a.registro_diario || {}; });
-
-      const mesesColspan = {};
-      diasHabilesParcialActual.forEach(d => { mesesColspan[d.nombreMes] = (mesesColspan[d.nombreMes] || 0) + 1; });
-
-      let thMeses = '';
-      for (const [mes, span] of Object.entries(mesesColspan)) { thMeses += `<th colspan="${span}" class="bg-light text-uppercase fw-bold border-bottom">${mes}</th>`; }
-
-      let thDiasNum = diasHabilesParcialActual.map(d => `
-        <th class="th-dia-asig bg-white p-1">
-          <span class="d-block fw-bold">${d.diaNum}</span>
-          <div class="d-flex justify-content-center gap-1 mt-1">
-            <button type="button" class="btn btn-xs btn-outline-success btn-dia-auto" onclick="llenarDiaColumna('${d.iso}', 'A')">A</button>
-            <button type="button" class="btn btn-xs btn-outline-danger btn-dia-auto" onclick="llenarDiaColumna('${d.iso}', 'F')">F</button>
-            <button type="button" class="btn btn-xs btn-outline-secondary btn-dia-auto" onclick="llenarDiaColumna('${d.iso}', '')">✕</button>
-          </div>
-        </th>`).join('');
-
-      let thDiasNom = diasHabilesParcialActual.map(d => `<th class="th-dia-asig bg-light text-muted" style="font-size:0.58rem;">${d.nombreDia.substring(0,2)}</th>`).join('');
-
-      let html = `
-        <div class="p-2 bg-light border-bottom d-flex justify-content-between align-items-center">
-          <div>
-            <span class="badge bg-primary me-2">Trimestre ${trimestre} - Parcial ${parcial}</span>
-            <small class="fw-bold text-dark">Inicio: ${per.fecha_inicio} | Término: ${per.fecha_fin} | <b>Total Días: ${per.total_dias_laborados}</b></small>
-          </div>
-          <small class="text-muted">Leyenda: <b>A</b> (Asistencia) | <b>F</b> (Falta) | <b>J</b> (Justificada)</small>
-        </div>
-
-        <table class="table table-bordered table-sm mb-0 align-middle">
-          <thead>
-            <tr>
-              <th rowspan="3" class="sticky-col-num">N°</th>
-              <th rowspan="3" class="sticky-col-nombre text-center">NÓMINA DE ESTUDIANTES</th>
-              ${thMeses}
-              <th colspan="3" class="bg-primary text-white">SUMAN</th>
-              <th rowspan="3" class="bg-success text-white" style="width: 50px;">TOTAL</th>
-              <th rowspan="3" class="bg-secondary text-white" style="width: 60px;">DÍAS FALTANTES</th>
-            </tr>
-            <tr>
-              ${thDiasNum}
-              <th rowspan="2" class="bg-light text-success fw-bold" style="width: 35px;">A</th>
-              <th rowspan="2" class="bg-light text-danger fw-bold" style="width: 35px;">F</th>
-              <th rowspan="2" class="bg-light text-primary fw-bold" style="width: 35px;">J</th>
-            </tr>
-            <tr>${thDiasNom}</tr>
-          </thead>
-          <tbody id="tablaCuerpoAsistencia">
-            ${estudiantes.map((est, idx) => {
-              const regEst = asistMap[est.id] || {};
-              const celdasDias = diasHabilesParcialActual.map(d => {
-                const val = (regEst[d.iso] || '').toUpperCase();
-                let claseColor = val === 'A' ? 'asig-a' : (val === 'F' ? 'asig-f' : (val === 'J' ? 'asig-j' : ''));
-                return `<td class="p-0"><input type="text" readonly class="cell-asig-input ${claseColor}" data-iso="${d.iso}" value="${val}" onclick="alternarEstadoAsistencia(this)"></td>`;
-              }).join('');
-
-              return `
-                <tr data-est-id="${est.id}">
-                  <td class="sticky-col-num fw-bold text-muted">${idx + 1}</td>
-                  <td class="sticky-col-nombre" title="${est.nombres}">${est.nombres}</td>
-                  ${celdasDias}
-                  <td class="sum-a fw-bold text-success">0</td>
-                  <td class="sum-f fw-bold text-danger">0</td>
-                  <td class="sum-j fw-bold text-primary">0</td>
-                  <td class="total-asist fw-bold bg-light">0</td>
-                  <td class="dias-faltantes fw-bold text-muted">${per.total_dias_laborados}</td>
-                </tr>
-              `;
-            }).join('')}
-          </tbody>
-        </table>
-      `;
-
-      contenedor.innerHTML = html;
-      document.querySelectorAll('#tablaCuerpoAsistencia tr').forEach(fila => calcularFilaAsistencia(fila));
-    }
-
-    function alternarEstadoAsistencia(input) {
-      const actual = input.value.toUpperCase();
-      let siguiente = actual === '' ? 'A' : (actual === 'A' ? 'F' : (actual === 'F' ? 'J' : ''));
-      input.value = siguiente;
-      input.className = 'cell-asig-input';
-      if (siguiente === 'A') input.classList.add('asig-a');
-      else if (siguiente === 'F') input.classList.add('asig-f');
-      else if (siguiente === 'J') input.classList.add('asig-j');
-      calcularFilaAsistencia(input.closest('tr'));
-    }
-
-    function calcularFilaAsistencia(tr) {
-      const inputs = Array.from(tr.querySelectorAll('.cell-asig-input'));
-      let a = 0, f = 0, j = 0;
-      inputs.forEach(inp => {
-        const v = inp.value.toUpperCase();
-        if (v === 'A') a++; else if (v === 'F') f++; else if (v === 'J') j++;
-      });
-
-      const trimestre = parseInt(document.getElementById('selectTrimestre').value);
-      const parcial = parseInt(document.getElementById('selectParcialAsistencia').value);
-      const per = periodosAsistencia.find(p => p.trimestre === trimestre && p.parcial === parcial);
-      const metaDias = per ? per.total_dias_laborados : diasHabilesParcialActual.length;
-      const faltantes = Math.max(metaDias - a, 0);
-
-      tr.querySelector('.sum-a').innerText = a;
-      tr.querySelector('.sum-f').innerText = f;
-      tr.querySelector('.sum-j').innerText = j;
-      tr.querySelector('.total-asist').innerText = a;
-      tr.querySelector('.dias-faltantes').innerText = faltantes;
-    }
-
-    function llenarDiaColumna(fechaIso, tipo) {
-      document.querySelectorAll(`#tablaCuerpoAsistencia .cell-asig-input[data-iso="${fechaIso}"]`).forEach(inp => {
-        inp.value = tipo;
-        inp.className = 'cell-asig-input';
-        if (tipo === 'A') inp.classList.add('asig-a');
-        else if (tipo === 'F') inp.classList.add('asig-f');
-      });
-      document.querySelectorAll('#tablaCuerpoAsistencia tr').forEach(fila => calcularFilaAsistencia(fila));
-    }
-
-    function llenarTodoConAsistencia() {
-      document.querySelectorAll('#tablaCuerpoAsistencia .cell-asig-input').forEach(inp => {
-        inp.value = 'A';
-        inp.className = 'cell-asig-input asig-a';
-      });
-      document.querySelectorAll('#tablaCuerpoAsistencia tr').forEach(fila => calcularFilaAsistencia(fila));
-    }
-
-    function limpiarTodaAsistencia() {
-      if (!confirm('¿Desea poner en blanco todas las casillas de este parcial?')) return;
-      document.querySelectorAll('#tablaCuerpoAsistencia .cell-asig-input').forEach(inp => {
-        inp.value = '';
-        inp.className = 'cell-asig-input';
-      });
-      document.querySelectorAll('#tablaCuerpoAsistencia tr').forEach(fila => calcularFilaAsistencia(fila));
-    }
-
-    async function guardarAsistencia() {
-      const cursoId = parseInt(document.getElementById('selectCurso').value);
-      const trimestre = parseInt(document.getElementById('selectTrimestre').value);
-      const parcial = parseInt(document.getElementById('selectParcialAsistencia').value);
-      const btn = document.getElementById('btnGuardarAsist');
-
-      btn.disabled = true;
-      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Guardando...';
-
-      try {
-        const filas = document.querySelectorAll('#tablaCuerpoAsistencia tr');
-        const payload = [];
-
-        filas.forEach(tr => {
-          const estId = parseInt(tr.getAttribute('data-est-id'));
-          if (estId) {
-            const regDiario = {};
-            tr.querySelectorAll('.cell-asig-input').forEach(inp => {
-              const iso = inp.getAttribute('data-iso');
-              if (inp.value) regDiario[iso] = inp.value.toUpperCase();
-            });
-
-            payload.push({
-              curso_id: cursoId,
-              estudiante_id: estId,
-              trimestre: trimestre,
-              parcial: parcial,
-              registro_diario: regDiario,
-              total_asistencias: parseInt(tr.querySelector('.sum-a').innerText) || 0,
-              total_faltas: parseInt(tr.querySelector('.sum-f').innerText) || 0,
-              total_justificadas: parseInt(tr.querySelector('.sum-j').innerText) || 0,
-              total_dias: parseInt(tr.querySelector('.total-asist').innerText) || 0,
-              dias_faltantes: parseInt(tr.querySelector('.dias-faltantes').innerText) || 0
-            });
-          }
-        });
-
-        const { error } = await supabaseClient.from('asistencia_estudiantes').upsert(payload, { onConflict: 'curso_id,estudiante_id,trimestre,parcial' });
-        if (error) throw error;
-        alert('¡Control de Asistencia guardado con éxito!');
-      } catch (err) {
-        alert('Error: ' + err.message);
-      } finally {
-        btn.disabled = false;
-        btn.innerText = '💾 Guardar';
-      }
-    }
-
-    // ==========================================
-    // COMPORTAMIENTO
-    // ==========================================
-    async function cargarVistaComportamiento(parcialNum) {
-      const asigId = document.getElementById('selectMateria').value;
-      const trimestre = parseInt(document.getElementById('selectTrimestre').value);
-      const contenedor = document.getElementById('contenedorTabla');
-      contenedor.innerHTML = `<div class="py-4 text-center">Cargando comportamiento (Parcial ${parcialNum})...</div>`;
-
-      const asig = todasAsignaciones.find(a => a.id == asigId);
-      const { data: estData } = await supabaseClient.from('estudiantes').select('*').eq('curso_id', asig.curso_id).order('nombres');
-      estudiantes = estData || [];
-
-      const { data: compData } = await supabaseClient.from('comportamiento_parcial').select('*').eq('asignacion_id', asigId).eq('trimestre', trimestre).eq('parcial', parcialNum);
-      const compMap = {};
-      (compData || []).forEach(c => { compMap[c.estudiante_id] = c; });
-
-      let html = `
-        <table class="table table-bordered table-sm mb-0 align-middle">
-          <thead>
-            <tr>
-              <th rowspan="2" class="sticky-col-num">N°</th>
-              <th rowspan="2" class="sticky-col-nombre text-center">NÓMINA / INDICADORES</th>
-              <th>Puntualidad</th>
-              <th colspan="3">Limpieza</th>
-              <th colspan="2">Respeto y Consideración</th>
-              <th colspan="2">Valoración Diversidad</th>
-              <th>Patrimonio</th>
-              <th>Propiedad</th>
-              <th rowspan="2" class="bg-prom-ins" style="width: 75px;">TOTAL CUANT.</th>
-              <th rowspan="2" class="bg-nota-final" style="width: 75px;">TOTAL CUALIT.</th>
-            </tr>
-            <tr class="bg-light">
-              <th class="th-comp-ind">1. Asiste puntual</th>
-              <th class="th-comp-ind">2. Aseo personal</th>
-              <th class="th-comp-ind">3. Aseo lugar trab.</th>
-              <th class="th-comp-ind">4. Aseo del aula</th>
-              <th class="th-comp-ind">5. Saludo cordial</th>
-              <th class="th-comp-ind">6. Evita leng. soez</th>
-              <th class="th-comp-ind">7. Leng. no agresivo</th>
-              <th class="th-comp-ind">8. Tolerancia div.</th>
-              <th class="th-comp-ind">9. Cuida infraest.</th>
-              <th class="th-comp-ind">10. Respeta objeto</th>
-            </tr>
-          </thead>
-          <tbody id="tablaCuerpoComp">
-            ${estudiantes.map((est, idx) => {
-              const c = compMap[est.id] || {};
-              const v = (val) => val !== undefined && val !== null ? val : '10';
-
-              return `
-                <tr data-estudiante-id="${est.id}">
-                  <td class="sticky-col-num fw-bold text-muted">${idx + 1}</td>
-                  <td class="sticky-col-nombre" title="${est.nombres}">${est.nombres}</td>
-                  <td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind1" value="${v(c.ind1)}" oninput="validarYCalcularComp(this)"></td>
-                  <td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind2" value="${v(c.ind2)}" oninput="validarYCalcularComp(this)"></td>
-                  <td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind3" value="${v(c.ind3)}" oninput="validarYCalcularComp(this)"></td>
-                  <td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind4" value="${v(c.ind4)}" oninput="validarYCalcularComp(this)"></td>
-                  <td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind5" value="${v(c.ind5)}" oninput="validarYCalcularComp(this)"></td>
-                  <td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind6" value="${v(c.ind6)}" oninput="validarYCalcularComp(this)"></td>
-                  <td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind7" value="${v(c.ind7)}" oninput="validarYCalcularComp(this)"></td>
-                  <td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind8" value="${v(c.ind8)}" oninput="validarYCalcularComp(this)"></td>
-                  <td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind9" value="${v(c.ind9)}" oninput="validarYCalcularComp(this)"></td>
-                  <td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind10" value="${v(c.ind10)}" oninput="validarYCalcularComp(this)"></td>
-                  <td class="total-cuant fw-bold">10.00</td>
-                  <td class="total-cualit fw-bold">A</td>
-                </tr>
-              `;
-            }).join('')}
-          </tbody>
-        </table>
-      `;
-
-      contenedor.innerHTML = html;
-      document.querySelectorAll('#tablaCuerpoComp tr').forEach(fila => calcularFilaComp(fila));
-    }
-
-    function validarYCalcularComp(input) {
-      if (parseFloat(input.value) > 10) input.value = 10;
-      if (parseFloat(input.value) < 0) input.value = 0;
-      calcularFilaComp(input.closest('tr'));
-    }
-
-    function calcularFilaComp(tr) {
-      const inputs = Array.from(tr.querySelectorAll('.comp-ind'));
-      const valores = inputs.map(i => parseFloat(i.value)).filter(n => !isNaN(n));
-      const promedio = valores.length > 0 ? (valores.reduce((a, b) => a + b, 0) / valores.length) : 0;
-      const cualitativo = convertirCualitativo(promedio);
-
-      const celdaCuant = tr.querySelector('.total-cuant');
-      const celdaCualit = tr.querySelector('.total-cualit');
-
-      celdaCuant.innerText = promedio.toFixed(2);
-      celdaCualit.innerText = cualitativo;
-
-      celdaCuant.className = `total-cuant fw-bold ${obtenerClaseColor(promedio, true)}`;
-      celdaCualit.className = `total-cualit fw-bold ${obtenerClaseColor(promedio, true)}`;
-    }
-
-    function llenarTodoCon10Comportamiento() {
-      document.querySelectorAll('#tablaCuerpoComp .comp-ind').forEach(inp => { inp.value = '10'; });
-      document.querySelectorAll('#tablaCuerpoComp tr').forEach(fila => calcularFilaComp(fila));
-    }
-
-    // ==========================================
-    // RESUMEN TRIMESTRAL
-    // ==========================================
-    async function cargarVistaResumenTrimestre() {
-      const asigId = document.getElementById('selectMateria').value;
-      const trimestre = parseInt(document.getElementById('selectTrimestre').value);
-      const contenedor = document.getElementById('contenedorTabla');
-      contenedor.innerHTML = '<div class="py-4 text-center">Cargando consolidado del trimestre...</div>';
-
-      const asig = todasAsignaciones.find(a => a.id == asigId);
-      const { data: estData } = await supabaseClient.from('estudiantes').select('*').eq('curso_id', asig.curso_id).order('nombres');
-      estudiantes = estData || [];
-
-      const { data: pData } = await supabaseClient.from('notas_parcial_actividades').select('*').eq('asignacion_id', asigId).eq('trimestre', trimestre);
-      const notasP1 = {}, notasP2 = {};
-      (pData || []).forEach(n => {
-        if (n.parcial === 1) notasP1[n.estudiante_id] = n.nota_parcial || 0;
-        if (n.parcial === 2) notasP2[n.estudiante_id] = n.nota_parcial || 0;
-      });
-
-      const { data: compData } = await supabaseClient.from('comportamiento_parcial').select('*').eq('asignacion_id', asigId).eq('trimestre', trimestre);
-      const compP1 = {}, compP2 = {};
-      (compData || []).forEach(c => {
-        if (c.parcial === 1) compP1[c.estudiante_id] = parseFloat(c.total_cuantitativo) || 0;
-        if (c.parcial === 2) compP2[c.estudiante_id] = parseFloat(c.total_cuantitativo) || 0;
-      });
-
-      const { data: tData } = await supabaseClient.from('notas_trimestre').select('*').eq('asignacion_id', asigId).eq('trimestre', trimestre);
-      const trimMap = {};
-      (tData || []).forEach(t => { trimMap[t.estudiante_id] = t; });
-
-      let html = `
-        <table class="table table-bordered table-sm mb-0 align-middle">
-          <thead class="table-dark">
-            <tr>
-              <th class="sticky-col-num">No.</th>
-              <th class="sticky-col-nombre text-center">Nómina del Estudiante</th>
-              <th style="width: 90px;">Parcial 1 (35%)</th>
-              <th style="width: 90px;">Parcial 2 (35%)</th>
-              <th class="bg-examen" style="width: 100px;">Examen (30%)</th>
-              <th style="width: 110px;">Total Trimestre</th>
-              <th style="width: 110px;">Comp. Trimestral</th>
-            </tr>
-          </thead>
-          <tbody id="tablaCuerpoTrimestre">
-            ${estudiantes.map((est, idx) => {
-              const p1 = parseFloat(notasP1[est.id] || 0);
-              const p2 = parseFloat(notasP2[est.id] || 0);
-              const tInfo = trimMap[est.id] || {};
-              const ex = tInfo.examen !== undefined && tInfo.examen !== null ? tInfo.examen : '';
-
-              const cp1 = compP1[est.id] !== undefined ? compP1[est.id] : 10;
-              const cp2 = compP2[est.id] !== undefined ? compP2[est.id] : 10;
-              const compPromNum = (cp1 + cp2) / 2;
-              const compCualit = convertirCualitativo(compPromNum);
-
-              return `
-                <tr data-estudiante-id="${est.id}" data-comp-num="${compPromNum.toFixed(2)}" data-comp-letra="${compCualit}">
-                  <td class="sticky-col-num fw-bold text-muted">${idx + 1}</td>
-                  <td class="sticky-col-nombre" title="${est.nombres}">${est.nombres}</td>
-                  <td class="p1-val">${p1.toFixed(2)}</td>
-                  <td class="p2-val">${p2.toFixed(2)}</td>
-                  <td><input type="number" step="0.5" min="0" max="10" class="form-control form-control-sm input-nota-app nota-examen" value="${ex}" oninput="validarYCalcularTrimestre(this)"></td>
-                  <td class="total-trimestre">0.00</td>
-                  <td class="comp-trimestral-badge fw-bold">${compPromNum.toFixed(2)} (${compCualit})</td>
-                </tr>
-              `;
-            }).join('')}
-          </tbody>
-        </table>
-      `;
-
-      contenedor.innerHTML = html;
-      document.querySelectorAll('#tablaCuerpoTrimestre tr').forEach(fila => calcularFilaTrimestre(fila));
-    }
-
-    function validarYCalcularTrimestre(input) {
-      if (parseFloat(input.value) > 10) input.value = 10;
-      if (parseFloat(input.value) < 0) input.value = 0;
-      calcularFilaTrimestre(input.closest('tr'));
-    }
-
-    function calcularFilaTrimestre(tr) {
-      const p1 = parseFloat(tr.querySelector('.p1-val').innerText) || 0;
-      const p2 = parseFloat(tr.querySelector('.p2-val').innerText) || 0;
-      const inputEx = tr.querySelector('.nota-examen');
-      const ex = parseFloat(inputEx.value) || 0;
-
-      inputEx.className = `form-control form-control-sm input-nota-app nota-examen ${obtenerClaseColor(inputEx.value, false)}`;
-
-      const total = (p1 * 0.35) + (p2 * 0.35) + (ex * 0.30);
-      const celdaTotal = tr.querySelector('.total-trimestre');
-      celdaTotal.innerText = total.toFixed(2);
-      celdaTotal.className = `total-trimestre fw-bold ${obtenerClaseColor(total, true)}`;
     }
 
     // ==========================================
