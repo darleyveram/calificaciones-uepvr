@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sistema de Calificaciones y Asistencia</title>
+  <title>Sistema de Calificaciones y Asistencia - UEPVR</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -96,7 +96,7 @@
           <img id="loginLogoDer" class="logo-login d-none" alt="Escudo">
         </div>
         <h5 class="mb-0 fw-bold header-nombre-inst">UEP Vicente Rocafuerte</h5>
-        <small class="header-lema-inst text-light">Portal Docente y Asistencia</small>
+        <small class="header-lema-inst text-light">Portal Docente</small>
       </div>
       <div class="card-body p-4">
         <form onsubmit="iniciarSesion(event)">
@@ -151,15 +151,16 @@
       <div class="card-body py-2">
         <div class="row g-2 align-items-center">
           
-          <div class="col-md-2">
+          <!-- Selector de Modo (Solo visible si tiene permiso) -->
+          <div class="col-md-2" id="boxModo">
             <label class="form-label mb-1 fw-bold">Modo del Sistema:</label>
             <select id="selectModo" class="form-select form-select-sm fw-bold border-primary text-primary" onchange="alCambiarModo()">
               <option value="calificaciones">📘 Calificaciones Académicas</option>
-              <option value="asistencia">📅 Control Diario de Asistencia</option>
+              <option value="asistencia" id="optModoAsistencia" class="d-none">📅 Control Diario de Asistencia</option>
             </select>
           </div>
 
-          <div class="col-md-2">
+          <div class="col-md-2" id="boxCurso">
             <label class="form-label mb-1 fw-bold">Curso / Grado:</label>
             <select id="selectCurso" class="form-select form-select-sm" onchange="alCambiarCurso()">
               <option value="">Seleccione curso...</option>
@@ -173,7 +174,7 @@
             </select>
           </div>
           
-          <div class="col-md-2">
+          <div class="col-md-2" id="boxTrimestre">
             <label class="form-label mb-1 fw-bold">Trimestre / Ciclo:</label>
             <select id="selectTrimestre" class="form-select form-select-sm" onchange="cambiarFiltro()">
               <option value="1">Trimestre 1</option>
@@ -322,6 +323,20 @@
         document.getElementById('seccionApp').classList.remove('d-none');
         document.getElementById('usuarioConectado').innerText = `Docente: ${nombreDocente}`;
         
+        // Control de visibilidad del Módulo de Asistencia
+        const puedeVerAsistencia = (perfil?.rol === 'admin' || perfil?.puede_gestionar_asistencia === true);
+        const optAsist = document.getElementById('optModoAsistencia');
+        const boxModo = document.getElementById('boxModo');
+
+        if (puedeVerAsistencia) {
+          optAsist.classList.remove('d-none');
+          boxModo.classList.remove('d-none');
+        } else {
+          optAsist.classList.add('d-none');
+          boxModo.classList.add('d-none'); // Se oculta el selector de modo para docentes regulares
+          document.getElementById('selectModo').value = 'calificaciones';
+        }
+
         await cargarCatalogo();
         await cargarPeriodosAsistenciaDB();
         await cargarCursosYMaterias(session.user.id, perfil?.rol, perfil?.puede_gestionar_asistencia);
@@ -390,6 +405,14 @@
       const optAnual = document.getElementById('optTrimAnual');
       const selectCurso = document.getElementById('selectCurso');
 
+      // Seguridad en cliente: Si no está autorizado y el modo es asistencia, forzar calificaciones
+      const puedeVerAsistencia = (usuarioActualPerfil?.rol === 'admin' || usuarioActualPerfil?.puede_gestionar_asistencia === true);
+      if (modo === 'asistencia' && !puedeVerAsistencia) {
+        document.getElementById('selectModo').value = 'calificaciones';
+        alCambiarModo();
+        return;
+      }
+
       if (modo === 'asistencia') {
         boxMateria.classList.add('d-none');
         boxVista.classList.add('d-none');
@@ -399,7 +422,7 @@
           document.getElementById('selectTrimestre').value = '1';
         }
 
-        const cursosDisponibles = (usuarioActualPerfil?.rol === 'admin' || usuarioActualPerfil?.puede_gestionar_asistencia) 
+        const cursosDisponibles = puedeVerAsistencia
           ? todosCursos 
           : Array.from(new Map(todasAsignaciones.map(a => [a.cursos.id, a.cursos])).values());
 
@@ -482,6 +505,7 @@
         return;
       }
 
+      // Modo Calificaciones
       if (trimestreVal === 'anual') {
         document.getElementById('boxVista').classList.add('d-none');
         accAnual.classList.remove('d-none');
@@ -772,7 +796,7 @@
     }
 
     // ==========================================
-    // VISTA: ASISTENCIA
+    // VISTA: CONTROL DIARIO DE ASISTENCIA
     // ==========================================
     function generarDiasHabilesRango(fInicioStr, fFinStr) {
       const dias = [];
@@ -1034,7 +1058,7 @@
         if (error) throw error;
         alert('¡Control de Asistencia guardado con éxito!');
       } catch (err) {
-        alert('Error: ' + err.message);
+        alert('Error al guardar asistencia: ' + err.message);
       } finally {
         btn.disabled = false;
         btn.innerText = '💾 Guardar';
