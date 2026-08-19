@@ -380,13 +380,13 @@
 
     async function cargarCursosYMaterias(userId, userRol, puedeAsistencia) {
       if (userRol === 'admin' || puedeAsistencia) {
-        const { data: cData } = await supabaseClient.from('cursos').select('id, nombre').order('id');
+        const { data: cData } = await supabaseClient.from('cursos').select('id, nombre, nombre_largo_mayuscula').order('id');
         todosCursos = cData || [];
       }
 
       let query = supabaseClient.from('curso_materia_docente').select(`
         id, curso_id, materia_id, docente_id, docente_id_2, docente_id_3, es_optativa,
-        cursos(id, nombre),
+        cursos(id, nombre, nombre_largo_mayuscula),
         materias(id, nombre)
       `);
 
@@ -1397,35 +1397,52 @@
     // ==========================================
     // EXPORTACIÓN OFICIAL DE PDF RESUMEN ANUAL
     // ==========================================
-    // Función auxiliar para convertir URL de imagen (incluyendo Google Drive) a Base64
+    // Conversor universal de imágenes a Base64 con soporte para Google Drive CDN y DataURL
     async function obtenerBase64DesdeUrl(url) {
       if (!url) return null;
-      try {
+      
+      // Si ya es un Base64 guardado localmente
+      if (url.startsWith('data:image')) {
+        return url;
+      }
+
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.crossOrigin = 'Anonymous';
+        
+        img.onload = function () {
+          try {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.naturalWidth || img.width;
+            canvas.height = img.naturalHeight || img.height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+            resolve(canvas.toDataURL('image/png'));
+          } catch (err) {
+            console.warn('Error al procesar canvas:', err);
+            resolve(null);
+          }
+        };
+
+        img.onerror = function () {
+          console.warn('No se pudo cargar la imagen externa:', url);
+          resolve(null);
+        };
+
+        // Convertir URL de Google Drive a CDN directo con permisos CORS abiertos
         let urlFinal = url;
-        // Si es enlace compartido de Google Drive, convertirlo a thumbnail público
-        if (url.includes('drive.google.com') && url.includes('/d/')) {
-          const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+        if (url.includes('drive.google.com')) {
+          const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/) || url.match(/id=([a-zA-Z0-9_-]+)/);
           if (match && match[1]) {
-            urlFinal = `https://drive.google.com/thumbnail?id=${match[1]}&sz=w1000`;
+            urlFinal = `https://lh3.googleusercontent.com/d/${match[1]}`;
           }
         }
-
-        const res = await fetch(urlFinal, { mode: 'cors' });
-        const blob = await res.blob();
-        return new Promise((resolve) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result);
-          reader.onerror = () => resolve(null);
-          reader.readAsDataURL(blob);
-        });
-      } catch (e) {
-        console.warn('No se pudo cargar la imagen para el PDF:', url);
-        return null;
-      }
+        img.src = urlFinal;
+      });
     }
 
     // ==========================================
-    // EXPORTACIÓN OFICIAL DE PDF RESUMEN ANUAL CORREGIDA
+    // EXPORTACIÓN OFICIAL DE PDF RESUMEN ANUAL
     // ==========================================
     async function exportarResumenAnualPDF() {
       if (!datosResumenAnualActual || datosResumenAnualActual.length === 0) {
@@ -1445,7 +1462,7 @@
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
 
-        // 1. Obtener datos institucionales completos
+        // 1. Obtener datos institucionales
         const nomArriba = (infoInstitucion?.nombre_arriba || 'Unidad Educativa Particular').toUpperCase();
         const nomAbajo = (infoInstitucion?.nombre_abajo || '"Vicente Rocafuerte"').toUpperCase();
         const periodo = infoInstitucion?.periodo_lectivo || '2026-2027';
@@ -1455,7 +1472,7 @@
         const dir1 = infoInstitucion?.direccion_1 || 'Pichincha - Manabí - Ecuador';
         const frase1 = infoInstitucion?.frase_1 ? `"${infoInstitucion.frase_1}"` : '';
 
-        // 2. Obtener Nombre del Curso (usando todosCursos o asig.cursos)
+        // 2. Obtener Nombre Largo del Curso
         const cursoEncontrado = (todosCursos && todosCursos.length > 0) 
           ? todosCursos.find(c => c.id === asig.curso_id) 
           : asig.cursos;
@@ -1541,10 +1558,10 @@
 
             // A. LOGOS IZQUIERDO Y DERECHO
             if (imgLogoIzq) {
-              try { doc.addImage(imgLogoIzq, 'PNG', 12, 8, 20, 20); } catch(e){}
+              try { doc.addImage(imgLogoIzq, 'PNG', 12, 7, 22, 22); } catch(e){}
             }
             if (imgLogoDer) {
-              try { doc.addImage(imgLogoDer, 'PNG', 265, 8, 20, 20); } catch(e){}
+              try { doc.addImage(imgLogoDer, 'PNG', 263, 7, 22, 22); } catch(e){}
             }
 
             // B. MEMBRETE INSTITUCIONAL
