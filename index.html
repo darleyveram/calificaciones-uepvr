@@ -801,7 +801,7 @@
     }
 
     // =========================================================================
-    // CONSTRUCTOR DEL PDF DE LIBRETA (REUTILIZABLE)
+    // CONSTRUCTOR DEL PDF DE LIBRETA (CON SEPARACIÓN Y PROMEDIO DIVIDIDO)
     // =========================================================================
     function construirPaginaLibreta(doc, est, cursoNombreLargo, trimestre, parcial, nombreRector, imgLogoIzq, imgLogoDer) {
       const nomArriba = (infoInstitucion?.nombre_arriba || 'Unidad Educativa Particular').toUpperCase();
@@ -817,7 +817,7 @@
       if (imgLogoIzq) { try { doc.addImage(imgLogoIzq, 'PNG', 12, 8, 18, 18); } catch(e){} }
       if (imgLogoDer) { try { doc.addImage(imgLogoDer, 'PNG', 180, 8, 18, 18); } catch(e){} }
 
-      // 2. Membrete
+      // 2. Membrete Institucional
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(10);
       doc.setTextColor(30, 41, 59);
@@ -849,18 +849,32 @@
 
       doc.line(12, 40, 198, 40);
 
-      // 4. Tabla de Materias (Obligatorias primero, Optativas al final)
-      const tableBody = est.materias.map(m => [
-        m.materiaNombre + (m.esOptativa ? ' (Optativa)' : ''),
-        m.notaCualit,
-        m.notaNum
-      ]);
+      // 4. Separación de Materias Obligatorias, Optativas y Comportamiento
+      const obligatorias = est.materias.filter(m => !m.esOptativa);
+      const optativas = est.materias.filter(m => m.esOptativa);
 
-      // Fila de Comportamiento
+      const tableBody = [];
+
+      // A. Asignaturas Obligatorias
+      obligatorias.forEach(m => {
+        tableBody.push([m.materiaNombre, m.notaCualit, m.notaNum]);
+      });
+
+      // B. Asignaturas Optativas separadas
+      if (optativas.length > 0) {
+        tableBody.push([
+          { content: 'ASIGNATURAS OPTATIVAS / CUALITATIVAS', colSpan: 3, styles: { fillColor: [248, 250, 252], textColor: [71, 85, 105], fontStyle: 'bold', fontSize: 7, halign: 'left' } }
+        ]);
+        optativas.forEach(m => {
+          tableBody.push([m.materiaNombre, m.notaCualit, m.notaNum]);
+        });
+      }
+
+      // C. Sección Comportamiento separada
       tableBody.push([
-        `Comportamiento (${est.comportamientoDesc})`,
-        est.comportamientoLetra,
-        est.comportamientoNum
+        { content: `COMPORTAMIENTO: ${est.comportamientoDesc}`, styles: { fontStyle: 'bold', fillColor: [241, 245, 249] } },
+        { content: est.comportamientoLetra, styles: { halign: 'center', fontStyle: 'bold', fillColor: [241, 245, 249] } },
+        { content: est.comportamientoNum, styles: { halign: 'center', fontStyle: 'bold', fillColor: [241, 245, 249] } }
       ]);
 
       doc.autoTable({
@@ -895,17 +909,18 @@
         headStyles: { fillColor: [71, 85, 105], textColor: [255, 255, 255], fontStyle: 'bold' }
       });
 
-      // 6. Cuadro de Escalas y Promedio General
+      // 6. Cuadro de Escalas y Promedio General con División
       const escalasY = doc.lastAutoTable.finalY + 3;
+
       doc.autoTable({
         startY: escalasY,
         head: [['Eval. Comportamiento', 'Escala Cualitativa y Cuantitativa', 'PROMEDIO GENERAL']],
         body: [
-          ['A: Muy Satisfactorio', 'A+ = (10)       C+ = (6-6.99)       E+ = (2-2.99)', { content: `${est.promedioGeneral}`, rowSpan: 5, styles: { valign: 'middle', halign: 'center', fontSize: 13, fontStyle: 'bold', fillColor: [241, 245, 249] } }],
+          ['A: Muy Satisfactorio', 'A+ = (10)       C+ = (6-6.99)       E+ = (2-2.99)', { content: '', rowSpan: 5, styles: { fillColor: [248, 250, 252] } }],
           ['B: Satisfactorio', 'A- = (9-9.99)   C- = (5-5.99)       E- = (1-1.99)', ''],
           ['C: Poco Satisfactorio', 'B+ = (8-8.99)   D+ = (4-4.99)       F = (0-0.99)', ''],
           ['D: Mejorable', 'B- = (7-7.99)   D- = (3-3.99)', ''],
-          ['E: Insatisfactorio', frase1, { content: `${est.promedioCualitativo}`, styles: { halign: 'center', fontStyle: 'bold', fontSize: 10 } }]
+          ['E: Insatisfactorio', frase1, '']
         ],
         margin: { left: 12, right: 12 },
         theme: 'grid',
@@ -915,12 +930,40 @@
           0: { cellWidth: 45 },
           1: { cellWidth: 100 },
           2: { cellWidth: 41 }
+        },
+        didDrawCell: function (data) {
+          // Renderizado del Promedio General Grande y Dividido
+          if (data.column.index === 2 && data.row.index === 0 && data.section === 'body') {
+            const x = data.cell.x;
+            const y = data.cell.y;
+            const w = data.cell.width;
+            const h = data.cell.height;
+
+            const midY = y + (h / 2);
+
+            // Número Cuantitativo Grande (Arriba)
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(16);
+            doc.setTextColor(15, 23, 42);
+            doc.text(`${est.promedioGeneral}`, x + (w / 2), y + (h * 0.38), { align: 'center' });
+
+            // Línea divisoria intermedia
+            doc.setDrawColor(203, 213, 225);
+            doc.setLineWidth(0.4);
+            doc.line(x + 5, midY, x + w - 5, midY);
+
+            // Letra Cualitativa Grande (Abajo)
+            doc.setFontSize(14);
+            doc.setTextColor(13, 110, 253);
+            doc.text(`${est.promedioCualitativo}`, x + (w / 2), y + (h * 0.82), { align: 'center' });
+          }
         }
       });
 
       // 7. Firmas Oficiales
       const firmasY = 262;
       doc.setLineWidth(0.2);
+      doc.setDrawColor(100, 116, 139);
       doc.line(30, firmasY, 85, firmasY);
       doc.line(125, firmasY, 180, firmasY);
 
@@ -938,7 +981,6 @@
       doc.setFont('helvetica', 'normal');
       doc.text(nombreRector, 152.5, firmasY + 8, { align: 'center' });
     }
-
     // A. Descarga del Consolidado Completo (Todas las libretas juntas en 1 PDF)
     async function generarLibretasLotePDF() {
       if (!datosConsolidadoTutoria || datosConsolidadoTutoria.length === 0) return alert('No hay datos para generar libretas.');
