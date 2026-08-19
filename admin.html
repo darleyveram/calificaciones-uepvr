@@ -14,7 +14,7 @@
     .sidebar .nav-link:hover, .sidebar .nav-link.active { color: #fff; background-color: #0d6efd; }
     .card { border: none; border-radius: 8px; box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.075); }
     .table th { font-size: 0.82rem; text-transform: uppercase; background-color: #f8fafc; }
-    .img-preview { width: 110px; height: 110px; object-fit: contain; border: 2px dashed #cbd5e1; border-radius: 6px; padding: 4px; background-color: #fff; }
+    .img-preview { width: 120px; height: 120px; object-fit: contain; border: 2px dashed #cbd5e1; border-radius: 6px; padding: 4px; background-color: #fff; }
     .nav-pills .nav-link.active { background-color: #0d6efd; font-weight: bold; }
   </style>
 </head>
@@ -76,60 +76,96 @@
       <!-- Contenido Principal -->
       <div class="col-md-9 col-lg-10 p-4">
         
-        <!-- MODULO 1: INSTITUCIÓN -->
+        <!-- MODULO 1: INSTITUCIÓN COMPLETO -->
         <div class="modulo" id="mod-institucion">
           <div class="d-flex justify-content-between align-items-center mb-3">
             <div>
-              <h4 class="fw-bold mb-0">Datos de la Institución</h4>
-              <small class="text-muted">Configuración general y firmas institucionales.</small>
+              <h4 class="fw-bold mb-0">Datos Oficiales de la Institución</h4>
+              <small class="text-muted">Parámetros institucionales, territorialidad, autoridades y logotipos para reportes y libretas.</small>
             </div>
             <button class="btn btn-primary btn-sm px-4 fw-bold" id="btnGuardarInst" onclick="guardarDatosInstitucion()"><i class="bi bi-save me-1"></i> Guardar Cambios</button>
           </div>
           
+          <!-- Encabezado y Nombres Institucionales -->
           <div class="card p-3 mb-3">
-            <h6 class="fw-bold text-primary mb-3"><i class="bi bi-info-square me-1"></i> Información General</h6>
+            <h6 class="fw-bold text-primary mb-3"><i class="bi bi-card-heading me-1"></i> Membrete y Nombres Institucionales</h6>
             <form id="formInstitucion" class="row g-3">
               <div class="col-md-6">
-                <label class="form-label fw-semibold">Nombre Institucional</label>
-                <input type="text" id="instNombre" class="form-control form-control-sm" required>
+                <label class="form-label fw-bold">Nombre Institución Arriba</label>
+                <input type="text" id="instNombreArriba" class="form-control form-control-sm" placeholder="Ej: Unidad Educativa Particular" required>
               </div>
-              <div class="col-md-2">
-                <label class="form-label fw-semibold">Código AMIE</label>
-                <input type="text" id="instAmie" class="form-control form-control-sm" required>
+              <div class="col-md-6">
+                <label class="form-label fw-bold">Nombre Institución Abajo</label>
+                <input type="text" id="instNombreAbajo" class="form-control form-control-sm" placeholder='Ej: "Vicente Rocafuerte"' required>
               </div>
-              <div class="col-md-2">
-                <label class="form-label fw-semibold">Circuito</label>
-                <input type="text" id="instCircuito" class="form-control form-control-sm">
+
+              <div class="col-md-6">
+                <label class="form-label fw-bold">Dirección 1</label>
+                <input type="text" id="instDireccion1" class="form-control form-control-sm" placeholder="Ej: Pichincha - Manabí - Ecuador" required>
               </div>
-              <div class="col-md-2">
-                <label class="form-label fw-semibold">Distrito</label>
-                <input type="text" id="instDistrito" class="form-control form-control-sm">
+              <div class="col-md-6">
+                <label class="form-label fw-bold">Dirección 2 (Opcional)</label>
+                <input type="text" id="instDireccion2" class="form-control form-control-sm" placeholder="Sector / Calle / Referencia">
               </div>
-              <div class="col-md-3">
-                <label class="form-label fw-semibold">Cantón</label>
-                <input type="text" id="instCanton" class="form-control form-control-sm">
+
+              <div class="col-md-6">
+                <label class="form-label fw-bold">Frase Institucional 1 (Lema)</label>
+                <input type="text" id="instFrase1" class="form-control form-control-sm" placeholder="Ej: Educación de calidad para la vida, en paz y en democracia.">
               </div>
-              <div class="col-md-3">
-                <label class="form-label fw-semibold">Provincia</label>
-                <input type="text" id="instProvincia" class="form-control form-control-sm">
-              </div>
-              <div class="col-md-3">
-                <label class="form-label fw-semibold">Año Lectivo</label>
-                <input type="text" id="instPeriodo" class="form-control form-control-sm" placeholder="2026-2027">
+              <div class="col-md-6">
+                <label class="form-label fw-bold">Frase Institucional 2 (Opcional)</label>
+                <input type="text" id="instFrase2" class="form-control form-control-sm">
               </div>
             </form>
           </div>
 
+          <!-- Códigos Territoriales y Contacto -->
+          <div class="card p-3 mb-3">
+            <h6 class="fw-bold text-primary mb-3"><i class="bi bi-geo-alt me-1"></i> Códigos Ministeriales y Ubicación</h6>
+            <div class="row g-3">
+              <div class="col-md-3">
+                <label class="form-label fw-bold">Código AMIE</label>
+                <input type="text" id="instAmie" class="form-control form-control-sm" placeholder="13H03021" required>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label fw-bold">Distrito</label>
+                <input type="text" id="instDistrito" class="form-control form-control-sm" placeholder="13D08" required>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label fw-bold">Circuito</label>
+                <input type="text" id="instCircuito" class="form-control form-control-sm" placeholder="13D08C0_b" required>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label fw-bold">Año Lectivo</label>
+                <input type="text" id="instPeriodo" class="form-control form-control-sm" placeholder="2026-2027" required>
+              </div>
+
+              <div class="col-md-4">
+                <label class="form-label fw-bold">Correo Institucional</label>
+                <input type="email" id="instCorreo" class="form-control form-control-sm" placeholder="13H03021@educacion.gob.ec" required>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label fw-bold">Cantón</label>
+                <input type="text" id="instCanton" class="form-control form-control-sm" placeholder="Pichincha">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label fw-bold">Provincia</label>
+                <input type="text" id="instProvincia" class="form-control form-control-sm" placeholder="Manabí">
+              </div>
+            </div>
+          </div>
+
+          <!-- Autoridades y Logotipos -->
           <div class="row g-3 mb-3">
             <div class="col-md-6">
               <div class="card p-3 h-100">
-                <h6 class="fw-bold text-primary mb-3"><i class="bi bi-pen me-1"></i> Autoridades Oficiales</h6>
+                <h6 class="fw-bold text-primary mb-3"><i class="bi bi-pen me-1"></i> Autoridades Firmantes</h6>
                 <div class="mb-3">
-                  <label class="form-label fw-semibold">Rector / Director:</label>
+                  <label class="form-label fw-bold">Rector / Director:</label>
                   <select id="instRectorSelect" class="form-select form-select-sm"></select>
                 </div>
                 <div class="mb-2">
-                  <label class="form-label fw-semibold">Secretario/a General:</label>
+                  <label class="form-label fw-bold">Secretario/a General:</label>
                   <select id="instSecretariaSelect" class="form-select form-select-sm"></select>
                 </div>
               </div>
@@ -137,16 +173,16 @@
 
             <div class="col-md-6">
               <div class="card p-3 h-100">
-                <h6 class="fw-bold text-primary mb-3"><i class="bi bi-images me-1"></i> Logos Oficiales</h6>
+                <h6 class="fw-bold text-primary mb-3"><i class="bi bi-images me-1"></i> Logotipos Oficiales (Izquierdo y Derecho)</h6>
                 <div class="row g-2 text-center">
                   <div class="col-6">
-                    <label class="form-label fw-semibold d-block small">Logo Colegio</label>
-                    <img id="previewLogoColegio" class="img-preview mb-2" src="https://via.placeholder.com/110?text=Logo+Colegio" alt="Logo Colegio">
+                    <label class="form-label fw-bold d-block small">Logo Izquierdo (Colegio)</label>
+                    <img id="previewLogoColegio" class="img-preview mb-2" src="https://via.placeholder.com/120?text=Logo+Izquierdo" alt="Logo Izquierdo">
                     <input type="file" id="fileLogoColegio" class="form-control form-control-sm" accept="image/*" onchange="cargarImagenBase64(this, 'previewLogoColegio')">
                   </div>
                   <div class="col-6">
-                    <label class="form-label fw-semibold d-block small">Escudo Nacional</label>
-                    <img id="previewEscudoNacional" class="img-preview mb-2" src="https://via.placeholder.com/110?text=Escudo+Ecuador" alt="Escudo Nacional">
+                    <label class="form-label fw-bold d-block small">Logo Derecho (Escudo/MinEduc)</label>
+                    <img id="previewEscudoNacional" class="img-preview mb-2" src="https://via.placeholder.com/120?text=Logo+Derecho" alt="Logo Derecho">
                     <input type="file" id="fileEscudoNacional" class="form-control form-control-sm" accept="image/*" onchange="cargarImagenBase64(this, 'previewEscudoNacional')">
                   </div>
                 </div>
@@ -343,14 +379,10 @@
     </div>
   </div>
 
-  <!-- ========================================================================= -->
-  <!-- MODAL INTERACTIVO: REGISTRO / EDICIÓN COMPLETA DEL ESTUDIANTE -->
-  <!-- ========================================================================= -->
+  <!-- MODAL ESTUDIANTE INTEGRAL CON TABS -->
   <div class="modal fade" id="modalEstudianteFicha" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-scrollable">
       <div class="modal-content border-0 shadow">
-        
-        <!-- Cabecera Modal -->
         <div class="modal-header bg-primary text-white py-3">
           <h5 class="modal-title fw-bold" id="modalEstudianteTitulo">
             <i class="bi bi-person-lines-fill me-2"></i>Ficha Integral de Registro Estudiantil
@@ -359,8 +391,6 @@
         </div>
 
         <div class="modal-body p-4">
-          
-          <!-- Pestañas de Navegación -->
           <ul class="nav nav-pills nav-justified mb-4 border rounded p-2 bg-light" id="pills-tab-est" role="tablist">
             <li class="nav-item">
               <button class="nav-link active" id="tab-est-btn" data-bs-toggle="pill" data-bs-target="#tab-est" type="button"><i class="bi bi-person me-1"></i> 1. Estudiante</button>
@@ -381,10 +411,9 @@
 
           <form id="formEstudianteCompleto">
             <input type="hidden" id="fe_id">
-
             <div class="tab-content" id="pills-tabContentEst">
               
-              <!-- 1. DATOS DEL ESTUDIANTE -->
+              <!-- 1. Estudiante -->
               <div class="tab-pane fade show active" id="tab-est">
                 <div class="row g-3">
                   <div class="col-md-3">
@@ -397,7 +426,7 @@
                     </select>
                   </div>
                   <div class="col-md-4">
-                    <label class="form-label fw-bold">Número de Cédula / Identificación</label>
+                    <label class="form-label fw-bold">Número de Identificación</label>
                     <input type="text" class="form-control form-control-sm" id="fe_cedula" placeholder="10 dígitos">
                   </div>
                   <div class="col-md-5">
@@ -433,21 +462,21 @@
                     <input type="text" class="form-control form-control-sm text-uppercase" id="fe_parr_nac">
                   </div>
                   <div class="col-md-12">
-                    <label class="form-label fw-bold">Correo Electrónico del Estudiante</label>
+                    <label class="form-label fw-bold">Correo del Estudiante</label>
                     <input type="email" class="form-control form-control-sm" id="fe_correo">
                   </div>
                 </div>
               </div>
 
-              <!-- 2. DOMICILIO -->
+              <!-- 2. Domicilio -->
               <div class="tab-pane fade" id="tab-dom">
                 <div class="row g-3">
                   <div class="col-md-4">
-                    <label class="form-label fw-bold">Provincia de Residencia</label>
+                    <label class="form-label fw-bold">Provincia</label>
                     <input type="text" class="form-control form-control-sm text-uppercase" id="fe_prov_dom" value="MANABÍ">
                   </div>
                   <div class="col-md-4">
-                    <label class="form-label fw-bold">Cantón de Residencia</label>
+                    <label class="form-label fw-bold">Cantón</label>
                     <input type="text" class="form-control form-control-sm text-uppercase" id="fe_canton_dom" value="PICHINCHA">
                   </div>
                   <div class="col-md-4">
@@ -455,13 +484,13 @@
                     <input type="text" class="form-control form-control-sm text-uppercase" id="fe_parr_dom">
                   </div>
                   <div class="col-md-12">
-                    <label class="form-label fw-bold">Dirección Exacta y Lugares de Referencia</label>
-                    <textarea class="form-control form-control-sm text-uppercase" id="fe_direccion_dom" rows="3" placeholder="Barrio, Calle principal, N° de casa, diagonal a..."></textarea>
+                    <label class="form-label fw-bold">Dirección y Referencia</label>
+                    <textarea class="form-control form-control-sm text-uppercase" id="fe_direccion_dom" rows="3"></textarea>
                   </div>
                 </div>
               </div>
 
-              <!-- 3. REPRESENTANTE LEGAL -->
+              <!-- 3. Representante -->
               <div class="tab-pane fade" id="tab-rep">
                 <div class="row g-3">
                   <div class="col-md-12">
@@ -471,7 +500,7 @@
                     </div>
                   </div>
                   <div class="col-md-4">
-                    <label class="form-label fw-bold">Cédula del Representante</label>
+                    <label class="form-label fw-bold">Cédula</label>
                     <input type="text" class="form-control form-control-sm" id="fe_rep_cedula">
                   </div>
                   <div class="col-md-4">
@@ -486,15 +515,15 @@
                     </select>
                   </div>
                   <div class="col-md-4">
-                    <label class="form-label fw-bold">Teléfono Celular</label>
+                    <label class="form-label fw-bold">Celular</label>
                     <input type="text" class="form-control form-control-sm" id="fe_rep_celular">
                   </div>
                   <div class="col-md-6">
-                    <label class="form-label fw-bold">Apellidos del Representante</label>
+                    <label class="form-label fw-bold">Apellidos</label>
                     <input type="text" class="form-control form-control-sm text-uppercase" id="fe_rep_apellidos">
                   </div>
                   <div class="col-md-6">
-                    <label class="form-label fw-bold">Nombres del Representante</label>
+                    <label class="form-label fw-bold">Nombres</label>
                     <input type="text" class="form-control form-control-sm text-uppercase" id="fe_rep_nombres">
                   </div>
                   <div class="col-md-6">
@@ -508,106 +537,40 @@
                 </div>
               </div>
 
-              <!-- 4. PADRE Y MADRE -->
+              <!-- 4. Padre y Madre -->
               <div class="tab-pane fade" id="tab-padres">
                 <div class="row g-4">
-                  <!-- Columna Padre -->
                   <div class="col-md-6 border-end pe-3">
-                    <h6 class="fw-bold text-primary mb-3"><i class="bi bi-person-fill me-1"></i> Información del Padre</h6>
+                    <h6 class="fw-bold text-primary mb-3"><i class="bi bi-person-fill me-1"></i> Datos del Padre</h6>
                     <div class="row g-2">
-                      <div class="col-md-6">
-                        <label class="form-label small fw-bold">Cédula</label>
-                        <input type="text" class="form-control form-control-sm" id="fe_padre_cedula">
-                      </div>
-                      <div class="col-md-6">
-                        <label class="form-label small fw-bold">Celular</label>
-                        <input type="text" class="form-control form-control-sm" id="fe_padre_celular">
-                      </div>
-                      <div class="col-md-12">
-                        <label class="form-label small fw-bold">Nombres y Apellidos Completos</label>
-                        <input type="text" class="form-control form-control-sm text-uppercase" id="fe_padre_nombres">
-                      </div>
-                      <div class="col-md-12">
-                        <label class="form-label small fw-bold">Correo Electrónico</label>
-                        <input type="email" class="form-control form-control-sm" id="fe_padre_correo">
-                      </div>
-                      <div class="col-md-6">
-                        <label class="form-label small fw-bold">Nivel de Educación</label>
-                        <select class="form-select form-select-sm" id="fe_padre_nivel">
-                          <option value="EDUCACIÓN BÁSICA">Educación Básica</option>
-                          <option value="BACHILLERATO" selected>Bachillerato</option>
-                          <option value="TERCER NIVEL">Tercer Nivel / Universidad</option>
-                          <option value="POSTGRADO">Postgrado</option>
-                        </select>
-                      </div>
-                      <div class="col-md-6">
-                        <label class="form-label small fw-bold">¿Vive con el Estudiante?</label>
-                        <select class="form-select form-select-sm" id="fe_padre_vive">
-                          <option value="SI">SÍ</option>
-                          <option value="NO">NO</option>
-                        </select>
-                      </div>
-                      <div class="col-md-6">
-                        <label class="form-label small fw-bold">Dónde Trabaja</label>
-                        <input type="text" class="form-control form-control-sm text-uppercase" id="fe_padre_trabajo">
-                      </div>
-                      <div class="col-md-6">
-                        <label class="form-label small fw-bold">Profesión / Ocupación</label>
-                        <input type="text" class="form-control form-control-sm text-uppercase" id="fe_padre_profesion">
-                      </div>
+                      <div class="col-md-6"><label class="small fw-bold">Cédula</label><input type="text" class="form-control form-control-sm" id="fe_padre_cedula"></div>
+                      <div class="col-md-6"><label class="small fw-bold">Celular</label><input type="text" class="form-control form-control-sm" id="fe_padre_celular"></div>
+                      <div class="col-md-12"><label class="small fw-bold">Nombres y Apellidos</label><input type="text" class="form-control form-control-sm text-uppercase" id="fe_padre_nombres"></div>
+                      <div class="col-md-12"><label class="small fw-bold">Correo</label><input type="email" class="form-control form-control-sm" id="fe_padre_correo"></div>
+                      <div class="col-md-6"><label class="small fw-bold">Nivel Educación</label><select class="form-select form-select-sm" id="fe_padre_nivel"><option value="EDUCACIÓN BÁSICA">Básica</option><option value="BACHILLERATO" selected>Bachillerato</option><option value="TERCER NIVEL">Tercer Nivel</option><option value="POSTGRADO">Postgrado</option></select></div>
+                      <div class="col-md-6"><label class="small fw-bold">¿Vive con estudiante?</label><select class="form-select form-select-sm" id="fe_padre_vive"><option value="SI">SÍ</option><option value="NO">NO</option></select></div>
+                      <div class="col-md-6"><label class="small fw-bold">Dónde Trabaja</label><input type="text" class="form-control form-control-sm text-uppercase" id="fe_padre_trabajo"></div>
+                      <div class="col-md-6"><label class="small fw-bold">Profesión / Ocupación</label><input type="text" class="form-control form-control-sm text-uppercase" id="fe_padre_profesion"></div>
                     </div>
                   </div>
 
-                  <!-- Columna Madre -->
                   <div class="col-md-6 ps-3">
-                    <h6 class="fw-bold text-primary mb-3"><i class="bi bi-person-hearts me-1"></i> Información de la Madre</h6>
+                    <h6 class="fw-bold text-primary mb-3"><i class="bi bi-person-hearts me-1"></i> Datos de la Madre</h6>
                     <div class="row g-2">
-                      <div class="col-md-6">
-                        <label class="form-label small fw-bold">Cédula</label>
-                        <input type="text" class="form-control form-control-sm" id="fe_madre_cedula">
-                      </div>
-                      <div class="col-md-6">
-                        <label class="form-label small fw-bold">Celular</label>
-                        <input type="text" class="form-control form-control-sm" id="fe_madre_celular">
-                      </div>
-                      <div class="col-md-12">
-                        <label class="form-label small fw-bold">Nombres y Apellidos Completos</label>
-                        <input type="text" class="form-control form-control-sm text-uppercase" id="fe_madre_nombres">
-                      </div>
-                      <div class="col-md-12">
-                        <label class="form-label small fw-bold">Correo Electrónico</label>
-                        <input type="email" class="form-control form-control-sm" id="fe_madre_correo">
-                      </div>
-                      <div class="col-md-6">
-                        <label class="form-label small fw-bold">Nivel de Educación</label>
-                        <select class="form-select form-select-sm" id="fe_madre_nivel">
-                          <option value="EDUCACIÓN BÁSICA">Educación Básica</option>
-                          <option value="BACHILLERATO" selected>Bachillerato</option>
-                          <option value="TERCER NIVEL">Tercer Nivel / Universidad</option>
-                          <option value="POSTGRADO">Postgrado</option>
-                        </select>
-                      </div>
-                      <div class="col-md-6">
-                        <label class="form-label small fw-bold">¿Vive con el Estudiante?</label>
-                        <select class="form-select form-select-sm" id="fe_madre_vive">
-                          <option value="SI">SÍ</option>
-                          <option value="NO">NO</option>
-                        </select>
-                      </div>
-                      <div class="col-md-6">
-                        <label class="form-label small fw-bold">Dónde Trabaja</label>
-                        <input type="text" class="form-control form-control-sm text-uppercase" id="fe_madre_trabajo">
-                      </div>
-                      <div class="col-md-6">
-                        <label class="form-label small fw-bold">Profesión / Ocupación</label>
-                        <input type="text" class="form-control form-control-sm text-uppercase" id="fe_madre_profesion">
-                      </div>
+                      <div class="col-md-6"><label class="small fw-bold">Cédula</label><input type="text" class="form-control form-control-sm" id="fe_madre_cedula"></div>
+                      <div class="col-md-6"><label class="small fw-bold">Celular</label><input type="text" class="form-control form-control-sm" id="fe_madre_celular"></div>
+                      <div class="col-md-12"><label class="small fw-bold">Nombres y Apellidos</label><input type="text" class="form-control form-control-sm text-uppercase" id="fe_madre_nombres"></div>
+                      <div class="col-md-12"><label class="small fw-bold">Correo</label><input type="email" class="form-control form-control-sm" id="fe_madre_correo"></div>
+                      <div class="col-md-6"><label class="small fw-bold">Nivel Educación</label><select class="form-select form-select-sm" id="fe_madre_nivel"><option value="EDUCACIÓN BÁSICA">Básica</option><option value="BACHILLERATO" selected>Bachillerato</option><option value="TERCER NIVEL">Tercer Nivel</option><option value="POSTGRADO">Postgrado</option></select></div>
+                      <div class="col-md-6"><label class="small fw-bold">¿Vive con estudiante?</label><select class="form-select form-select-sm" id="fe_madre_vive"><option value="SI">SÍ</option><option value="NO">NO</option></select></div>
+                      <div class="col-md-6"><label class="small fw-bold">Dónde Trabaja</label><input type="text" class="form-control form-control-sm text-uppercase" id="fe_madre_trabajo"></div>
+                      <div class="col-md-6"><label class="small fw-bold">Profesión / Ocupación</label><input type="text" class="form-control form-control-sm text-uppercase" id="fe_madre_profesion"></div>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <!-- 5. MATRÍCULA Y ASIGNACIÓN DE CURSO -->
+              <!-- 5. Matrícula -->
               <div class="tab-pane fade" id="tab-curso">
                 <div class="row g-3">
                   <div class="col-md-8">
@@ -623,17 +586,14 @@
 
             </div>
           </form>
-
         </div>
 
-        <!-- Pie del Modal -->
         <div class="modal-footer bg-light py-2">
           <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
           <button type="button" class="btn btn-primary btn-sm px-4 fw-bold" id="btnGuardarFichaEstudiante" onclick="guardarFichaEstudianteModal()">
             <i class="bi bi-save me-1"></i> Guardar Ficha
           </button>
         </div>
-
       </div>
     </div>
   </div>
@@ -685,7 +645,7 @@
                 <div class="form-check form-switch p-2 bg-light rounded border">
                   <input class="form-check-input ms-0 me-2" type="checkbox" id="personalPuedeAsistencia">
                   <label class="form-check-label fw-bold text-primary" for="personalPuedeAsistencia">
-                    <i class="bi bi-calendar-check me-1"></i> Autorizado para Configurar Asistencia General
+                    <i class="bi bi-calendar-check me-1"></i> Autorizado para Asistencia General
                   </label>
                 </div>
               </div>
@@ -935,7 +895,9 @@
       materiasList = m || [];
     }
 
-    // 1. Institución
+    // ==========================================
+    // 1. INSTITUCIÓN (CAMPOS COMPLETOS)
+    // ==========================================
     async function cargarDatosInstitucion() {
       await cargarDatosIniciales();
 
@@ -950,19 +912,30 @@
 
       const { data } = await supabaseClient.from('institucion').select('*').eq('id', 1).single();
       if (data) {
-        document.getElementById('instNombre').value = data.nombre || '';
-        document.getElementById('instAmie').value = data.amie || '';
-        document.getElementById('instCircuito').value = data.circuito || '';
-        document.getElementById('instDistrito').value = data.distrito || '';
-        document.getElementById('instCanton').value = data.canton || '';
-        document.getElementById('instProvincia').value = data.provincia || '';
-        document.getElementById('instPeriodo').value = data.periodo_lectivo || '';
+        document.getElementById('instNombreArriba').value = data.nombre_arriba || 'Unidad Educativa Particular';
+        document.getElementById('instNombreAbajo').value = data.nombre_abajo || '"Vicente Rocafuerte"';
+        document.getElementById('instDireccion1').value = data.direccion_1 || 'Pichincha - Manabí - Ecuador';
+        document.getElementById('instDireccion2').value = data.direccion_2 || '';
+        document.getElementById('instFrase1').value = data.frase_1 || 'Educación de calidad para la vida, en paz y en democracia.';
+        document.getElementById('instFrase2').value = data.frase_2 || '';
+
+        document.getElementById('instAmie').value = data.amie || '13H03021';
+        document.getElementById('instDistrito').value = data.distrito || '13D08';
+        document.getElementById('instCircuito').value = data.circuito || '13D08C0_b';
+        document.getElementById('instPeriodo').value = data.periodo_lectivo || '2026-2027';
+        document.getElementById('instCorreo').value = data.correo_institucional || '13H03021@educacion.gob.ec';
+        document.getElementById('instCanton').value = data.canton || 'Pichincha';
+        document.getElementById('instProvincia').value = data.provincia || 'Manabí';
         
         selRector.value = data.rector_id || '';
         selSec.value = data.secretaria_id || '';
 
-        if (data.logo_institucion) document.getElementById('previewLogoColegio').src = data.logo_institucion;
-        if (data.escudo_nacional) document.getElementById('previewEscudoNacional').src = data.escudo_nacional;
+        if (data.logo_izquierdo || data.logo_institucion) {
+          document.getElementById('previewLogoColegio').src = data.logo_izquierdo || data.logo_institucion;
+        }
+        if (data.logo_derecho || data.escudo_nacional) {
+          document.getElementById('previewEscudoNacional').src = data.logo_derecho || data.escudo_nacional;
+        }
       }
     }
 
@@ -971,17 +944,29 @@
       btn.disabled = true;
       btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Guardando...';
 
+      const nombreArriba = document.getElementById('instNombreArriba').value.trim();
+      const nombreAbajo = document.getElementById('instNombreAbajo').value.trim();
+
       const payload = {
-        nombre: document.getElementById('instNombre').value,
-        amie: document.getElementById('instAmie').value,
-        circuito: document.getElementById('instCircuito').value,
-        distrito: document.getElementById('instDistrito').value,
-        canton: document.getElementById('instCanton').value,
-        provincia: document.getElementById('instProvincia').value,
-        periodo_lectivo: document.getElementById('instPeriodo').value,
+        nombre_arriba: nombreArriba,
+        nombre_abajo: nombreAbajo,
+        nombre: `${nombreArriba} ${nombreAbajo}`.trim(),
+        direccion_1: document.getElementById('instDireccion1').value.trim(),
+        direccion_2: document.getElementById('instDireccion2').value.trim(),
+        frase_1: document.getElementById('instFrase1').value.trim(),
+        frase_2: document.getElementById('instFrase2').value.trim(),
+        amie: document.getElementById('instAmie').value.trim(),
+        distrito: document.getElementById('instDistrito').value.trim(),
+        circuito: document.getElementById('instCircuito').value.trim(),
+        periodo_lectivo: document.getElementById('instPeriodo').value.trim(),
+        correo_institucional: document.getElementById('instCorreo').value.trim(),
+        canton: document.getElementById('instCanton').value.trim(),
+        provincia: document.getElementById('instProvincia').value.trim(),
         rector_id: document.getElementById('instRectorSelect').value || null,
         secretaria_id: document.getElementById('instSecretariaSelect').value || null,
+        logo_izquierdo: document.getElementById('previewLogoColegio').src,
         logo_institucion: document.getElementById('previewLogoColegio').src,
+        logo_derecho: document.getElementById('previewEscudoNacional').src,
         escudo_nacional: document.getElementById('previewEscudoNacional').src
       };
 
@@ -990,33 +975,20 @@
       btn.innerHTML = '<i class="bi bi-save me-1"></i> Guardar Cambios';
 
       if (error) alert('Error: ' + error.message);
-      else alert('¡Datos institucionales y logos guardados correctamente!');
+      else alert('¡Datos de la institución guardados con éxito!');
     }
 
     // ==========================================
-    // MÓDULO: CALENDARIO ASISTENCIA
+    // CALENDARIO ASISTENCIA
     // ==========================================
     async function cargarCalendarioAsistencia() {
       const { data } = await supabaseClient.from('asistencia_periodos').select('*').order('trimestre').order('parcial');
       periodosList = data || [];
-
-      if (periodosList.length === 0) {
-        periodosList = [
-          { trimestre: 1, parcial: 1, fecha_inicio: '2026-05-04', fecha_fin: '2026-06-19', dias_no_laborados: 1, total_dias_laborados: 34 },
-          { trimestre: 1, parcial: 2, fecha_inicio: '2026-06-22', fecha_fin: '2026-08-07', dias_no_laborados: 0, total_dias_laborados: 35 },
-          { trimestre: 2, parcial: 1, fecha_inicio: '2026-08-10', fecha_fin: '2026-09-18', dias_no_laborados: 1, total_dias_laborados: 29 },
-          { trimestre: 2, parcial: 2, fecha_inicio: '2026-09-21', fecha_fin: '2026-11-13', dias_no_laborados: 3, total_dias_laborados: 37 },
-          { trimestre: 3, parcial: 1, fecha_inicio: '2026-11-16', fecha_fin: '2026-12-18', dias_no_laborados: 0, total_dias_laborados: 25 },
-          { trimestre: 3, parcial: 2, fecha_inicio: '2026-12-21', fecha_fin: '2027-02-19', dias_no_laborados: 5, total_dias_laborados: 40 }
-        ];
-      }
-
       renderizarTablaPeriodos();
     }
 
     function renderizarTablaPeriodos() {
       const tbody = document.getElementById('tablaPeriodosAsistencia');
-      
       const t1 = (periodosList[0]?.total_dias_laborados || 0) + (periodosList[1]?.total_dias_laborados || 0);
       const t2 = (periodosList[2]?.total_dias_laborados || 0) + (periodosList[3]?.total_dias_laborados || 0);
       const t3 = (periodosList[4]?.total_dias_laborados || 0) + (periodosList[5]?.total_dias_laborados || 0);
@@ -1081,10 +1053,7 @@
         total_dias_laborados: p.total_dias_laborados
       }));
 
-      const { error } = await supabaseClient.from('asistencia_periodos').upsert(payload, {
-        onConflict: 'trimestre,parcial'
-      });
-
+      const { error } = await supabaseClient.from('asistencia_periodos').upsert(payload, { onConflict: 'trimestre,parcial' });
       if (error) alert('Error: ' + error.message);
       else alert('¡Calendario de asistencia guardado con éxito!');
     }
@@ -1146,16 +1115,14 @@
 
       const payload = { nombre, nombre_largo_mayuscula, nombre_largo_minuscula, promueve_a, tutor_id };
 
-      if (id) {
-        await supabaseClient.from('cursos').update(payload).eq('id', id);
-      } else {
-        await supabaseClient.from('cursos').insert([payload]);
-      }
+      if (id) await supabaseClient.from('cursos').update(payload).eq('id', id);
+      else await supabaseClient.from('cursos').insert([payload]);
+
       modalCursoInst.hide();
       cargarCursos();
     }
 
-    // 3. Asignación de Materias
+    // 3. Asignaciones
     async function cargarVistaAsignaciones() {
       await cargarDatosIniciales();
       const select = document.getElementById('selectCursoAsignar');
@@ -1364,11 +1331,9 @@
       document.getElementById('fe_id').value = '';
       document.getElementById('modalEstudianteTitulo').innerHTML = '<i class="bi bi-person-plus-fill me-2"></i>Registrar Nuevo Estudiante';
       
-      // Auto-seleccionar curso actual si está filtrado
       const cursoIdActual = document.getElementById('filtroCursoEstudiantes').value;
       if (cursoIdActual) document.getElementById('fe_curso_id').value = cursoIdActual;
 
-      // Volver a la primera pestaña
       new bootstrap.Tab(document.getElementById('tab-est-btn')).show();
       modalEstudianteInst.show();
     }
@@ -1381,7 +1346,6 @@
       const { data: d, error } = await supabaseClient.from('estudiantes').select('*').eq('id', idEstudiante).single();
       if (error || !d) return alert('No se pudo cargar la información del estudiante.');
 
-      // 1. Estudiante
       document.getElementById('fe_tipo_doc').value = d.tipo_documento || 'CEDULA';
       document.getElementById('fe_cedula').value = d.cedula || '';
       document.getElementById('fe_sexo').value = d.sexo || '';
@@ -1393,13 +1357,11 @@
       document.getElementById('fe_parr_nac').value = d.parroquia_nacimiento || '';
       document.getElementById('fe_correo').value = d.correo || '';
 
-      // 2. Domicilio
       document.getElementById('fe_prov_dom').value = d.provincia_domicilio || 'MANABÍ';
       document.getElementById('fe_canton_dom').value = d.canton_domicilio || 'PICHINCHA';
       document.getElementById('fe_parr_dom').value = d.parroquia_domicilio || '';
       document.getElementById('fe_direccion_dom').value = d.direccion_domicilio || '';
 
-      // 3. Representante
       document.getElementById('fe_rep_es_auto').checked = (d.rep_es_auto === 'SI');
       document.getElementById('fe_rep_cedula').value = d.rep_cedula || '';
       document.getElementById('fe_rep_parentesco').value = d.rep_parentesco || 'MADRE';
@@ -1409,7 +1371,6 @@
       document.getElementById('fe_rep_telefono').value = d.rep_telefono || '';
       document.getElementById('fe_rep_correo').value = d.rep_correo || '';
 
-      // 4. Padre
       document.getElementById('fe_padre_cedula').value = d.padre_cedula || '';
       document.getElementById('fe_padre_celular').value = d.padre_celular || '';
       document.getElementById('fe_padre_nombres').value = d.padre_nombres || '';
@@ -1419,7 +1380,6 @@
       document.getElementById('fe_padre_trabajo').value = d.padre_lugar_trabajo || '';
       document.getElementById('fe_padre_profesion').value = d.padre_profesion || '';
 
-      // 5. Madre
       document.getElementById('fe_madre_cedula').value = d.madre_cedula || '';
       document.getElementById('fe_madre_celular').value = d.madre_celular || '';
       document.getElementById('fe_madre_nombres').value = d.madre_nombres || '';
@@ -1429,7 +1389,6 @@
       document.getElementById('fe_madre_trabajo').value = d.madre_lugar_trabajo || '';
       document.getElementById('fe_madre_profesion').value = d.madre_profesion || '';
 
-      // 6. Matrícula
       document.getElementById('fe_curso_id').value = d.curso_id || '';
       document.getElementById('fe_num_lista').value = d.numero_lista || '';
 
@@ -1518,7 +1477,7 @@
         await cargarEstudiantes();
         alert('¡Ficha del estudiante guardada con éxito!');
       } catch (err) {
-        alert('Error al guardar: ' + err.message);
+        alert('Error: ' + err.message);
       } finally {
         btn.disabled = false;
         btn.innerHTML = '<i class="bi bi-save me-1"></i> Guardar Ficha';
@@ -1703,11 +1662,9 @@
       const abreviatura = document.getElementById('tituloModalAbrev').value.trim();
       const descripcion = document.getElementById('tituloModalDesc').value.trim();
 
-      if (id) {
-        await supabaseClient.from('catalogo_titulos').update({ abreviatura, descripcion }).eq('id', id);
-      } else {
-        await supabaseClient.from('catalogo_titulos').insert([{ abreviatura, descripcion }]);
-      }
+      if (id) await supabaseClient.from('catalogo_titulos').update({ abreviatura, descripcion }).eq('id', id);
+      else await supabaseClient.from('catalogo_titulos').insert([{ abreviatura, descripcion }]);
+
       modalTituloInst.hide();
       await cargarTitulos();
     }
@@ -1735,7 +1692,7 @@
     async function eliminarRegistro(tabla, id) {
       if (!confirm('¿Está seguro de eliminar este registro?')) return;
       const { error } = await supabaseClient.from(tabla).delete().eq('id', id);
-      if (error) alert('Error al eliminar: ' + error.message);
+      if (error) alert('Error: ' + error.message);
       else {
         if (tabla === 'cursos') cargarCursos();
         if (tabla === 'materias') cargarMaterias();
