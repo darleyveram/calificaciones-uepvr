@@ -728,24 +728,25 @@
         const promComp = compArr.reduce((a, b) => a + b, 0) / compArr.length;
         const compObj = obtenerEscalaComportamiento(promComp);
 
-        // Desglose estricto de asistencia: A (Asistidos), F (Injustificadas), J (Justificadas)
+        // Desglose de asistencia: A (Asistidos), J (Justificadas) y F (Injustificadas = F o Vacías)
         const regAsist = asistMap[est.id] || {};
-        let conteoA = 0, conteoF = 0, conteoJ = 0;
+        let conteoA = 0, conteoJ = 0;
 
         if (regAsist.registro_diario && typeof regAsist.registro_diario === 'object') {
           Object.values(regAsist.registro_diario).forEach(v => {
             const val = String(v).toUpperCase();
             if (val === 'A') conteoA++;
-            else if (val === 'F') conteoF++;
             else if (val === 'J') conteoJ++;
           });
         } else {
           conteoA = regAsist.total_asistencias || 0;
-          conteoF = regAsist.total_faltas || 0;
           conteoJ = regAsist.total_justificadas || 0;
         }
 
         const totalDias = per.total_dias_laborados;
+
+        // Faltas injustificadas = Días restantes no asistidos ni justificados (Faltas 'F' + Días en blanco)
+        const conteoF = Math.max(totalDias - conteoA - conteoJ, 0);
 
         // Formatear Representante Legal
         const repNom = est.representante_nombres || `${est.rep_apellidos || ''} ${est.rep_nombres || ''}`.trim() || 'REPRESENTANTE LEGAL';
