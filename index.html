@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sistema de Calificaciones y Asistencia - UEPVR</title>
+  <title>Sistema de Calificaciones y Asistencia</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -80,30 +80,40 @@
     .bg-prom-ins { background-color: #ffeb3b !important; font-weight: bold; color: #000; }
     .bg-nota-final { background-color: #198754 !important; color: #fff; font-weight: bold; }
     .bg-examen { background-color: #fd7e14 !important; color: #fff; font-weight: bold; }
+    
+    .logo-header { height: 50px; width: auto; object-fit: contain; }
+    .logo-login { height: 75px; width: auto; object-fit: contain; }
   </style>
 </head>
 <body class="bg-light py-3">
 
   <!-- LOGIN -->
-  <div class="container" id="seccionLogin" style="max-width: 420px; margin-top: 60px;">
+  <div class="container" id="seccionLogin" style="max-width: 440px; margin-top: 50px;">
     <div class="card shadow border-0">
       <div class="card-header bg-primary text-white text-center py-3">
-        <h5 class="mb-0 fw-bold">UEP Vicente Rocafuerte</h5>
-        <small>Portal Docente y Asistencia</small>
+        <div class="d-flex justify-content-center align-items-center gap-3 mb-2">
+          <img id="loginLogoIzq" class="logo-login d-none" alt="Logo Colegio">
+          <img id="loginLogoDer" class="logo-login d-none" alt="Escudo">
+        </div>
+        <h5 class="mb-0 fw-bold header-nombre-inst">UEP Vicente Rocafuerte</h5>
+        <small class="header-lema-inst text-light">Portal Docente y Asistencia</small>
       </div>
       <div class="card-body p-4">
         <form onsubmit="iniciarSesion(event)">
           <div class="mb-3">
-            <label class="form-label">Correo institucional</label>
+            <label class="form-label fw-bold">Correo institucional</label>
             <input type="email" id="loginEmail" class="form-control" placeholder="docente@uepvr.edu.ec" required>
           </div>
           <div class="mb-3">
-            <label class="form-label">Contraseña</label>
+            <label class="form-label fw-bold">Contraseña</label>
             <input type="password" id="loginPassword" class="form-control" required>
           </div>
           <div id="loginError" class="alert alert-danger py-2 d-none"></div>
-          <button type="submit" class="btn btn-primary w-100 fw-bold" id="btnLogin">Ingresar</button>
+          <button type="submit" class="btn btn-primary w-100 fw-bold" id="btnLogin">Ingresar al Sistema</button>
         </form>
+      </div>
+      <div class="card-footer bg-light text-center py-2 text-muted small">
+        <span class="header-dir-inst">Pichincha - Manabí - Ecuador</span>
       </div>
     </div>
   </div>
@@ -111,12 +121,29 @@
   <!-- APLICATIVO PRINCIPAL -->
   <div class="container-fluid px-3 d-none" id="seccionApp">
     
-    <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
-      <div>
-        <h5 class="fw-bold text-primary mb-0">Unidad Educativa Particular "VICENTE ROCAFUERTE"</h5>
-        <small class="text-muted fw-bold" id="usuarioConectado"></small>
+    <!-- Cabecera Dinámica Institucional -->
+    <div class="card shadow-sm mb-2 border-0">
+      <div class="card-body py-2 px-3">
+        <div class="d-flex justify-content-between align-items-center">
+          
+          <div class="d-flex align-items-center gap-3">
+            <img id="appLogoIzq" class="logo-header d-none" alt="Logo Izquierdo">
+            <div>
+              <h5 class="fw-bold text-primary mb-0 header-nombre-inst">Unidad Educativa Particular "VICENTE ROCAFUERTE"</h5>
+              <div class="d-flex align-items-center gap-2 mt-1">
+                <span class="badge bg-primary header-periodo-badge">2026-2027</span>
+                <small class="text-muted fw-bold" id="usuarioConectado"></small>
+              </div>
+            </div>
+          </div>
+
+          <div class="d-flex align-items-center gap-3">
+            <img id="appLogoDer" class="logo-header d-none" alt="Logo Derecho">
+            <button class="btn btn-outline-danger btn-sm" onclick="cerrarSesion()"><i class="bi bi-box-arrow-right me-1"></i>Cerrar Sesión</button>
+          </div>
+
+        </div>
       </div>
-      <button class="btn btn-outline-danger btn-sm" onclick="cerrarSesion()">Cerrar Sesión</button>
     </div>
 
     <!-- Barra de Filtros -->
@@ -224,16 +251,41 @@
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNib211cXdudG9zdmRzb2psZnlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY5Mjk5NzcsImV4cCI6MjEwMjUwNTk3N30.WLgWyVOWVieC-4XjnkZFAKEqARKszvLpVqiAoGHdUU8';
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+    let infoInstitucion = null;
     let catalogo = [];
     let todasAsignaciones = [];
     let todosCursos = [];
     let estudiantes = [];
     let configActividades = { insumo1: [], insumo2: [] };
     let notasActualesMemoria = {};
-    let datosResumenAnualActual = [];
     let periodosAsistencia = [];
     let diasHabilesParcialActual = [];
     let usuarioActualPerfil = null;
+
+    async function cargarInformacionInstitucionalDinamica() {
+      const { data } = await supabaseClient.from('institucion').select('*').eq('id', 1).maybeSingle();
+      if (data) {
+        infoInstitucion = data;
+        const nombreMostrar = data.nombre || `${data.nombre_arriba || ''} ${data.nombre_abajo || ''}`.trim() || 'UEP Vicente Rocafuerte';
+        
+        document.querySelectorAll('.header-nombre-inst').forEach(el => el.innerText = nombreMostrar);
+        document.querySelectorAll('.header-lema-inst').forEach(el => el.innerText = data.frase_1 || 'Educación de calidad para la vida');
+        document.querySelectorAll('.header-dir-inst').forEach(el => el.innerText = data.direccion_1 || 'Pichincha - Manabí - Ecuador');
+        document.querySelectorAll('.header-periodo-badge').forEach(el => el.innerText = data.periodo_lectivo || '2026-2027');
+
+        const logoIzq = data.logo_izquierdo || data.logo_institucion;
+        const logoDer = data.logo_derecho || data.escudo_nacional;
+
+        if (logoIzq) {
+          const l1 = document.getElementById('loginLogoIzq'); if (l1) { l1.src = logoIzq; l1.classList.remove('d-none'); }
+          const a1 = document.getElementById('appLogoIzq'); if (a1) { a1.src = logoIzq; a1.classList.remove('d-none'); }
+        }
+        if (logoDer) {
+          const l2 = document.getElementById('loginLogoDer'); if (l2) { l2.src = logoDer; l2.classList.remove('d-none'); }
+          const a2 = document.getElementById('appLogoDer'); if (a2) { a2.src = logoDer; a2.classList.remove('d-none'); }
+        }
+      }
+    }
 
     function obtenerClaseColor(valor, esPromedio = false) {
       if (isNaN(valor) || valor === null || valor === '') return '';
@@ -256,6 +308,7 @@
     }
 
     async function verificarSesion() {
+      await cargarInformacionInstitucionalDinamica();
       const { data: { session } } = await supabaseClient.auth.getSession();
       if (session) {
         const { data: perfil } = await supabaseClient.from('perfiles').select('*').eq('id', session.user.id).maybeSingle();
@@ -429,7 +482,6 @@
         return;
       }
 
-      // Modo Calificaciones
       if (trimestreVal === 'anual') {
         document.getElementById('boxVista').classList.add('d-none');
         accAnual.classList.remove('d-none');
@@ -454,7 +506,7 @@
     }
 
     // ==========================================
-    // PARCIAL ACADÉMICO (CON STEP=1, AUTO 10 Y LIMPIAR POR COLUMNA)
+    // PARCIAL ACADÉMICO
     // ==========================================
     function capturarNotasDeLaTabla() {
       const filas = document.querySelectorAll('#tablaCuerpo tr');
@@ -502,7 +554,6 @@
       renderizarTablaParcial();
     }
 
-    // Auto llenar con 10 una actividad específica (columna)
     function autoLlenarColumnaActividad(insumo, colIndex) {
       const selectorClase = insumo === 1 ? `.col-act-i1-${colIndex}` : `.col-act-i2-${colIndex}`;
       document.querySelectorAll(selectorClase).forEach(input => {
@@ -512,7 +563,6 @@
       document.querySelectorAll('#tablaCuerpo tr').forEach(fila => calcularFilaParcial(fila));
     }
 
-    // Limpiar notas de una actividad específica (columna)
     function limpiarColumnaActividad(insumo, colIndex) {
       const selectorClase = insumo === 1 ? `.col-act-i1-${colIndex}` : `.col-act-i2-${colIndex}`;
       document.querySelectorAll(selectorClase).forEach(input => {
@@ -522,7 +572,6 @@
       document.querySelectorAll('#tablaCuerpo tr').forEach(fila => calcularFilaParcial(fila));
     }
 
-    // Auto llenar todas las actividades con 10
     function autoLlenarTodoCon10() {
       document.querySelectorAll('#tablaCuerpo input[type="number"]').forEach(input => {
         if (!input.value) {
@@ -533,7 +582,6 @@
       document.querySelectorAll('#tablaCuerpo tr').forEach(fila => calcularFilaParcial(fila));
     }
 
-    // Limpiar todas las notas del parcial
     function limpiarTodasNotasParcial() {
       if (!confirm('¿Desea limpiar todas las calificaciones de este parcial?')) return;
       document.querySelectorAll('#tablaCuerpo input[type="number"]').forEach(input => {
@@ -724,7 +772,7 @@
     }
 
     // ==========================================
-    // VISTA: CONTROL DIARIO DE ASISTENCIA
+    // VISTA: ASISTENCIA
     // ==========================================
     function generarDiasHabilesRango(fInicioStr, fFinStr) {
       const dias = [];
@@ -986,7 +1034,7 @@
         if (error) throw error;
         alert('¡Control de Asistencia guardado con éxito!');
       } catch (err) {
-        alert('Error al guardar asistencia: ' + err.message);
+        alert('Error: ' + err.message);
       } finally {
         btn.disabled = false;
         btn.innerText = '💾 Guardar';
@@ -1241,8 +1289,6 @@
         }
       });
 
-      datosResumenAnualActual = [];
-
       let html = `
         <table class="table table-bordered table-sm mb-0 align-middle">
           <thead class="table-dark">
@@ -1305,7 +1351,7 @@
     }
 
     // ==========================================
-    // GUARDAR NOTAS GENERAL
+    // GUARDAR NOTAS
     // ==========================================
     async function guardarDatos() {
       const asigId = document.getElementById('selectMateria').value;
