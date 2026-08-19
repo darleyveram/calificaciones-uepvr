@@ -1397,6 +1397,27 @@
     // ==========================================
     // EXPORTACIÓN OFICIAL DE PDF RESUMEN ANUAL
     // ==========================================
+    // Función auxiliar para convertir URL de imagen a Base64 sin problemas de CORS
+    async function obtenerBase64DesdeUrl(url) {
+      if (!url) return null;
+      try {
+        const res = await fetch(url, { mode: 'cors' });
+        const blob = await res.blob();
+        return new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result);
+          reader.onerror = () => resolve(null);
+          reader.readAsDataURL(blob);
+        });
+      } catch (e) {
+        console.warn('No se pudo cargar la imagen para el PDF:', url);
+        return null;
+      }
+    }
+
+    // ==========================================
+    // EXPORTACIÓN OFICIAL DE PDF RESUMEN ANUAL MULTI-PÁGINA
+    // ==========================================
     async function exportarResumenAnualPDF() {
       if (!datosResumenAnualActual || datosResumenAnualActual.length === 0) {
         alert('No hay calificaciones cargadas para exportar.');
@@ -1415,40 +1436,41 @@
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
 
-        const nombreInst = infoInstitucion?.nombre || 'UNIDAD EDUCATIVA PARTICULAR "VICENTE ROCAFUERTE"';
+        // 1. Obtener datos institucionales completos
+        const nomArriba = (infoInstitucion?.nombre_arriba || 'Unidad Educativa Particular').toUpperCase();
+        const nomAbajo = (infoInstitucion?.nombre_abajo || '"Vicente Rocafuerte"').toUpperCase();
         const periodo = infoInstitucion?.periodo_lectivo || '2026-2027';
         const amie = infoInstitucion?.amie || '13H03021';
         const distrito = infoInstitucion?.distrito || '13D08';
+        const circuito = infoInstitucion?.circuito || '13D08C0_b';
+        const dir1 = infoInstitucion?.direccion_1 || 'Pichincha - Manabí - Ecuador';
+        const frase1 = infoInstitucion?.frase_1 ? `"${infoInstitucion.frase_1}"` : '';
 
-        // Membrete
-        doc.setFontSize(13);
-        doc.setFont('helvetica', 'bold');
-        doc.text(nombreInst.toUpperCase(), 148, 14, { align: 'center' });
+        // 2. Nombre largo del curso
+        const cursoInfo = cursosList.find(c => c.id === asig.curso_id);
+        const nombreCursoLargo = (cursoInfo?.nombre_largo_mayuscula || cursoInfo?.nombre || asig.cursos?.nombre || '').toUpperCase();
+        const nombreMateria = (asig.materias?.nombre || '').toUpperCase();
 
-        doc.setFontSize(9);
-        doc.setFont('helvetica', 'normal');
-        doc.text(`CUADRO CONSOLIDADO GENERAL DE CALIFICACIONES ANUALES - AÑO LECTIVO ${periodo}`, 148, 19, { align: 'center' });
-        doc.text(`AMIE: ${amie} | DISTRITO: ${distrito} | RÉGIMEN: COSTA`, 148, 23, { align: 'center' });
-
-        // Datos del Curso y Asignatura
-        doc.setFontSize(9);
-        doc.setFont('helvetica', 'bold');
-        doc.text(`CURSO: ${asig.cursos?.nombre || ''}`, 14, 30);
-        doc.text(`ASIGNATURA: ${asig.materias?.nombre || ''}`, 120, 30);
-        
+        // 3. Nombres de Autoridades
         const nombreDocenteActual = usuarioActualPerfil 
-          ? `${usuarioActualPerfil.titulo ? usuarioActualPerfil.titulo + ' ' : ''}${usuarioActualPerfil.nombres} ${usuarioActualPerfil.apellidos || ''}`.trim()
-          : '';
-        doc.text(`DOCENTE: ${nombreDocenteActual}`, 215, 30);
+          ? `${usuarioActualPerfil.titulo ? usuarioActualPerfil.titulo + ' ' : ''}${usuarioActualPerfil.nombres} ${usuarioActualPerfil.apellidos || ''}`.trim().toUpperCase()
+          : 'DOCENTE RESPONSABLE';
+        
+        const nombreSecretaria = 'C.P.A. MERCEDES A. SALAMEA M.';
+        const nombreRector = 'ING. DÍDIMO A. SALTOS S.';
 
-        // Tabla de Calificaciones
+        // 4. Cargar Logos en Base64
+        const imgLogoIzq = await obtenerBase64DesdeUrl(infoInstitucion?.logo_izquierdo || infoInstitucion?.logo_institucion);
+        const imgLogoDer = await obtenerBase64DesdeUrl(infoInstitucion?.logo_derecho || infoInstitucion?.escudo_nacional);
+
+        // Estructura de la Tabla
         const headers = [
           [
             { content: 'N°', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } },
-            { content: 'APELLIDOS Y NOMBRES', rowSpan: 2, styles: { valign: 'middle', halign: 'left' } },
+            { content: 'NÓMINA DE ESTUDIANTES', rowSpan: 2, styles: { valign: 'middle', halign: 'left' } },
             { content: 'CALIFICACIONES ACADÉMICAS', colSpan: 3, styles: { halign: 'center' } },
             { content: 'PROM. ANUAL', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } },
-            { content: 'COMPORTAMIENTO', colSpan: 3, styles: { halign: 'center' } },
+            { content: 'EVALUACIÓN DEL COMPORTAMIENTO', colSpan: 3, styles: { halign: 'center' } },
             { content: 'COMP. ANUAL', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } },
             { content: 'ESTADO', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } }
           ],
@@ -1475,47 +1497,130 @@
         doc.autoTable({
           head: headers,
           body: bodyData,
-          startY: 34,
+          margin: { top: 48, bottom: 32, left: 12, right: 12 },
           theme: 'grid',
-          styles: { fontSize: 7.5, cellPadding: 1.5, lineColor: [200, 200, 200], lineWidth: 0.1 },
-          headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255], fontStyle: 'bold' },
+          styles: { 
+            fontSize: 7.5, 
+            cellPadding: 1.5, 
+            lineColor: [200, 200, 200], 
+            lineWidth: 0.1,
+            valign: 'middle'
+          },
+          headStyles: { 
+            fillColor: [30, 41, 59], 
+            textColor: [255, 255, 255], 
+            fontStyle: 'bold' 
+          },
           columnStyles: {
             0: { cellWidth: 10, halign: 'center' },
-            1: { cellWidth: 65, halign: 'left' },
-            2: { cellWidth: 18, halign: 'center' },
-            3: { cellWidth: 18, halign: 'center' },
-            4: { cellWidth: 18, halign: 'center' },
+            1: { cellWidth: 68, halign: 'left' },
+            2: { cellWidth: 17, halign: 'center' },
+            3: { cellWidth: 17, halign: 'center' },
+            4: { cellWidth: 17, halign: 'center' },
             5: { cellWidth: 22, halign: 'center', fontStyle: 'bold', fillColor: [241, 245, 249] },
             6: { cellWidth: 24, halign: 'center' },
             7: { cellWidth: 24, halign: 'center' },
             8: { cellWidth: 24, halign: 'center' },
             9: { cellWidth: 24, halign: 'center', fontStyle: 'bold' },
-            10: { cellWidth: 22, halign: 'center', fontStyle: 'bold' }
+            10: { cellWidth: 26, halign: 'center', fontStyle: 'bold' }
+          },
+          didDrawPage: function (data) {
+            const pageNumber = doc.internal.getNumberOfPages();
+
+            // ----------------------------------------------------
+            // A. LOGOS IZQUIERDO Y DERECHO
+            // ----------------------------------------------------
+            if (imgLogoIzq) {
+              try { doc.addImage(imgLogoIzq, 'PNG', 12, 8, 20, 20); } catch(e){}
+            }
+            if (imgLogoDer) {
+              try { doc.addImage(imgLogoDer, 'PNG', 265, 8, 20, 20); } catch(e){}
+            }
+
+            // ----------------------------------------------------
+            // B. MEMBRETE INSTITUCIONAL (Líneas 1 a 4)
+            // ----------------------------------------------------
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(11);
+            doc.setTextColor(30, 41, 59);
+            doc.text(nomArriba, 148.5, 11, { align: 'center' });
+
+            doc.setFontSize(13);
+            doc.text(nomAbajo, 148.5, 16, { align: 'center' });
+
+            doc.setFontSize(9.5);
+            doc.text('CUADRO CONSOLIDADO GENERAL DE CALIFICACIONES ANUALES', 148.5, 21, { align: 'center' });
+
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(7.5);
+            doc.setTextColor(71, 85, 105);
+            doc.text(`AMIE: ${amie} | DISTRITO: ${distrito} | CIRCUITO: ${circuito} | ${dir1} | AÑO LECTIVO: ${periodo}`, 148.5, 25.5, { align: 'center' });
+            if (frase1) {
+              doc.setFont('helvetica', 'italic');
+              doc.text(frase1, 148.5, 29, { align: 'center' });
+            }
+
+            // ----------------------------------------------------
+            // C. DATOS DEL CURSO Y ASIGNATURA
+            // ----------------------------------------------------
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(8);
+            doc.setTextColor(15, 23, 42);
+
+            // Barra delimitadora
+            doc.setDrawColor(203, 213, 225);
+            doc.setLineWidth(0.3);
+            doc.line(12, 33, 285, 33);
+
+            doc.text(`CURSO: ${nombreCursoLargo}`, 12, 38);
+            doc.text(`ASIGNATURA: ${nombreMateria}`, 12, 43);
+            doc.text(`DOCENTE: ${nombreDocenteActual}`, 180, 43);
+
+            doc.line(12, 45, 285, 45);
+
+            // ----------------------------------------------------
+            // D. PIE DE PÁGINA Y FIRMAS EN TODAS LAS HOJAS
+            // ----------------------------------------------------
+            const footerY = 188;
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(7.5);
+            doc.setTextColor(30, 41, 59);
+
+            // Líneas de firma
+            doc.setLineWidth(0.2);
+            doc.line(25, footerY, 85, footerY);
+            doc.line(118, footerY, 178, footerY);
+            doc.line(212, footerY, 272, footerY);
+
+            // Docente
+            doc.setFont('helvetica', 'bold');
+            doc.text('DOCENTE RESPONSABLE', 55, footerY + 4, { align: 'center' });
+            doc.setFont('helvetica', 'normal');
+            doc.text(nombreDocenteActual, 55, footerY + 8, { align: 'center' });
+
+            // Secretaria
+            doc.setFont('helvetica', 'bold');
+            doc.text('SECRETARIO/A GENERAL', 148.5, footerY + 4, { align: 'center' });
+            doc.setFont('helvetica', 'normal');
+            doc.text(nombreSecretaria, 148.5, footerY + 8, { align: 'center' });
+
+            // Rector
+            doc.setFont('helvetica', 'bold');
+            doc.text('RECTOR / DIRECTOR', 242, footerY + 4, { align: 'center' });
+            doc.setFont('helvetica', 'normal');
+            doc.text(nombreRector, 242, footerY + 8, { align: 'center' });
+
+            // Numeración de página
+            doc.setFontSize(7);
+            doc.setTextColor(148, 163, 184);
+            doc.text(`Página ${pageNumber}`, 285, 202, { align: 'right' });
           }
         });
 
-        // Firmas al final de la página
-        const finalY = doc.lastAutoTable.finalY + 22;
-        doc.setFontSize(8);
-        doc.setFont('helvetica', 'normal');
-
-        // Líneas de firma
-        doc.line(30, finalY, 90, finalY);
-        doc.line(120, finalY, 180, finalY);
-        doc.line(210, finalY, 270, finalY);
-
-        doc.text('DOCENTE RESPONSABLE', 60, finalY + 4, { align: 'center' });
-        doc.text(nombreDocenteActual, 60, finalY + 8, { align: 'center' });
-
-        doc.text('SECRETARIO/A GENERAL', 150, finalY + 4, { align: 'center' });
-        doc.text('C.P.A. Mercedes A. Salamea M.', 150, finalY + 8, { align: 'center' });
-
-        doc.text('RECTOR / DIRECTOR', 240, finalY + 4, { align: 'center' });
-        doc.text('Ing. Didimo A. Saltos S.', 240, finalY + 8, { align: 'center' });
-
-        doc.save(`Consolidado_Anual_${asig.cursos?.nombre || ''}_${asig.materias?.nombre || ''}.pdf`);
+        doc.save(`Sábana_Anual_${nombreCursoLargo.replace(/\s+/g, '_')}_${nombreMateria.replace(/\s+/g, '_')}.pdf`);
       } catch (err) {
         alert('Error al exportar PDF: ' + err.message);
+        console.error(err);
       } finally {
         btn.disabled = false;
         btn.innerHTML = '📄 Descargar PDF';
