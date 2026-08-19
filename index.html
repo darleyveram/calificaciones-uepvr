@@ -619,7 +619,7 @@
     }
 
     // =========================================================================
-    // VISTA DE TUTORÍA: SÁBANA GENERAL Y EMISIÓN DE LIBRETAS
+    // VISTA DE TUTORÍA: SÁBANA GENERAL Y PREPARACIÓN DE DATOS
     // =========================================================================
     async function cargarVistaConsolidadoTutoria() {
       const cursoId = document.getElementById('selectCurso').value;
@@ -629,11 +629,15 @@
 
       contenedor.innerHTML = '<div class="py-4 text-center">Cargando consolidado de calificaciones y asistencias para tutoría...</div>';
 
-      // 1. Cargar Estudiantes
-      const { data: estData } = await supabaseClient.from('estudiantes').select('*').eq('curso_id', cursoId).order('nombres');
+      // 1. Cargar Estudiantes completos (con datos del representante)
+      const { data: estData } = await supabaseClient
+        .from('estudiantes')
+        .select('*')
+        .eq('curso_id', cursoId)
+        .order('nombres');
       estudiantes = estData || [];
 
-      // 2. Cargar Asignaciones y Materias del Curso (Ordenando Obligatorias primero y Optativas al final)
+      // 2. Cargar Asignaciones (Obligatorias primero, Optativas al final)
       const { data: asigCurso } = await supabaseClient
         .from('curso_materia_docente')
         .select(`id, curso_id, materia_id, es_optativa, materias(id, nombre)`)
@@ -681,7 +685,7 @@
         });
       }
 
-      // 5. Cargar Asistencia
+      // 5. Cargar Registro de Asistencia Detallado
       const { data: asistData } = await supabaseClient
         .from('asistencia_estudiantes')
         .select('*')
@@ -694,7 +698,7 @@
 
       const per = periodosAsistencia.find(p => p.trimestre === trimestre && p.parcial === parcial) || { total_dias_laborados: 34 };
 
-      // Estructurar Datos en Memoria
+      // Estructurar Datos
       datosConsolidadoTutoria = estudiantes.map((est, idx) => {
         let sumaNotasObligatorias = 0;
         let cantObligatorias = 0;
@@ -724,28 +728,52 @@
         const promComp = compArr.reduce((a, b) => a + b, 0) / compArr.length;
         const compObj = obtenerEscalaComportamiento(promComp);
 
+        // Desglose estricto de asistencia: A (Asistidos), F (Injustificadas), J (Justificadas)
         const regAsist = asistMap[est.id] || {};
-        const asistidos = regAsist.total_asistencias !== undefined ? regAsist.total_asistencias : per.total_dias_laborados;
-        const faltasInjust = regAsist.total_faltas || 0;
-        const faltasJust = regAsist.total_justificadas || 0;
+        let conteoA = 0, conteoF = 0, conteoJ = 0;
+
+        if (regAsist.registro_diario && typeof regAsist.registro_diario === 'object') {
+          Object.values(regAsist.registro_diario).forEach(v => {
+            const val = String(v).toUpperCase();
+            if (val === 'A') conteoA++;
+            else if (val === 'F') conteoF++;
+            else if (val === 'J') conteoJ++;
+          });
+        } else {
+          conteoA = regAsist.total_asistencias || 0;
+          conteoF = regAsist.total_faltas || 0;
+          conteoJ = regAsist.total_justificadas || 0;
+        }
+
         const totalDias = per.total_dias_laborados;
+
+        // Formatear Representante Legal
+        const repNom = est.representante_nombres || `${est.rep_apellidos || ''} ${est.rep_nombres || ''}`.trim() || 'REPRESENTANTE LEGAL';
+        const repCed = est.rep_cedula ? `C.I.: ${est.rep_cedula}` : '';
 
         return {
           num: idx + 1,
           estudianteId: est.id,
           nombres: est.nombres,
           cedula: est.cedula || 'S/N',
+          representanteNombre: repNom,
+          representanteCedula: repCed,
           materias: materiasDetalle,
           promedioGeneral: promParcial.toFixed(2),
           promedioCualitativo: promCualit,
           comportamientoNum: promComp.toFixed(2),
           comportamientoLetra: compObj.letra,
           comportamientoDesc: compObj.desc,
-          asistencia: { asistidos, faltasInjust, faltasJust, totalDias }
+          asistencia: { 
+            asistidos: conteoA, 
+            faltasInjust: conteoF, 
+            faltasJust: conteoJ, 
+            totalDias: totalDias 
+          }
         };
       });
 
-      // Renderizar Tabla de Consolidado (Con notas a lo ancho)
+      // Renderizar Tabla
       let thMaterias = listaAsignaciones.map(a => `<th style="font-size:0.68rem; min-width: 85px;">${a.materias?.nombre}<br><span class="badge ${a.es_optativa ? 'bg-warning text-dark' : 'bg-secondary'}">${a.es_optativa ? 'Opt' : 'Obl'}</span></th>`).join('');
 
       let html = `
@@ -766,7 +794,6 @@
           </thead>
           <tbody>
             ${datosConsolidadoTutoria.map((d, idx) => {
-              // Celdas a lo ancho: Cualitativa + Cuantitativa
               let celdasNotas = d.materias.map(m => `
                 <td class="${obtenerClaseColor(m.notaNum, false)}" style="white-space: nowrap;">
                   <span class="fw-bold">${m.notaCualit}</span> <small class="text-muted">(${m.notaNum})</small>
@@ -801,7 +828,7 @@
     }
 
     // =========================================================================
-    // CONSTRUCTOR DEL PDF DE LIBRETA (FIRMAS: RECTOR, SECRETARIA Y REPRESENTANTE)
+    // CONSTRUCTOR DEL PDF DE LIBRETA (CON REPRESENTANTE Y ASISTENCIAS EXACTAS)
     // =========================================================================
     function construirPaginaLibreta(doc, est, cursoNombreLargo, trimestre, parcial, nombreRector, imgLogoIzq, imgLogoDer) {
       const nomArriba = (infoInstitucion?.nombre_arriba || 'Unidad Educativa Particular').toUpperCase();
@@ -817,7 +844,7 @@
       if (imgLogoIzq) { try { doc.addImage(imgLogoIzq, 'PNG', 12, 8, 18, 18); } catch(e){} }
       if (imgLogoDer) { try { doc.addImage(imgLogoDer, 'PNG', 180, 8, 18, 18); } catch(e){} }
 
-      // 2. Membrete Institucional
+      // 2. Membrete
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(10);
       doc.setTextColor(30, 41, 59);
@@ -849,7 +876,7 @@
 
       doc.line(12, 40, 198, 40);
 
-      // 4. Separación de Materias Obligatorias y Optativas
+      // 4. Materias Obligatorias y Optativas Separadas
       const obligatorias = est.materias.filter(m => !m.esOptativa);
       const optativas = est.materias.filter(m => m.esOptativa);
 
@@ -868,7 +895,6 @@
         });
       }
 
-      // Fila de Comportamiento
       tableBody.push([
         { content: `COMPORTAMIENTO: ${est.comportamientoDesc}`, styles: { fontStyle: 'bold', fillColor: [241, 245, 249] } },
         { content: est.comportamientoLetra, styles: { halign: 'center', fontStyle: 'bold', fillColor: [241, 245, 249] } },
@@ -890,11 +916,11 @@
         }
       });
 
-      // 5. Tabla de Asistencia
+      // 5. Tabla de Asistencia (A, F, J y Total)
       const asistY = doc.lastAutoTable.finalY + 3;
       doc.autoTable({
         startY: asistY,
-        head: [['Faltas Justificadas', 'Faltas Injustificadas', 'Días Asistidos', 'Total de Días Parcial']],
+        head: [['Faltas Justificadas (J)', 'Faltas Injustificadas (F)', 'Días Asistidos (A)', 'Total de Días Parcial']],
         body: [[
           est.asistencia.faltasJust,
           est.asistencia.faltasInjust,
@@ -956,12 +982,11 @@
         }
       });
 
-      // 7. Firmas Oficiales: RECTOR, SECRETARIA Y REPRESENTANTE
+      // 7. Firmas: RECTOR, SECRETARIA Y REPRESENTANTE (Con datos de base de datos)
       const firmasY = 262;
       doc.setLineWidth(0.2);
       doc.setDrawColor(100, 116, 139);
 
-      // Líneas
       doc.line(14, firmasY, 68, firmasY);   // Rector
       doc.line(78, firmasY, 132, firmasY);  // Secretaria
       doc.line(142, firmasY, 196, firmasY); // Representante
@@ -969,23 +994,26 @@
       doc.setFontSize(7.2);
       doc.setTextColor(30, 41, 59);
 
-      // 1. Rector
+      // Rector
       doc.setFont('helvetica', 'bold');
       doc.text('RECTOR / DIRECTOR', 41, firmasY + 4, { align: 'center' });
       doc.setFont('helvetica', 'normal');
       doc.text('Ing. Dídimo A. Saltos S.', 41, firmasY + 8, { align: 'center' });
 
-      // 2. Secretaria
+      // Secretaria
       doc.setFont('helvetica', 'bold');
       doc.text('SECRETARIO/A GENERAL', 105, firmasY + 4, { align: 'center' });
       doc.setFont('helvetica', 'normal');
       doc.text('C.P.A. Mercedes A. Salamea M.', 105, firmasY + 8, { align: 'center' });
 
-      // 3. Representante Legal
+      // Representante Legal con nombre y cédula desde la BD
       doc.setFont('helvetica', 'bold');
       doc.text('REPRESENTANTE LEGAL', 169, firmasY + 4, { align: 'center' });
       doc.setFont('helvetica', 'normal');
-      doc.text('Firma / Cédula', 169, firmasY + 8, { align: 'center' });
+      doc.text(est.representanteNombre, 169, firmasY + 8, { align: 'center', maxWidth: 54 });
+      if (est.representanteCedula) {
+        doc.text(est.representanteCedula, 169, firmasY + 11.5, { align: 'center' });
+      }
     }
     // A. Descarga del Consolidado Completo (Todas las libretas juntas en 1 PDF)
     async function generarLibretasLotePDF() {
