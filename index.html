@@ -18,6 +18,7 @@
       position: sticky;
       left: 0;
       background-color: #f8fafc !important;
+      color: #212529 !important;
       z-index: 10;
       width: 35px;
       min-width: 35px;
@@ -26,6 +27,7 @@
       position: sticky;
       left: 35px;
       background-color: #ffffff !important;
+      color: #212529 !important;
       z-index: 10;
       min-width: 220px;
       max-width: 260px;
@@ -38,7 +40,9 @@
     }
     thead th.sticky-col-num, thead th.sticky-col-nombre {
       z-index: 15;
-      background-color: #f1f5f9 !important;
+      background-color: #e2e8f0 !important;
+      color: #0f172a !important;
+      font-weight: bold;
     }
     
     .th-actividad { width: 95px; min-width: 95px; padding: 4px 2px !important; background-color: #f8fafc; }
@@ -151,7 +155,6 @@
       <div class="card-body py-2">
         <div class="row g-2 align-items-center">
           
-          <!-- Selector de Modo (Solo visible si tiene permiso) -->
           <div class="col-md-2" id="boxModo">
             <label class="form-label mb-1 fw-bold">Modo del Sistema:</label>
             <select id="selectModo" class="form-select form-select-sm fw-bold border-primary text-primary" onchange="alCambiarModo()">
@@ -222,7 +225,7 @@
           </div>
 
           <div class="col-md-4 text-end pt-3 d-none" id="accionesAnual">
-            <button class="btn btn-danger btn-sm px-3 fw-bold btn-control" onclick="exportarResumenAnualPDF()">📄 Descargar PDF</button>
+            <button class="btn btn-danger btn-sm px-3 fw-bold btn-control" id="btnDescargarPDF" onclick="exportarResumenAnualPDF()">📄 Descargar PDF</button>
           </div>
 
           <!-- Botones Asistencia General -->
@@ -259,6 +262,7 @@
     let estudiantes = [];
     let configActividades = { insumo1: [], insumo2: [] };
     let notasActualesMemoria = {};
+    let datosResumenAnualActual = [];
     let periodosAsistencia = [];
     let diasHabilesParcialActual = [];
     let usuarioActualPerfil = null;
@@ -323,7 +327,6 @@
         document.getElementById('seccionApp').classList.remove('d-none');
         document.getElementById('usuarioConectado').innerText = `Docente: ${nombreDocente}`;
         
-        // Control de visibilidad del Módulo de Asistencia
         const puedeVerAsistencia = (perfil?.rol === 'admin' || perfil?.puede_gestionar_asistencia === true);
         const optAsist = document.getElementById('optModoAsistencia');
         const boxModo = document.getElementById('boxModo');
@@ -333,7 +336,7 @@
           boxModo.classList.remove('d-none');
         } else {
           optAsist.classList.add('d-none');
-          boxModo.classList.add('d-none'); // Se oculta el selector de modo para docentes regulares
+          boxModo.classList.add('d-none');
           document.getElementById('selectModo').value = 'calificaciones';
         }
 
@@ -405,7 +408,6 @@
       const optAnual = document.getElementById('optTrimAnual');
       const selectCurso = document.getElementById('selectCurso');
 
-      // Seguridad en cliente: Si no está autorizado y el modo es asistencia, forzar calificaciones
       const puedeVerAsistencia = (usuarioActualPerfil?.rol === 'admin' || usuarioActualPerfil?.puede_gestionar_asistencia === true);
       if (modo === 'asistencia' && !puedeVerAsistencia) {
         document.getElementById('selectModo').value = 'calificaciones';
@@ -796,7 +798,7 @@
     }
 
     // ==========================================
-    // VISTA: CONTROL DIARIO DE ASISTENCIA
+    // VISTA: ASISTENCIA
     // ==========================================
     function generarDiasHabilesRango(fInicioStr, fFinStr) {
       const dias = [];
@@ -1313,17 +1315,19 @@
         }
       });
 
+      datosResumenAnualActual = [];
+
       let html = `
         <table class="table table-bordered table-sm mb-0 align-middle">
-          <thead class="table-dark">
+          <thead>
             <tr>
               <th rowspan="2" class="sticky-col-num">No.</th>
               <th rowspan="2" class="sticky-col-nombre text-center">Apellidos y Nombres</th>
-              <th colspan="3">CALIFICACIONES ACADÉMICAS</th>
-              <th rowspan="2" style="width: 95px;">Promedio Anual</th>
-              <th colspan="3">COMPORTAMIENTO</th>
-              <th rowspan="2" style="width: 100px;">Comp. Anual</th>
-              <th rowspan="2" style="width: 110px;">Estado</th>
+              <th colspan="3" class="bg-dark text-white">CALIFICACIONES ACADÉMICAS</th>
+              <th rowspan="2" class="bg-dark text-white" style="width: 95px;">Promedio Anual</th>
+              <th colspan="3" class="bg-dark text-white">COMPORTAMIENTO</th>
+              <th rowspan="2" class="bg-dark text-white" style="width: 100px;">Comp. Anual</th>
+              <th rowspan="2" class="bg-dark text-white" style="width: 110px;">Estado</th>
             </tr>
             <tr class="bg-secondary text-white">
               <th style="width: 75px;">1er Trim.</th>
@@ -1351,6 +1355,22 @@
               const letraCompAnual = convertirCualitativo(promCompAnual);
 
               const obsBadge = promAnual >= 7 ? '<span class="badge bg-success">APROBADO</span>' : (promAnual >= 4 ? '<span class="badge bg-warning text-dark">SUPLETORIO</span>' : '<span class="badge bg-danger">REPROBADO</span>');
+              const estadoTexto = promAnual >= 7 ? 'APROBADO' : (promAnual >= 4 ? 'SUPLETORIO' : 'REPROBADO');
+
+              // Guardar en memoria para exportación PDF
+              datosResumenAnualActual.push({
+                num: idx + 1,
+                nombres: est.nombres,
+                t1: t1.toFixed(2),
+                t2: t2.toFixed(2),
+                t3: t3.toFixed(2),
+                promAnual: promAnual.toFixed(2),
+                ct1: `${ct1.toFixed(2)} (${convertirCualitativo(ct1)})`,
+                ct2: `${ct2.toFixed(2)} (${convertirCualitativo(ct2)})`,
+                ct3: `${ct3.toFixed(2)} (${convertirCualitativo(ct3)})`,
+                compAnual: `${promCompAnual.toFixed(2)} (${letraCompAnual})`,
+                estado: estadoTexto
+              });
 
               return `
                 <tr>
@@ -1375,7 +1395,135 @@
     }
 
     // ==========================================
-    // GUARDAR NOTAS
+    // EXPORTACIÓN OFICIAL DE PDF RESUMEN ANUAL
+    // ==========================================
+    async function exportarResumenAnualPDF() {
+      if (!datosResumenAnualActual || datosResumenAnualActual.length === 0) {
+        alert('No hay calificaciones cargadas para exportar.');
+        return;
+      }
+
+      const asigId = document.getElementById('selectMateria').value;
+      const asig = todasAsignaciones.find(a => a.id == asigId);
+      if (!asig) return alert('Seleccione una materia.');
+
+      const btn = document.getElementById('btnDescargarPDF');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Generando PDF...';
+
+      try {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+
+        const nombreInst = infoInstitucion?.nombre || 'UNIDAD EDUCATIVA PARTICULAR "VICENTE ROCAFUERTE"';
+        const periodo = infoInstitucion?.periodo_lectivo || '2026-2027';
+        const amie = infoInstitucion?.amie || '13H03021';
+        const distrito = infoInstitucion?.distrito || '13D08';
+
+        // Membrete
+        doc.setFontSize(13);
+        doc.setFont('helvetica', 'bold');
+        doc.text(nombreInst.toUpperCase(), 148, 14, { align: 'center' });
+
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`CUADRO CONSOLIDADO GENERAL DE CALIFICACIONES ANUALES - AÑO LECTIVO ${periodo}`, 148, 19, { align: 'center' });
+        doc.text(`AMIE: ${amie} | DISTRITO: ${distrito} | RÉGIMEN: COSTA`, 148, 23, { align: 'center' });
+
+        // Datos del Curso y Asignatura
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`CURSO: ${asig.cursos?.nombre || ''}`, 14, 30);
+        doc.text(`ASIGNATURA: ${asig.materias?.nombre || ''}`, 120, 30);
+        
+        const nombreDocenteActual = usuarioActualPerfil 
+          ? `${usuarioActualPerfil.titulo ? usuarioActualPerfil.titulo + ' ' : ''}${usuarioActualPerfil.nombres} ${usuarioActualPerfil.apellidos || ''}`.trim()
+          : '';
+        doc.text(`DOCENTE: ${nombreDocenteActual}`, 215, 30);
+
+        // Tabla de Calificaciones
+        const headers = [
+          [
+            { content: 'N°', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } },
+            { content: 'APELLIDOS Y NOMBRES', rowSpan: 2, styles: { valign: 'middle', halign: 'left' } },
+            { content: 'CALIFICACIONES ACADÉMICAS', colSpan: 3, styles: { halign: 'center' } },
+            { content: 'PROM. ANUAL', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } },
+            { content: 'COMPORTAMIENTO', colSpan: 3, styles: { halign: 'center' } },
+            { content: 'COMP. ANUAL', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } },
+            { content: 'ESTADO', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } }
+          ],
+          [
+            '1er Trim.', '2do Trim.', '3er Trim.',
+            '1er T.', '2do T.', '3er T.'
+          ]
+        ];
+
+        const bodyData = datosResumenAnualActual.map(d => [
+          d.num,
+          d.nombres,
+          d.t1,
+          d.t2,
+          d.t3,
+          d.promAnual,
+          d.ct1,
+          d.ct2,
+          d.ct3,
+          d.compAnual,
+          d.estado
+        ]);
+
+        doc.autoTable({
+          head: headers,
+          body: bodyData,
+          startY: 34,
+          theme: 'grid',
+          styles: { fontSize: 7.5, cellPadding: 1.5, lineColor: [200, 200, 200], lineWidth: 0.1 },
+          headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255], fontStyle: 'bold' },
+          columnStyles: {
+            0: { cellWidth: 10, halign: 'center' },
+            1: { cellWidth: 65, halign: 'left' },
+            2: { cellWidth: 18, halign: 'center' },
+            3: { cellWidth: 18, halign: 'center' },
+            4: { cellWidth: 18, halign: 'center' },
+            5: { cellWidth: 22, halign: 'center', fontStyle: 'bold', fillColor: [241, 245, 249] },
+            6: { cellWidth: 24, halign: 'center' },
+            7: { cellWidth: 24, halign: 'center' },
+            8: { cellWidth: 24, halign: 'center' },
+            9: { cellWidth: 24, halign: 'center', fontStyle: 'bold' },
+            10: { cellWidth: 22, halign: 'center', fontStyle: 'bold' }
+          }
+        });
+
+        // Firmas al final de la página
+        const finalY = doc.lastAutoTable.finalY + 22;
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'normal');
+
+        // Líneas de firma
+        doc.line(30, finalY, 90, finalY);
+        doc.line(120, finalY, 180, finalY);
+        doc.line(210, finalY, 270, finalY);
+
+        doc.text('DOCENTE RESPONSABLE', 60, finalY + 4, { align: 'center' });
+        doc.text(nombreDocenteActual, 60, finalY + 8, { align: 'center' });
+
+        doc.text('SECRETARIO/A GENERAL', 150, finalY + 4, { align: 'center' });
+        doc.text('C.P.A. Mercedes A. Salamea M.', 150, finalY + 8, { align: 'center' });
+
+        doc.text('RECTOR / DIRECTOR', 240, finalY + 4, { align: 'center' });
+        doc.text('Ing. Didimo A. Saltos S.', 240, finalY + 8, { align: 'center' });
+
+        doc.save(`Consolidado_Anual_${asig.cursos?.nombre || ''}_${asig.materias?.nombre || ''}.pdf`);
+      } catch (err) {
+        alert('Error al exportar PDF: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '📄 Descargar PDF';
+      }
+    }
+
+    // ==========================================
+    // GUARDAR NOTAS GENERAL
     // ==========================================
     async function guardarDatos() {
       const asigId = document.getElementById('selectMateria').value;
