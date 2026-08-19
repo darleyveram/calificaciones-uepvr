@@ -15,6 +15,7 @@
     .card { border: none; border-radius: 8px; box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.075); }
     .table th { font-size: 0.82rem; text-transform: uppercase; background-color: #f8fafc; }
     .img-preview { width: 110px; height: 110px; object-fit: contain; border: 2px dashed #cbd5e1; border-radius: 6px; padding: 4px; background-color: #fff; }
+    .nav-pills .nav-link.active { background-color: #0d6efd; font-weight: bold; }
   </style>
 </head>
 <body>
@@ -80,13 +81,13 @@
           <div class="d-flex justify-content-between align-items-center mb-3">
             <div>
               <h4 class="fw-bold mb-0">Datos de la Institución</h4>
-              <small class="text-muted">Configuración general y firmas institucionales para actas y libretas.</small>
+              <small class="text-muted">Configuración general y firmas institucionales.</small>
             </div>
             <button class="btn btn-primary btn-sm px-4 fw-bold" id="btnGuardarInst" onclick="guardarDatosInstitucion()"><i class="bi bi-save me-1"></i> Guardar Cambios</button>
           </div>
           
           <div class="card p-3 mb-3">
-            <h6 class="fw-bold text-primary mb-3"><i class="bi bi-info-square me-1"></i> Información General y Territorial</h6>
+            <h6 class="fw-bold text-primary mb-3"><i class="bi bi-info-square me-1"></i> Información General</h6>
             <form id="formInstitucion" class="row g-3">
               <div class="col-md-6">
                 <label class="form-label fw-semibold">Nombre Institucional</label>
@@ -122,7 +123,7 @@
           <div class="row g-3 mb-3">
             <div class="col-md-6">
               <div class="card p-3 h-100">
-                <h6 class="fw-bold text-primary mb-3"><i class="bi bi-pen me-1"></i> Autoridades Oficiales (Nómina)</h6>
+                <h6 class="fw-bold text-primary mb-3"><i class="bi bi-pen me-1"></i> Autoridades Oficiales</h6>
                 <div class="mb-3">
                   <label class="form-label fw-semibold">Rector / Director:</label>
                   <select id="instRectorSelect" class="form-select form-select-sm"></select>
@@ -136,10 +137,10 @@
 
             <div class="col-md-6">
               <div class="card p-3 h-100">
-                <h6 class="fw-bold text-primary mb-3"><i class="bi bi-images me-1"></i> Logos Oficiales para Reportes</h6>
+                <h6 class="fw-bold text-primary mb-3"><i class="bi bi-images me-1"></i> Logos Oficiales</h6>
                 <div class="row g-2 text-center">
                   <div class="col-6">
-                    <label class="form-label fw-semibold d-block small">Logo del Colegio</label>
+                    <label class="form-label fw-semibold d-block small">Logo Colegio</label>
                     <img id="previewLogoColegio" class="img-preview mb-2" src="https://via.placeholder.com/110?text=Logo+Colegio" alt="Logo Colegio">
                     <input type="file" id="fileLogoColegio" class="form-control form-control-sm" accept="image/*" onchange="cargarImagenBase64(this, 'previewLogoColegio')">
                   </div>
@@ -154,12 +155,12 @@
           </div>
         </div>
 
-        <!-- MODULO: CALENDARIO ASISTENCIA GENERAL -->
+        <!-- MODULO: CALENDARIO ASISTENCIA -->
         <div class="modulo d-none" id="mod-calendario">
           <div class="d-flex justify-content-between align-items-center mb-3">
             <div>
-              <h4 class="fw-bold mb-0">Datos Generales de Asistencia y Calendario</h4>
-              <small class="text-muted">Parámetros de fechas, festivos y cálculo de días laborales por trimestre/anual.</small>
+              <h4 class="fw-bold mb-0">Datos Generales de Asistencia</h4>
+              <small class="text-muted">Parámetros de fechas y días laborables.</small>
             </div>
             <button class="btn btn-primary btn-sm px-4 fw-bold" onclick="guardarCalendarioAsistencia()"><i class="bi bi-save me-1"></i> Guardar Calendario</button>
           </div>
@@ -173,7 +174,7 @@
                     <th>TRIMESTRE</th>
                     <th style="width: 170px;">INICIA</th>
                     <th style="width: 170px;">FINALIZA</th>
-                    <th style="width: 130px;">DÍAS NO LABORADOS</th>
+                    <th style="width: 130px;">DÍAS NO LAB.</th>
                     <th>TOTAL DÍAS</th>
                     <th>POR TRIMESTRE</th>
                     <th>ANUAL</th>
@@ -188,37 +189,31 @@
         <!-- MODULO 2: CURSOS Y TUTORES -->
         <div class="modulo d-none" id="mod-cursos">
           <div class="d-flex justify-content-between align-items-center mb-3">
-            <div>
-              <h4 class="fw-bold mb-0">Gestión de Cursos y Tutores</h4>
-              <small class="text-muted">Listado institucional para generación de sábanas y reportes.</small>
-            </div>
+            <h4 class="fw-bold mb-0">Gestión de Cursos y Tutores</h4>
             <button class="btn btn-success btn-sm" onclick="abrirModalCurso()"><i class="bi bi-plus-circle me-1"></i> Nuevo Curso</button>
           </div>
           <div class="card p-0">
-            <div class="table-responsive">
-              <table class="table table-hover mb-0 align-middle">
-                <thead>
-                  <tr>
-                    <th>Nombre Corto</th>
-                    <th>Nombre Largo Mayúscula</th>
-                    <th>Docente Tutor</th>
-                    <th>Promueve A</th>
-                    <th>Malla</th>
-                    <th>Acciones</th>
-                  </tr>
-                </thead>
-                <tbody id="tablaCursos"></tbody>
-              </table>
-            </div>
+            <table class="table table-hover mb-0 align-middle">
+              <thead>
+                <tr>
+                  <th>Nombre Corto</th>
+                  <th>Nombre Largo Mayúscula</th>
+                  <th>Docente Tutor</th>
+                  <th>Promueve A</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="tablaCursos"></tbody>
+            </table>
           </div>
         </div>
 
-        <!-- MODULO 3: ASIGNACIÓN DE MATERIAS POR CURSO -->
+        <!-- MODULO 3: ASIGNACIÓN DE MATERIAS -->
         <div class="modulo d-none" id="mod-asignaciones">
           <div class="d-flex justify-content-between align-items-center mb-3">
             <h4 class="fw-bold mb-0">Malla y Asignación de Materias por Curso</h4>
             <button class="btn btn-success btn-sm" id="btnNuevaAsignacion" onclick="abrirModalAsignacion()" disabled>
-              <i class="bi bi-plus-circle me-1"></i> Asignar Materia a este Curso
+              <i class="bi bi-plus-circle me-1"></i> Asignar Materia
             </button>
           </div>
 
@@ -230,9 +225,6 @@
                   <option value="">Seleccione curso...</option>
                 </select>
               </div>
-              <div class="col-md-7 text-muted pt-3">
-                <small><i class="bi bi-info-circle me-1"></i> Las materias <b>Optativas</b> no promedian en la libreta general, pero su comportamiento sí cuenta.</small>
-              </div>
             </div>
           </div>
 
@@ -241,13 +233,13 @@
               <thead>
                 <tr>
                   <th>Materia / Asignatura</th>
-                  <th>Tipo de Materia</th>
+                  <th>Tipo</th>
                   <th>Docentes Responsables (Hasta 3)</th>
                   <th style="width: 160px;">Acciones</th>
                 </tr>
               </thead>
               <tbody id="tablaMateriasCurso">
-                <tr><td colspan="4" class="text-center py-4 text-muted">Seleccione un curso arriba para ver sus materias asignadas.</td></tr>
+                <tr><td colspan="4" class="text-center py-4 text-muted">Seleccione un curso arriba.</td></tr>
               </tbody>
             </table>
           </div>
@@ -261,36 +253,45 @@
           </div>
           <div class="card p-0">
             <table class="table table-hover mb-0 align-middle">
-              <thead><tr><th>ID</th><th>Nombre de la Asignatura</th><th>Tipo Predeterminado</th><th>Acciones</th></tr></thead>
+              <thead><tr><th>ID</th><th>Nombre de la Asignatura</th><th>Tipo</th><th>Acciones</th></tr></thead>
               <tbody id="tablaMaterias"></tbody>
             </table>
           </div>
         </div>
 
-        <!-- MODULO 5: ESTUDIANTES -->
+        <!-- MODULO 5: ESTUDIANTES Y REGISTRO COMPLETO -->
         <div class="modulo d-none" id="mod-estudiantes">
           <div class="d-flex justify-content-between align-items-center mb-3">
-            <h4 class="fw-bold mb-0">Estudiantes y Representantes</h4>
+            <div>
+              <h4 class="fw-bold mb-0">Nómina de Estudiantes y Ficha Familiar</h4>
+              <small class="text-muted">Registro completo de matrícula, representantes y datos domiciliarios.</small>
+            </div>
             <div class="d-flex gap-2">
-              <select id="filtroCursoEstudiantes" class="form-select form-select-sm" style="width: 200px;" onchange="cargarEstudiantes()"></select>
-              <button class="btn btn-success btn-sm" onclick="abrirModalEstudiante()"><i class="bi bi-plus-circle me-1"></i> Nuevo Estudiante</button>
+              <select id="filtroCursoEstudiantes" class="form-select form-select-sm" style="width: 220px;" onchange="cargarEstudiantes()"></select>
+              <button class="btn btn-success btn-sm fw-bold" onclick="abrirModalEstudianteCompleto()"><i class="bi bi-person-plus-fill me-1"></i> Nuevo Estudiante</button>
             </div>
           </div>
           <div class="card p-0">
             <table class="table table-hover mb-0 align-middle">
-              <thead><tr><th>N°</th><th>Cédula</th><th>Estudiante</th><th>Representante</th><th>Acciones</th></tr></thead>
+              <thead>
+                <tr>
+                  <th style="width: 40px;">N°</th>
+                  <th style="width: 120px;">Cédula</th>
+                  <th>Estudiante</th>
+                  <th>Representante Legal</th>
+                  <th>Celular / Contacto</th>
+                  <th style="width: 150px;">Acciones</th>
+                </tr>
+              </thead>
               <tbody id="tablaEstudiantes"></tbody>
             </table>
           </div>
         </div>
 
-        <!-- MODULO 6: NÓMINA DEL PERSONAL -->
+        <!-- MODULO 6: PERSONAL -->
         <div class="modulo d-none" id="mod-docentes">
           <div class="d-flex justify-content-between align-items-center mb-3">
-            <div>
-              <h4 class="fw-bold mb-0">Nómina del Personal Docente y Administrativo</h4>
-              <small class="text-muted">Gestión de accesos, cargos y permisos especiales del personal.</small>
-            </div>
+            <h4 class="fw-bold mb-0">Nómina del Personal</h4>
             <button class="btn btn-success btn-sm" onclick="abrirModalPersonal()"><i class="bi bi-person-plus me-1"></i> Nuevo Personal</button>
           </div>
           <div class="card p-0">
@@ -298,11 +299,11 @@
               <thead>
                 <tr>
                   <th>Nombres y Apellidos</th>
-                  <th>Correo Electrónico</th>
+                  <th>Correo</th>
                   <th>Cargo</th>
                   <th>Rol</th>
                   <th>Asistencia</th>
-                  <th style="min-width: 210px;">Acciones</th>
+                  <th>Acciones</th>
                 </tr>
               </thead>
               <tbody id="tablaDocentes"></tbody>
@@ -310,24 +311,15 @@
           </div>
         </div>
 
-        <!-- MODULO 7: TÍTULOS ACADÉMICOS -->
+        <!-- MODULO 7: TÍTULOS -->
         <div class="modulo d-none" id="mod-titulos">
           <div class="d-flex justify-content-between align-items-center mb-3">
-            <div>
-              <h4 class="fw-bold mb-0">Catálogo de Títulos Académicos</h4>
-              <small class="text-muted">Abreviaturas profesionales que preceden al nombre del personal.</small>
-            </div>
+            <h4 class="fw-bold mb-0">Catálogo de Títulos</h4>
             <button class="btn btn-success btn-sm" onclick="abrirModalTitulo()"><i class="bi bi-plus-circle me-1"></i> Nuevo Título</button>
           </div>
           <div class="card p-0" style="max-width: 700px;">
             <table class="table table-hover mb-0 align-middle">
-              <thead>
-                <tr>
-                  <th style="width: 140px;">Abreviatura</th>
-                  <th>Descripción / Grado</th>
-                  <th style="width: 140px;">Acciones</th>
-                </tr>
-              </thead>
+              <thead><tr><th>Abreviatura</th><th>Descripción</th><th>Acciones</th></tr></thead>
               <tbody id="tablaTitulos"></tbody>
             </table>
           </div>
@@ -341,7 +333,7 @@
           </div>
           <div class="card p-0" style="max-width: 600px;">
             <table class="table table-hover mb-0 align-middle">
-              <thead><tr><th>ID</th><th>Nombre de la Actividad</th><th>Acciones</th></tr></thead>
+              <thead><tr><th>ID</th><th>Nombre de Actividad</th><th>Acciones</th></tr></thead>
               <tbody id="tablaActividades"></tbody>
             </table>
           </div>
@@ -351,14 +343,307 @@
     </div>
   </div>
 
-  <!-- ================= MODALES ================= -->
+  <!-- ========================================================================= -->
+  <!-- MODAL INTERACTIVO: REGISTRO / EDICIÓN COMPLETA DEL ESTUDIANTE -->
+  <!-- ========================================================================= -->
+  <div class="modal fade" id="modalEstudianteFicha" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+      <div class="modal-content border-0 shadow">
+        
+        <!-- Cabecera Modal -->
+        <div class="modal-header bg-primary text-white py-3">
+          <h5 class="modal-title fw-bold" id="modalEstudianteTitulo">
+            <i class="bi bi-person-lines-fill me-2"></i>Ficha Integral de Registro Estudiantil
+          </h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
 
-  <!-- Modal Personal con Checkbox de Asistencia -->
+        <div class="modal-body p-4">
+          
+          <!-- Pestañas de Navegación -->
+          <ul class="nav nav-pills nav-justified mb-4 border rounded p-2 bg-light" id="pills-tab-est" role="tablist">
+            <li class="nav-item">
+              <button class="nav-link active" id="tab-est-btn" data-bs-toggle="pill" data-bs-target="#tab-est" type="button"><i class="bi bi-person me-1"></i> 1. Estudiante</button>
+            </li>
+            <li class="nav-item">
+              <button class="nav-link" id="tab-dom-btn" data-bs-toggle="pill" data-bs-target="#tab-dom" type="button"><i class="bi bi-geo-alt me-1"></i> 2. Domicilio</button>
+            </li>
+            <li class="nav-item">
+              <button class="nav-link" id="tab-rep-btn" data-bs-toggle="pill" data-bs-target="#tab-rep" type="button"><i class="bi bi-shield-check me-1"></i> 3. Representante</button>
+            </li>
+            <li class="nav-item">
+              <button class="nav-link" id="tab-padres-btn" data-bs-toggle="pill" data-bs-target="#tab-padres" type="button"><i class="bi bi-people me-1"></i> 4. Padre y Madre</button>
+            </li>
+            <li class="nav-item">
+              <button class="nav-link" id="tab-curso-btn" data-bs-toggle="pill" data-bs-target="#tab-curso" type="button"><i class="bi bi-mortarboard me-1"></i> 5. Matrícula</button>
+            </li>
+          </ul>
+
+          <form id="formEstudianteCompleto">
+            <input type="hidden" id="fe_id">
+
+            <div class="tab-content" id="pills-tabContentEst">
+              
+              <!-- 1. DATOS DEL ESTUDIANTE -->
+              <div class="tab-pane fade show active" id="tab-est">
+                <div class="row g-3">
+                  <div class="col-md-3">
+                    <label class="form-label fw-bold">Tipo Documento</label>
+                    <select class="form-select form-select-sm" id="fe_tipo_doc">
+                      <option value="CEDULA">Cédula</option>
+                      <option value="PASAPORTE">Pasaporte</option>
+                      <option value="REFUGIADO">Carné de Refugiado</option>
+                      <option value="SIN_DOC">Sin Documento</option>
+                    </select>
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label fw-bold">Número de Cédula / Identificación</label>
+                    <input type="text" class="form-control form-control-sm" id="fe_cedula" placeholder="10 dígitos">
+                  </div>
+                  <div class="col-md-5">
+                    <label class="form-label fw-bold">Sexo</label>
+                    <select class="form-select form-select-sm" id="fe_sexo">
+                      <option value="">Seleccione...</option>
+                      <option value="MASCULINO">MASCULINO</option>
+                      <option value="FEMENINO">FEMENINO</option>
+                    </select>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label fw-bold">Apellidos del Estudiante</label>
+                    <input type="text" class="form-control form-control-sm text-uppercase" id="fe_apellidos" required>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label fw-bold">Nombres del Estudiante</label>
+                    <input type="text" class="form-control form-control-sm text-uppercase" id="fe_nombres_solo" required>
+                  </div>
+                  <div class="col-md-3">
+                    <label class="form-label fw-bold">Fecha de Nacimiento</label>
+                    <input type="date" class="form-control form-control-sm" id="fe_fecha_nac">
+                  </div>
+                  <div class="col-md-3">
+                    <label class="form-label fw-bold">Provincia Nacimiento</label>
+                    <input type="text" class="form-control form-control-sm text-uppercase" id="fe_prov_nac">
+                  </div>
+                  <div class="col-md-3">
+                    <label class="form-label fw-bold">Cantón Nacimiento</label>
+                    <input type="text" class="form-control form-control-sm text-uppercase" id="fe_canton_nac">
+                  </div>
+                  <div class="col-md-3">
+                    <label class="form-label fw-bold">Parroquia Nacimiento</label>
+                    <input type="text" class="form-control form-control-sm text-uppercase" id="fe_parr_nac">
+                  </div>
+                  <div class="col-md-12">
+                    <label class="form-label fw-bold">Correo Electrónico del Estudiante</label>
+                    <input type="email" class="form-control form-control-sm" id="fe_correo">
+                  </div>
+                </div>
+              </div>
+
+              <!-- 2. DOMICILIO -->
+              <div class="tab-pane fade" id="tab-dom">
+                <div class="row g-3">
+                  <div class="col-md-4">
+                    <label class="form-label fw-bold">Provincia de Residencia</label>
+                    <input type="text" class="form-control form-control-sm text-uppercase" id="fe_prov_dom" value="MANABÍ">
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label fw-bold">Cantón de Residencia</label>
+                    <input type="text" class="form-control form-control-sm text-uppercase" id="fe_canton_dom" value="PICHINCHA">
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label fw-bold">Parroquia</label>
+                    <input type="text" class="form-control form-control-sm text-uppercase" id="fe_parr_dom">
+                  </div>
+                  <div class="col-md-12">
+                    <label class="form-label fw-bold">Dirección Exacta y Lugares de Referencia</label>
+                    <textarea class="form-control form-control-sm text-uppercase" id="fe_direccion_dom" rows="3" placeholder="Barrio, Calle principal, N° de casa, diagonal a..."></textarea>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 3. REPRESENTANTE LEGAL -->
+              <div class="tab-pane fade" id="tab-rep">
+                <div class="row g-3">
+                  <div class="col-md-12">
+                    <div class="form-check form-switch p-2 bg-white rounded border">
+                      <input class="form-check-input ms-0 me-2" type="checkbox" id="fe_rep_es_auto">
+                      <label class="form-check-label fw-bold" for="fe_rep_es_auto">¿El estudiante es su propio representante legal? (Mayor de 16 años)</label>
+                    </div>
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label fw-bold">Cédula del Representante</label>
+                    <input type="text" class="form-control form-control-sm" id="fe_rep_cedula">
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label fw-bold">Parentesco</label>
+                    <select class="form-select form-select-sm" id="fe_rep_parentesco">
+                      <option value="MADRE">MADRE</option>
+                      <option value="PADRE">PADRE</option>
+                      <option value="TIO/A">TÍO/A</option>
+                      <option value="ABUELO/A">ABUELO/A</option>
+                      <option value="HERMANO/A">HERMANO/A</option>
+                      <option value="OTRO">OTRO</option>
+                    </select>
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label fw-bold">Teléfono Celular</label>
+                    <input type="text" class="form-control form-control-sm" id="fe_rep_celular">
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label fw-bold">Apellidos del Representante</label>
+                    <input type="text" class="form-control form-control-sm text-uppercase" id="fe_rep_apellidos">
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label fw-bold">Nombres del Representante</label>
+                    <input type="text" class="form-control form-control-sm text-uppercase" id="fe_rep_nombres">
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label fw-bold">Teléfono Convencional</label>
+                    <input type="text" class="form-control form-control-sm" id="fe_rep_telefono">
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label fw-bold">Correo Electrónico</label>
+                    <input type="email" class="form-control form-control-sm" id="fe_rep_correo">
+                  </div>
+                </div>
+              </div>
+
+              <!-- 4. PADRE Y MADRE -->
+              <div class="tab-pane fade" id="tab-padres">
+                <div class="row g-4">
+                  <!-- Columna Padre -->
+                  <div class="col-md-6 border-end pe-3">
+                    <h6 class="fw-bold text-primary mb-3"><i class="bi bi-person-fill me-1"></i> Información del Padre</h6>
+                    <div class="row g-2">
+                      <div class="col-md-6">
+                        <label class="form-label small fw-bold">Cédula</label>
+                        <input type="text" class="form-control form-control-sm" id="fe_padre_cedula">
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label small fw-bold">Celular</label>
+                        <input type="text" class="form-control form-control-sm" id="fe_padre_celular">
+                      </div>
+                      <div class="col-md-12">
+                        <label class="form-label small fw-bold">Nombres y Apellidos Completos</label>
+                        <input type="text" class="form-control form-control-sm text-uppercase" id="fe_padre_nombres">
+                      </div>
+                      <div class="col-md-12">
+                        <label class="form-label small fw-bold">Correo Electrónico</label>
+                        <input type="email" class="form-control form-control-sm" id="fe_padre_correo">
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label small fw-bold">Nivel de Educación</label>
+                        <select class="form-select form-select-sm" id="fe_padre_nivel">
+                          <option value="EDUCACIÓN BÁSICA">Educación Básica</option>
+                          <option value="BACHILLERATO" selected>Bachillerato</option>
+                          <option value="TERCER NIVEL">Tercer Nivel / Universidad</option>
+                          <option value="POSTGRADO">Postgrado</option>
+                        </select>
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label small fw-bold">¿Vive con el Estudiante?</label>
+                        <select class="form-select form-select-sm" id="fe_padre_vive">
+                          <option value="SI">SÍ</option>
+                          <option value="NO">NO</option>
+                        </select>
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label small fw-bold">Dónde Trabaja</label>
+                        <input type="text" class="form-control form-control-sm text-uppercase" id="fe_padre_trabajo">
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label small fw-bold">Profesión / Ocupación</label>
+                        <input type="text" class="form-control form-control-sm text-uppercase" id="fe_padre_profesion">
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Columna Madre -->
+                  <div class="col-md-6 ps-3">
+                    <h6 class="fw-bold text-primary mb-3"><i class="bi bi-person-hearts me-1"></i> Información de la Madre</h6>
+                    <div class="row g-2">
+                      <div class="col-md-6">
+                        <label class="form-label small fw-bold">Cédula</label>
+                        <input type="text" class="form-control form-control-sm" id="fe_madre_cedula">
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label small fw-bold">Celular</label>
+                        <input type="text" class="form-control form-control-sm" id="fe_madre_celular">
+                      </div>
+                      <div class="col-md-12">
+                        <label class="form-label small fw-bold">Nombres y Apellidos Completos</label>
+                        <input type="text" class="form-control form-control-sm text-uppercase" id="fe_madre_nombres">
+                      </div>
+                      <div class="col-md-12">
+                        <label class="form-label small fw-bold">Correo Electrónico</label>
+                        <input type="email" class="form-control form-control-sm" id="fe_madre_correo">
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label small fw-bold">Nivel de Educación</label>
+                        <select class="form-select form-select-sm" id="fe_madre_nivel">
+                          <option value="EDUCACIÓN BÁSICA">Educación Básica</option>
+                          <option value="BACHILLERATO" selected>Bachillerato</option>
+                          <option value="TERCER NIVEL">Tercer Nivel / Universidad</option>
+                          <option value="POSTGRADO">Postgrado</option>
+                        </select>
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label small fw-bold">¿Vive con el Estudiante?</label>
+                        <select class="form-select form-select-sm" id="fe_madre_vive">
+                          <option value="SI">SÍ</option>
+                          <option value="NO">NO</option>
+                        </select>
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label small fw-bold">Dónde Trabaja</label>
+                        <input type="text" class="form-control form-control-sm text-uppercase" id="fe_madre_trabajo">
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label small fw-bold">Profesión / Ocupación</label>
+                        <input type="text" class="form-control form-control-sm text-uppercase" id="fe_madre_profesion">
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 5. MATRÍCULA Y ASIGNACIÓN DE CURSO -->
+              <div class="tab-pane fade" id="tab-curso">
+                <div class="row g-3">
+                  <div class="col-md-8">
+                    <label class="form-label fw-bold">Curso Asignado</label>
+                    <select class="form-select form-select-sm" id="fe_curso_id" required></select>
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label fw-bold">N° de Lista (Opcional)</label>
+                    <input type="number" class="form-control form-control-sm" id="fe_num_lista">
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </form>
+
+        </div>
+
+        <!-- Pie del Modal -->
+        <div class="modal-footer bg-light py-2">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-primary btn-sm px-4 fw-bold" id="btnGuardarFichaEstudiante" onclick="guardarFichaEstudianteModal()">
+            <i class="bi bi-save me-1"></i> Guardar Ficha
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Personal -->
   <div class="modal fade" id="modalPersonalBox" tabindex="-1">
     <div class="modal-dialog modal-lg">
       <div class="modal-content">
         <div class="modal-header bg-dark text-white py-2">
-          <h6 class="modal-title fw-bold" id="modalPersonalTitulo">Registrar Nuevo Personal</h6>
+          <h6 class="modal-title fw-bold" id="modalPersonalTitulo">Registrar Personal</h6>
           <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body">
@@ -366,58 +651,52 @@
             <input type="hidden" id="personalModalId">
             <div class="row g-2">
               <div class="col-md-3">
-                <label class="form-label fw-bold">Título Académico</label>
+                <label class="form-label fw-bold">Título</label>
                 <select id="personalTitulo" class="form-select form-select-sm" required></select>
               </div>
               <div class="col-md-4">
                 <label class="form-label fw-bold">Nombres</label>
-                <input type="text" id="personalNombres" class="form-control form-control-sm" placeholder="Ej: Damarys Lilibeth" required>
+                <input type="text" id="personalNombres" class="form-control form-control-sm" required>
               </div>
               <div class="col-md-5">
                 <label class="form-label fw-bold">Apellidos</label>
-                <input type="text" id="personalApellidos" class="form-control form-control-sm" placeholder="Ej: Carranza Balderramo" required>
-              </div>
-
-              <div class="col-md-6">
-                <label class="form-label fw-bold">Correo Institucional / Acceso</label>
-                <input type="email" id="personalEmail" class="form-control form-control-sm" placeholder="ejemplo@uepvr.edu.ec" required>
+                <input type="text" id="personalApellidos" class="form-control form-control-sm" required>
               </div>
               <div class="col-md-6">
-                <label class="form-label fw-bold">Número de Teléfono</label>
-                <input type="text" id="personalTelefono" class="form-control form-control-sm" placeholder="0991234567">
+                <label class="form-label fw-bold">Correo</label>
+                <input type="email" id="personalEmail" class="form-control form-control-sm" required>
               </div>
-
+              <div class="col-md-6">
+                <label class="form-label fw-bold">Teléfono</label>
+                <input type="text" id="personalTelefono" class="form-control form-control-sm">
+              </div>
               <div class="col-md-6">
                 <label class="form-label fw-bold">Cargo</label>
-                <input type="text" id="personalCargo" class="form-control form-control-sm" placeholder="Ej: Docente de Aula, Inspectora, etc." required>
+                <input type="text" id="personalCargo" class="form-control form-control-sm" required>
               </div>
               <div class="col-md-6">
-                <label class="form-label fw-bold">Rol en la Plataforma</label>
+                <label class="form-label fw-bold">Rol</label>
                 <select id="personalRol" class="form-select form-select-sm">
-                  <option value="docente">Docente (Acceso solo a sus notas y tutorías)</option>
-                  <option value="admin">Administrador (Acceso total + Docencia)</option>
+                  <option value="docente">Docente</option>
+                  <option value="admin">Administrador</option>
                 </select>
               </div>
-
               <div class="col-md-12 my-2">
                 <div class="form-check form-switch p-2 bg-light rounded border">
                   <input class="form-check-input ms-0 me-2" type="checkbox" id="personalPuedeAsistencia">
                   <label class="form-check-label fw-bold text-primary" for="personalPuedeAsistencia">
-                    <i class="bi bi-calendar-check me-1"></i> Autorizado para Configurar y Gestionar Asistencia General
+                    <i class="bi bi-calendar-check me-1"></i> Autorizado para Configurar Asistencia General
                   </label>
                 </div>
               </div>
-
               <div class="col-md-12" id="boxPasswordPersonal">
-                <label class="form-label fw-bold">Contraseña de Acceso</label>
-                <input type="password" id="personalPassword" class="form-control form-control-sm" placeholder="Mínimo 6 caracteres">
-                <small class="text-muted">Si está editando, deje este campo en blanco para no cambiarla.</small>
+                <label class="form-label fw-bold">Contraseña</label>
+                <input type="password" id="personalPassword" class="form-control form-control-sm">
               </div>
             </div>
-
             <div class="text-end mt-4">
               <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
-              <button type="submit" class="btn btn-primary btn-sm fw-bold" id="btnGuardarPersonal">Guardar Personal</button>
+              <button type="submit" class="btn btn-primary btn-sm fw-bold" id="btnGuardarPersonal">Guardar</button>
             </div>
           </form>
         </div>
@@ -430,7 +709,7 @@
     <div class="modal-dialog modal-lg">
       <div class="modal-content">
         <div class="modal-header bg-dark text-white py-2">
-          <h6 class="modal-title fw-bold" id="modalCursoTitulo">Gestión de Curso</h6>
+          <h6 class="modal-title fw-bold" id="modalCursoTitulo">Curso</h6>
           <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body">
@@ -460,7 +739,7 @@
             </div>
             <div class="text-end mt-4">
               <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
-              <button type="submit" class="btn btn-primary btn-sm fw-bold">Guardar Curso</button>
+              <button type="submit" class="btn btn-primary btn-sm fw-bold">Guardar</button>
             </div>
           </form>
         </div>
@@ -473,7 +752,7 @@
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header bg-dark text-white py-2">
-          <h6 class="modal-title fw-bold" id="modalTituloTitulo">Gestión de Título</h6>
+          <h6 class="modal-title fw-bold" id="modalTituloTitulo">Título Académico</h6>
           <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body">
@@ -489,7 +768,7 @@
             </div>
             <div class="text-end">
               <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
-              <button type="submit" class="btn btn-primary btn-sm fw-bold">Guardar Título</button>
+              <button type="submit" class="btn btn-primary btn-sm fw-bold">Guardar</button>
             </div>
           </form>
         </div>
@@ -502,36 +781,32 @@
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header bg-primary text-white py-2">
-          <h6 class="modal-title fw-bold" id="modalAsigTitulo">Asignar Materia al Curso</h6>
+          <h6 class="modal-title fw-bold" id="modalAsigTitulo">Asignar Materia</h6>
           <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body">
           <form id="formModalAsignacion" onsubmit="guardarAsignacionModal(event)">
             <input type="hidden" id="asigCursoId">
             <div class="mb-3">
-              <label class="form-label fw-bold">Materia / Asignatura</label>
+              <label class="form-label fw-bold">Materia</label>
               <select id="asigSelectMateria" class="form-select form-select-sm" required></select>
             </div>
-            
             <div class="p-2 border rounded bg-light mb-3">
-              <label class="form-label fw-bold text-primary mb-1"><i class="bi bi-person-video3 me-1"></i> Docente Principal</label>
+              <label class="form-label fw-bold text-primary mb-1">Docente Principal</label>
               <select id="asigSelectDocente" class="form-select form-select-sm" required></select>
-              
               <hr class="my-2">
-              <label class="form-label fw-bold text-muted mb-1"><i class="bi bi-person-add me-1"></i> Docente Auxiliar 1</label>
+              <label class="form-label fw-bold text-muted mb-1">Docente Auxiliar 1</label>
               <select id="asigSelectDocente2" class="form-select form-select-sm mb-2"></select>
-
-              <label class="form-label fw-bold text-muted mb-1"><i class="bi bi-person-add me-1"></i> Docente Auxiliar 2</label>
+              <label class="form-label fw-bold text-muted mb-1">Docente Auxiliar 2</label>
               <select id="asigSelectDocente3" class="form-select form-select-sm"></select>
             </div>
-
             <div class="mb-3 form-check form-switch">
               <input class="form-check-input" type="checkbox" id="asigEsOptativa">
-              <label class="form-check-label fw-semibold" for="asigEsOptativa">Materia Optativa / Cualitativa</label>
+              <label class="form-check-label fw-semibold" for="asigEsOptativa">Materia Optativa</label>
             </div>
             <div class="text-end">
               <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
-              <button type="submit" class="btn btn-primary btn-sm fw-bold">Guardar Asignación</button>
+              <button type="submit" class="btn btn-primary btn-sm fw-bold">Guardar</button>
             </div>
           </form>
         </div>
@@ -550,7 +825,7 @@
     let cursosList = [];
     let materiasList = [];
     let periodosList = [];
-    let modalAsignarInst, modalCursoInst, modalPersonalInst, modalTituloInst;
+    let modalAsignarInst, modalCursoInst, modalPersonalInst, modalTituloInst, modalEstudianteInst;
     let usuarioActualSesionId = null;
 
     function formatNombreDocente(d) {
@@ -617,6 +892,7 @@
           modalCursoInst = new bootstrap.Modal(document.getElementById('modalCursoBox'));
           modalPersonalInst = new bootstrap.Modal(document.getElementById('modalPersonalBox'));
           modalTituloInst = new bootstrap.Modal(document.getElementById('modalTituloBox'));
+          modalEstudianteInst = new bootstrap.Modal(document.getElementById('modalEstudianteFicha'));
           await cargarDatosIniciales();
           mostrarModulo('institucion', document.getElementById('nav-institucion'));
         } else {
@@ -718,7 +994,7 @@
     }
 
     // ==========================================
-    // MÓDULO: CALENDARIO ASISTENCIA GENERAL
+    // MÓDULO: CALENDARIO ASISTENCIA
     // ==========================================
     async function cargarCalendarioAsistencia() {
       const { data } = await supabaseClient.from('asistencia_periodos').select('*').order('trimestre').order('parcial');
@@ -784,7 +1060,6 @@
 
       fila.querySelector('.col-total-parcial').innerText = totalReal;
 
-      // Actualizar subtotales
       const t1 = (periodosList[0]?.total_dias_laborados || 0) + (periodosList[1]?.total_dias_laborados || 0);
       const t2 = (periodosList[2]?.total_dias_laborados || 0) + (periodosList[3]?.total_dias_laborados || 0);
       const t3 = (periodosList[4]?.total_dias_laborados || 0) + (periodosList[5]?.total_dias_laborados || 0);
@@ -810,8 +1085,8 @@
         onConflict: 'trimestre,parcial'
       });
 
-      if (error) alert('Error al guardar calendario: ' + error.message);
-      else alert('¡Calendario de asistencia y días laborables guardados con éxito!');
+      if (error) alert('Error: ' + error.message);
+      else alert('¡Calendario de asistencia guardado con éxito!');
     }
 
     // 2. Cursos
@@ -826,11 +1101,6 @@
             <td><small class="fw-bold text-dark">${c.nombre_largo_mayuscula || '-'}</small></td>
             <td>${tutor ? `<span class="badge bg-light text-dark border"><i class="bi bi-person-check text-success me-1"></i>${formatNombreDocente(tutor)}</span>` : '<span class="text-muted fst-italic">Sin tutor</span>'}</td>
             <td><small class="text-muted">${c.promueve_a || '-'}</small></td>
-            <td>
-              <button class="btn btn-sm btn-outline-info py-0" onclick="irAsignarMateriasCurso(${c.id})">
-                <i class="bi bi-journal-plus me-1"></i> Asignar
-              </button>
-            </td>
             <td>
               <button class="btn btn-sm btn-outline-primary py-0" onclick="abrirModalCurso(${c.id})">Editar</button>
               <button class="btn btn-sm btn-outline-danger py-0" onclick="eliminarRegistro('cursos', ${c.id})">Eliminar</button>
@@ -877,11 +1147,9 @@
       const payload = { nombre, nombre_largo_mayuscula, nombre_largo_minuscula, promueve_a, tutor_id };
 
       if (id) {
-        const { error } = await supabaseClient.from('cursos').update(payload).eq('id', id);
-        if (error) alert('Error al actualizar curso: ' + error.message);
+        await supabaseClient.from('cursos').update(payload).eq('id', id);
       } else {
-        const { error } = await supabaseClient.from('cursos').insert([payload]);
-        if (error) alert('Error al registrar curso: ' + error.message);
+        await supabaseClient.from('cursos').insert([payload]);
       }
       modalCursoInst.hide();
       cargarCursos();
@@ -898,12 +1166,6 @@
       cargarMateriasDelCurso();
     }
 
-    function irAsignarMateriasCurso(cursoId) {
-      mostrarModulo('asignaciones', document.getElementById('nav-asignaciones'));
-      document.getElementById('selectCursoAsignar').value = cursoId;
-      cargarMateriasDelCurso();
-    }
-
     async function cargarMateriasDelCurso() {
       const cursoId = document.getElementById('selectCursoAsignar').value;
       const tbody = document.getElementById('tablaMateriasCurso');
@@ -911,38 +1173,30 @@
 
       if (!cursoId) {
         btn.disabled = true;
-        tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-muted">Seleccione un curso arriba para ver sus materias asignadas.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-muted">Seleccione un curso arriba.</td></tr>';
         return;
       }
 
       btn.disabled = false;
       await cargarDatosIniciales();
 
-      const { data, error } = await supabaseClient
+      const { data } = await supabaseClient
         .from('curso_materia_docente')
         .select(`id, curso_id, materia_id, docente_id, docente_id_2, docente_id_3, es_optativa, materias(id, nombre)`)
         .eq('curso_id', parseInt(cursoId));
 
-      if (error) {
-        tbody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-danger">Error: ${error.message}</td></tr>`;
-        return;
-      }
-
       if (!data || data.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-muted">Este curso aún no tiene materias asignadas.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-muted">No hay materias asignadas en este curso.</td></tr>';
         return;
       }
 
       tbody.innerHTML = data.map(a => {
         const esOpt = a.es_optativa ? true : false;
-        
         let nombresDocentes = [];
         const d1 = docentesList.find(d => d.id === a.docente_id);
         if (d1) nombresDocentes.push(`<i class="bi bi-person-fill text-primary"></i> ${formatNombreDocente(d1)}`);
-        
         const d2 = docentesList.find(d => d.id === a.docente_id_2);
         if (d2) nombresDocentes.push(`<i class="bi bi-person me-1"></i>${formatNombreDocente(d2)}`);
-        
         const d3 = docentesList.find(d => d.id === a.docente_id_3);
         if (d3) nombresDocentes.push(`<i class="bi bi-person me-1"></i>${formatNombreDocente(d3)}`);
 
@@ -950,20 +1204,12 @@
 
         return `
           <tr>
-            <td class="fw-bold fs-6">${a.materias?.nombre || 'Materia no encontrada'}</td>
-            <td>
-              ${esOpt 
-                ? '<span class="badge bg-warning text-dark"><i class="bi bi-info-circle me-1"></i>Optativa</span>' 
-                : '<span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Obligatoria</span>'}
-            </td>
+            <td class="fw-bold fs-6">${a.materias?.nombre || '-'}</td>
+            <td>${esOpt ? '<span class="badge bg-warning text-dark">Optativa</span>' : '<span class="badge bg-success">Obligatoria</span>'}</td>
             <td><small>${strDocentes}</small></td>
             <td>
-              <button class="btn btn-sm btn-outline-primary py-0 me-1 mb-1" onclick="editarAsignacionModal(${a.id}, ${a.materia_id}, '${a.docente_id || ''}', '${a.docente_id_2 || ''}', '${a.docente_id_3 || ''}', ${esOpt})">
-                <i class="bi bi-pencil"></i> Editar
-              </button>
-              <button class="btn btn-sm btn-outline-danger py-0 mb-1" onclick="eliminarRegistro('curso_materia_docente', ${a.id})">
-                <i class="bi bi-trash"></i> Quitar
-              </button>
+              <button class="btn btn-sm btn-outline-primary py-0 me-1" onclick="editarAsignacionModal(${a.id}, ${a.materia_id}, '${a.docente_id || ''}', '${a.docente_id_2 || ''}', '${a.docente_id_3 || ''}', ${esOpt})">Editar</button>
+              <button class="btn btn-sm btn-outline-danger py-0" onclick="eliminarRegistro('curso_materia_docente', ${a.id})">Quitar</button>
             </td>
           </tr>
         `;
@@ -979,15 +1225,13 @@
       document.getElementById('modalAsigTitulo').innerText = `Asignar Materia a: ${c.nombre}`;
 
       const selM = document.getElementById('asigSelectMateria');
-      selM.innerHTML = materiasList.map(m => `<option value="${m.id}" data-optativa="${m.es_optativa}">${m.nombre}</option>`).join('');
+      selM.innerHTML = materiasList.map(m => `<option value="${m.id}">${m.nombre}</option>`).join('');
       selM.disabled = false;
 
       const opcionesDocentes = docentesList.map(d => `<option value="${d.id}">${formatNombreDocente(d)} (${d.email})</option>`).join('');
-      
       document.getElementById('asigSelectDocente').innerHTML = '<option value="">Seleccione Principal...</option>' + opcionesDocentes;
       document.getElementById('asigSelectDocente2').innerHTML = '<option value="">Ninguno</option>' + opcionesDocentes;
       document.getElementById('asigSelectDocente3').innerHTML = '<option value="">Ninguno</option>' + opcionesDocentes;
-
       document.getElementById('asigEsOptativa').checked = false;
       modalAsignarInst.show();
     }
@@ -995,7 +1239,7 @@
     function editarAsignacionModal(asigId, materiaId, doc1, doc2, doc3, esOpt) {
       const cursoId = document.getElementById('selectCursoAsignar').value;
       document.getElementById('asigCursoId').value = cursoId;
-      document.getElementById('modalAsigTitulo').innerText = `Editar Asignación de Materia`;
+      document.getElementById('modalAsigTitulo').innerText = `Editar Asignación`;
 
       const selM = document.getElementById('asigSelectMateria');
       selM.innerHTML = materiasList.map(m => `<option value="${m.id}">${m.nombre}</option>`).join('');
@@ -1003,16 +1247,12 @@
       selM.disabled = true;
 
       const opcionesDocentes = docentesList.map(d => `<option value="${d.id}">${formatNombreDocente(d)} (${d.email})</option>`).join('');
-      
       document.getElementById('asigSelectDocente').innerHTML = '<option value="">Seleccione Principal...</option>' + opcionesDocentes;
       document.getElementById('asigSelectDocente').value = doc1;
-
       document.getElementById('asigSelectDocente2').innerHTML = '<option value="">Ninguno</option>' + opcionesDocentes;
       document.getElementById('asigSelectDocente2').value = doc2;
-
       document.getElementById('asigSelectDocente3').innerHTML = '<option value="">Ninguno</option>' + opcionesDocentes;
       document.getElementById('asigSelectDocente3').value = doc3;
-
       document.getElementById('asigEsOptativa').checked = esOpt;
       modalAsignarInst.show();
     }
@@ -1030,7 +1270,7 @@
         curso_id, materia_id, docente_id, docente_id_2, docente_id_3, es_optativa
       }], { onConflict: 'curso_id,materia_id' });
 
-      if (error) alert('Error al guardar: ' + error.message);
+      if (error) alert('Error: ' + error.message);
       else {
         modalAsignarInst.hide();
         await cargarMateriasDelCurso();
@@ -1058,26 +1298,31 @@
       const nombre = prompt('Nombre de la Materia / Asignatura:');
       if (!nombre) return;
       const esOpt = confirm('¿Esta materia es Optativa (no sumará al promedio general)?');
-      const { error } = await supabaseClient.from('materias').insert([{ nombre, es_optativa: esOpt }]);
-      if (error) alert(error.message);
-      else cargarMaterias();
+      await supabaseClient.from('materias').insert([{ nombre, es_optativa: esOpt }]);
+      cargarMaterias();
     }
 
     async function editarMateriaModal(id, nombreActual, optActual) {
       const nuevoNombre = prompt('Nombre de la Materia:', nombreActual);
       if (!nuevoNombre) return;
-      const nuevoOpt = confirm('¿Esta materia es Optativa (no sumará al promedio general)?', optActual);
-      const { error } = await supabaseClient.from('materias').update({ nombre: nuevoNombre, es_optativa: nuevoOpt }).eq('id', id);
-      if (error) alert(error.message);
-      else cargarMaterias();
+      const nuevoOpt = confirm('¿Esta materia es Optativa?', optActual);
+      await supabaseClient.from('materias').update({ nombre: nuevoNombre, es_optativa: nuevoOpt }).eq('id', id);
+      cargarMaterias();
     }
 
-    // 5. Estudiantes
+    // ==========================================
+    // 5. ESTUDIANTES (FICHA INTEGRAL CON TABS)
+    // ==========================================
     async function cargarCursosFiltroEstudiantes() {
       await cargarDatosIniciales();
       const select = document.getElementById('filtroCursoEstudiantes');
       select.innerHTML = '<option value="">Seleccione Curso...</option>' + 
         cursosList.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
+      
+      const selModalCurso = document.getElementById('fe_curso_id');
+      selModalCurso.innerHTML = '<option value="">Seleccione el curso...</option>' + 
+        cursosList.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
+
       cargarEstudiantes();
     }
 
@@ -1085,66 +1330,202 @@
       const cursoId = document.getElementById('filtroCursoEstudiantes').value;
       const tbody = document.getElementById('tablaEstudiantes');
       if (!cursoId) {
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-3 text-muted">Seleccione un curso para ver la nómina.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">Seleccione un curso arriba para ver la nómina de estudiantes.</td></tr>';
         return;
       }
 
       const { data } = await supabaseClient.from('estudiantes').select('*').eq('curso_id', cursoId).order('nombres');
-      tbody.innerHTML = (data || []).map((e, idx) => `
-        <tr>
-          <td>${idx + 1}</td>
-          <td>${e.cedula || '-'}</td>
-          <td class="fw-bold">${e.nombres}</td>
-          <td>${e.representante_nombres || '-'}</td>
-          <td>
-            <button class="btn btn-sm btn-outline-primary py-0" onclick="editarEstudiante(${e.id})">Editar</button>
-            <button class="btn btn-sm btn-outline-danger py-0" onclick="eliminarRegistro('estudiantes', ${e.id})">Eliminar</button>
-          </td>
-        </tr>
-      `).join('');
+      
+      if (!data || data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">No hay estudiantes matriculados en este curso.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = data.map((e, idx) => {
+        const cel = e.rep_celular || e.padre_celular || e.madre_celular || '-';
+        return `
+          <tr>
+            <td class="fw-bold text-muted">${idx + 1}</td>
+            <td><span class="badge bg-light text-dark border">${e.cedula || 'S/N'}</span></td>
+            <td class="fw-bold text-primary text-start">${e.nombres}</td>
+            <td class="text-start">${e.representante_nombres || e.rep_nombres || '<span class="text-muted fst-italic">No asignado</span>'}</td>
+            <td><small>${cel}</small></td>
+            <td>
+              <button class="btn btn-sm btn-outline-primary py-0 me-1" onclick="abrirModalEditarEstudiante(${e.id})"><i class="bi bi-pencil me-1"></i>Editar</button>
+              <button class="btn btn-sm btn-outline-danger py-0" onclick="eliminarRegistro('estudiantes', ${e.id})"><i class="bi bi-trash"></i></button>
+            </td>
+          </tr>
+        `;
+      }).join('');
     }
 
-    async function abrirModalEstudiante() {
-      const cursoId = document.getElementById('filtroCursoEstudiantes').value;
-      if (!cursoId) return alert('Seleccione primero el curso en el filtro superior.');
+    function abrirModalEstudianteCompleto() {
+      document.getElementById('formEstudianteCompleto').reset();
+      document.getElementById('fe_id').value = '';
+      document.getElementById('modalEstudianteTitulo').innerHTML = '<i class="bi bi-person-plus-fill me-2"></i>Registrar Nuevo Estudiante';
+      
+      // Auto-seleccionar curso actual si está filtrado
+      const cursoIdActual = document.getElementById('filtroCursoEstudiantes').value;
+      if (cursoIdActual) document.getElementById('fe_curso_id').value = cursoIdActual;
 
-      const nombres = prompt('Nombres completos del estudiante:');
-      if (!nombres) return;
-      const cedula = prompt('Cédula del estudiante (opcional):') || '';
-      const rep = prompt('Nombres del Representante Legal:') || '';
-
-      const { error } = await supabaseClient.rpc('registrar_estudiante_completo', {
-        p_curso_nombre: cursosList.find(c => c.id == cursoId).nombre,
-        p_est_cedula: cedula,
-        p_est_nombres: nombres,
-        p_rep_cedula: null,
-        p_rep_nombres: rep,
-        p_rep_telefono: null,
-        p_rep_correo: null
-      });
-
-      if (error) alert(error.message);
-      else cargarEstudiantes();
+      // Volver a la primera pestaña
+      new bootstrap.Tab(document.getElementById('tab-est-btn')).show();
+      modalEstudianteInst.show();
     }
 
-    async function editarEstudiante(id) {
-      const { data: est } = await supabaseClient.from('estudiantes').select('*').eq('id', id).single();
-      if (!est) return;
+    async function abrirModalEditarEstudiante(idEstudiante) {
+      document.getElementById('formEstudianteCompleto').reset();
+      document.getElementById('fe_id').value = idEstudiante;
+      document.getElementById('modalEstudianteTitulo').innerHTML = '<i class="bi bi-pencil-square me-2"></i>Editar Ficha Integral del Estudiante';
 
-      const nombres = prompt('Nombres del estudiante:', est.nombres);
-      if (!nombres) return;
-      const cedula = prompt('Cédula del estudiante:', est.cedula || '') || '';
-      const rep = prompt('Representante:', est.representante_nombres || '') || '';
+      const { data: d, error } = await supabaseClient.from('estudiantes').select('*').eq('id', idEstudiante).single();
+      if (error || !d) return alert('No se pudo cargar la información del estudiante.');
 
-      const { error } = await supabaseClient.from('estudiantes').update({
-        nombres, cedula, representante_nombres: rep
-      }).eq('id', id);
+      // 1. Estudiante
+      document.getElementById('fe_tipo_doc').value = d.tipo_documento || 'CEDULA';
+      document.getElementById('fe_cedula').value = d.cedula || '';
+      document.getElementById('fe_sexo').value = d.sexo || '';
+      document.getElementById('fe_apellidos').value = d.apellidos || '';
+      document.getElementById('fe_nombres_solo').value = d.nombres_solo || d.nombres || '';
+      document.getElementById('fe_fecha_nac').value = d.fecha_nacimiento || '';
+      document.getElementById('fe_prov_nac').value = d.provincia_nacimiento || '';
+      document.getElementById('fe_canton_nac').value = d.canton_nacimiento || '';
+      document.getElementById('fe_parr_nac').value = d.parroquia_nacimiento || '';
+      document.getElementById('fe_correo').value = d.correo || '';
 
-      if (error) alert(error.message);
-      else cargarEstudiantes();
+      // 2. Domicilio
+      document.getElementById('fe_prov_dom').value = d.provincia_domicilio || 'MANABÍ';
+      document.getElementById('fe_canton_dom').value = d.canton_domicilio || 'PICHINCHA';
+      document.getElementById('fe_parr_dom').value = d.parroquia_domicilio || '';
+      document.getElementById('fe_direccion_dom').value = d.direccion_domicilio || '';
+
+      // 3. Representante
+      document.getElementById('fe_rep_es_auto').checked = (d.rep_es_auto === 'SI');
+      document.getElementById('fe_rep_cedula').value = d.rep_cedula || '';
+      document.getElementById('fe_rep_parentesco').value = d.rep_parentesco || 'MADRE';
+      document.getElementById('fe_rep_celular').value = d.rep_celular || '';
+      document.getElementById('fe_rep_apellidos').value = d.rep_apellidos || '';
+      document.getElementById('fe_rep_nombres').value = d.rep_nombres || d.representante_nombres || '';
+      document.getElementById('fe_rep_telefono').value = d.rep_telefono || '';
+      document.getElementById('fe_rep_correo').value = d.rep_correo || '';
+
+      // 4. Padre
+      document.getElementById('fe_padre_cedula').value = d.padre_cedula || '';
+      document.getElementById('fe_padre_celular').value = d.padre_celular || '';
+      document.getElementById('fe_padre_nombres').value = d.padre_nombres || '';
+      document.getElementById('fe_padre_correo').value = d.padre_correo || '';
+      document.getElementById('fe_padre_nivel').value = d.padre_nivel_educacion || 'BACHILLERATO';
+      document.getElementById('fe_padre_vive').value = d.padre_vive_con_est || 'SI';
+      document.getElementById('fe_padre_trabajo').value = d.padre_lugar_trabajo || '';
+      document.getElementById('fe_padre_profesion').value = d.padre_profesion || '';
+
+      // 5. Madre
+      document.getElementById('fe_madre_cedula').value = d.madre_cedula || '';
+      document.getElementById('fe_madre_celular').value = d.madre_celular || '';
+      document.getElementById('fe_madre_nombres').value = d.madre_nombres || '';
+      document.getElementById('fe_madre_correo').value = d.madre_correo || '';
+      document.getElementById('fe_madre_nivel').value = d.madre_nivel_educacion || 'BACHILLERATO';
+      document.getElementById('fe_madre_vive').value = d.madre_vive_con_est || 'SI';
+      document.getElementById('fe_madre_trabajo').value = d.madre_lugar_trabajo || '';
+      document.getElementById('fe_madre_profesion').value = d.madre_profesion || '';
+
+      // 6. Matrícula
+      document.getElementById('fe_curso_id').value = d.curso_id || '';
+      document.getElementById('fe_num_lista').value = d.numero_lista || '';
+
+      new bootstrap.Tab(document.getElementById('tab-est-btn')).show();
+      modalEstudianteInst.show();
     }
 
-    // 6. Nómina del Personal
+    async function guardarFichaEstudianteModal() {
+      const id = document.getElementById('fe_id').value;
+      const curso_id = parseInt(document.getElementById('fe_curso_id').value);
+      const apellidos = document.getElementById('fe_apellidos').value.trim().toUpperCase();
+      const nombres_solo = document.getElementById('fe_nombres_solo').value.trim().toUpperCase();
+      const nombres_completos = `${apellidos} ${nombres_solo}`.trim();
+
+      if (!curso_id) return alert('Por favor, asigne un curso en la pestaña "5. Matrícula".');
+      if (!nombres_completos) return alert('Por favor, ingrese los nombres y apellidos del estudiante.');
+
+      const btn = document.getElementById('btnGuardarFichaEstudiante');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Guardando...';
+
+      const rep_nombres = document.getElementById('fe_rep_nombres').value.trim().toUpperCase();
+      const rep_apellidos = document.getElementById('fe_rep_apellidos').value.trim().toUpperCase();
+      const rep_nombre_completo = `${rep_apellidos} ${rep_nombres}`.trim() || rep_nombres;
+
+      const payload = {
+        curso_id: curso_id,
+        nombres: nombres_completos,
+        apellidos: apellidos,
+        nombres_solo: nombres_solo,
+        cedula: document.getElementById('fe_cedula').value.trim() || null,
+        tipo_documento: document.getElementById('fe_tipo_doc').value,
+        sexo: document.getElementById('fe_sexo').value,
+        fecha_nacimiento: document.getElementById('fe_fecha_nac').value || null,
+        provincia_nacimiento: document.getElementById('fe_prov_nac').value.trim().toUpperCase(),
+        canton_nacimiento: document.getElementById('fe_canton_nac').value.trim().toUpperCase(),
+        parroquia_nacimiento: document.getElementById('fe_parr_nac').value.trim().toUpperCase(),
+        correo: document.getElementById('fe_correo').value.trim(),
+        
+        provincia_domicilio: document.getElementById('fe_prov_dom').value.trim().toUpperCase(),
+        canton_domicilio: document.getElementById('fe_canton_dom').value.trim().toUpperCase(),
+        parroquia_domicilio: document.getElementById('fe_parr_dom').value.trim().toUpperCase(),
+        direccion_domicilio: document.getElementById('fe_direccion_dom').value.trim().toUpperCase(),
+
+        representante_nombres: rep_nombre_completo,
+        rep_es_auto: document.getElementById('fe_rep_es_auto').checked ? 'SI' : 'NO',
+        rep_cedula: document.getElementById('fe_rep_cedula').value.trim(),
+        rep_parentesco: document.getElementById('fe_rep_parentesco').value,
+        rep_celular: document.getElementById('fe_rep_celular').value.trim(),
+        rep_apellidos: rep_apellidos,
+        rep_nombres: rep_nombres,
+        rep_telefono: document.getElementById('fe_rep_telefono').value.trim(),
+        rep_correo: document.getElementById('fe_rep_correo').value.trim(),
+
+        padre_cedula: document.getElementById('fe_padre_cedula').value.trim(),
+        padre_celular: document.getElementById('fe_padre_celular').value.trim(),
+        padre_nombres: document.getElementById('fe_padre_nombres').value.trim().toUpperCase(),
+        padre_correo: document.getElementById('fe_padre_correo').value.trim(),
+        padre_nivel_educacion: document.getElementById('fe_padre_nivel').value,
+        padre_vive_con_est: document.getElementById('fe_padre_vive').value,
+        padre_lugar_trabajo: document.getElementById('fe_padre_trabajo').value.trim().toUpperCase(),
+        padre_profesion: document.getElementById('fe_padre_profesion').value.trim().toUpperCase(),
+
+        madre_cedula: document.getElementById('fe_madre_cedula').value.trim(),
+        madre_celular: document.getElementById('fe_madre_celular').value.trim(),
+        madre_nombres: document.getElementById('fe_madre_nombres').value.trim().toUpperCase(),
+        madre_correo: document.getElementById('fe_madre_correo').value.trim(),
+        madre_nivel_educacion: document.getElementById('fe_madre_nivel').value,
+        madre_vive_con_est: document.getElementById('fe_madre_vive').value,
+        madre_lugar_trabajo: document.getElementById('fe_madre_trabajo').value.trim().toUpperCase(),
+        madre_profesion: document.getElementById('fe_madre_profesion').value.trim().toUpperCase(),
+
+        numero_lista: parseInt(document.getElementById('fe_num_lista').value) || null
+      };
+
+      try {
+        if (id) {
+          const { error } = await supabaseClient.from('estudiantes').update(payload).eq('id', id);
+          if (error) throw error;
+        } else {
+          const { error } = await supabaseClient.from('estudiantes').insert([payload]);
+          if (error) throw error;
+        }
+
+        modalEstudianteInst.hide();
+        await cargarEstudiantes();
+        alert('¡Ficha del estudiante guardada con éxito!');
+      } catch (err) {
+        alert('Error al guardar: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-save me-1"></i> Guardar Ficha';
+      }
+    }
+
+    // 6. Personal
     async function cargarDocentes() {
       await cargarDatosIniciales();
       const tbody = document.getElementById('tablaDocentes');
@@ -1184,13 +1565,11 @@
     }
 
     async function confirmarEliminarPersonal(id, nombre, email) {
-      const confirmacion = confirm(`¿Está seguro de eliminar al usuario ${nombre} (${email})?`);
-      if (!confirmacion) return;
-
+      if (!confirm(`¿Está seguro de eliminar al usuario ${nombre} (${email})?`)) return;
       try {
         const { error } = await supabaseClient.rpc('eliminar_usuario_completo', { p_user_id: id });
         if (error) throw error;
-        alert(`El usuario ${nombre} ha sido eliminado.`);
+        alert(`Usuario eliminado con éxito.`);
         await cargarDocentes();
       } catch (err) {
         alert('Error: ' + err.message);
@@ -1200,7 +1579,6 @@
     function abrirModalPersonal(id = null) {
       document.getElementById('personalModalId').value = id || '';
       const passBox = document.getElementById('boxPasswordPersonal');
-      
       const selTitulo = document.getElementById('personalTitulo');
       selTitulo.innerHTML = titulosList.map(t => `<option value="${t.abreviatura}">${t.abreviatura} - ${t.descripcion || ''}</option>`).join('');
 
@@ -1218,7 +1596,7 @@
         document.getElementById('personalPuedeAsistencia').checked = p.puede_gestionar_asistencia ? true : false;
         passBox.classList.add('d-none');
       } else {
-        document.getElementById('modalPersonalTitulo').innerText = 'Registrar Nuevo Personal';
+        document.getElementById('modalPersonalTitulo').innerText = 'Registrar Personal';
         document.getElementById('formModalPersonal').reset();
         document.getElementById('personalEmail').disabled = false;
         document.getElementById('personalPuedeAsistencia').checked = false;
@@ -1280,20 +1658,19 @@
 
         modalPersonalInst.hide();
         await cargarDocentes();
-        alert('¡Personal guardado correctamente!');
+        alert('¡Personal guardado con éxito!');
       } catch (err) {
         alert('Error: ' + err.message);
       } finally {
         btn.disabled = false;
-        btn.innerText = 'Guardar Personal';
+        btn.innerText = 'Guardar';
       }
     }
 
     async function cambiarRolDocente(id, rolActual) {
       const nuevoRol = rolActual === 'admin' ? 'docente' : 'admin';
-      const { error } = await supabaseClient.from('perfiles').update({ rol: nuevoRol }).eq('id', id);
-      if (error) alert(error.message);
-      else cargarDocentes();
+      await supabaseClient.from('perfiles').update({ rol: nuevoRol }).eq('id', id);
+      cargarDocentes();
     }
 
     // 7. Títulos
@@ -1303,7 +1680,7 @@
       tbody.innerHTML = titulosList.map(t => `
         <tr>
           <td class="fw-bold fs-6 text-primary">${t.abreviatura}</td>
-          <td>${t.descripcion || '<span class="text-muted fst-italic">Sin descripción</span>'}</td>
+          <td>${t.descripcion || '-'}</td>
           <td>
             <button class="btn btn-sm btn-outline-primary py-0" onclick="abrirModalTitulo(${t.id}, '${t.abreviatura}', '${t.descripcion || ''}')">Editar</button>
             <button class="btn btn-sm btn-outline-danger py-0" onclick="eliminarRegistro('catalogo_titulos', ${t.id})">Eliminar</button>
@@ -1327,11 +1704,9 @@
       const descripcion = document.getElementById('tituloModalDesc').value.trim();
 
       if (id) {
-        const { error } = await supabaseClient.from('catalogo_titulos').update({ abreviatura, descripcion }).eq('id', id);
-        if (error) alert('Error: ' + error.message);
+        await supabaseClient.from('catalogo_titulos').update({ abreviatura, descripcion }).eq('id', id);
       } else {
-        const { error } = await supabaseClient.from('catalogo_titulos').insert([{ abreviatura, descripcion }]);
-        if (error) alert('Error: ' + error.message);
+        await supabaseClient.from('catalogo_titulos').insert([{ abreviatura, descripcion }]);
       }
       modalTituloInst.hide();
       await cargarTitulos();
@@ -1351,17 +1726,16 @@
     }
 
     async function abrirModalActividad() {
-      const nombre = prompt('Nombre del nuevo tipo de actividad:');
+      const nombre = prompt('Nombre de la actividad:');
       if (!nombre) return;
-      const { error } = await supabaseClient.from('catalogo_actividades').insert([{ nombre }]);
-      if (error) alert(error.message);
-      else cargarActividades();
+      await supabaseClient.from('catalogo_actividades').insert([{ nombre }]);
+      cargarActividades();
     }
 
     async function eliminarRegistro(tabla, id) {
       if (!confirm('¿Está seguro de eliminar este registro?')) return;
       const { error } = await supabaseClient.from(tabla).delete().eq('id', id);
-      if (error) alert('Error: ' + error.message);
+      if (error) alert('Error al eliminar: ' + error.message);
       else {
         if (tabla === 'cursos') cargarCursos();
         if (tabla === 'materias') cargarMaterias();
