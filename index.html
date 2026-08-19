@@ -9,6 +9,9 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+  <!-- Soporte para descarga en lote individual en ZIP -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
   
   <style>
     th, td { font-size: 0.76rem; vertical-align: middle; text-align: center; }
@@ -240,8 +243,11 @@
 
           <!-- Botones Tutoría -->
           <div class="col-md-3 text-end pt-3 d-none" id="accionesTutoria">
-            <button class="btn btn-danger btn-sm px-3 fw-bold" id="btnDescargarTodasLibretas" onclick="generarLibretasLotePDF()">
-              <i class="bi bi-file-earmark-pdf-fill me-1"></i>Descargar Todas las Libretas (PDF)
+            <button class="btn btn-danger btn-sm px-2 fw-bold me-1" id="btnDescargarTodasLibretas" onclick="generarLibretasLotePDF()" title="Descargar un solo archivo PDF con todas las libretas juntas">
+              <i class="bi bi-file-earmark-pdf-fill me-1"></i>Consolidado (PDF)
+            </button>
+            <button class="btn btn-outline-primary btn-sm px-2 fw-bold" id="btnDescargarZipIndividuales" onclick="descargarTodasBoletasEnZip()" title="Descargar cada boleta individual en formato ZIP">
+              <i class="bi bi-file-earmark-zip-fill me-1"></i>Descargar Individuales (ZIP)
             </button>
           </div>
 
@@ -279,7 +285,7 @@
     let usuarioActualPerfil = null;
     let datosConsolidadoTutoria = [];
 
-    // Conversión a Escala Cualitativa Oficial por Parcial
+    // Conversión a Escala Cualitativa Oficial
     function obtenerEscalaCualitativa(nota) {
       if (nota === null || nota === '' || isNaN(nota)) return '-';
       const n = parseFloat(nota);
@@ -391,7 +397,7 @@
         document.getElementById('seccionApp').classList.remove('d-none');
         document.getElementById('usuarioConectado').innerText = `Docente: ${nombreDocente}`;
         
-        // Verificar Tutoría
+        // Cursos de Tutoría
         const { data: cursosT } = await supabaseClient.from('cursos').select('*').eq('tutor_id', session.user.id);
         cursosTutor = cursosT || [];
 
@@ -401,7 +407,6 @@
 
         if (esTutor) document.getElementById('badgeTutorInfo').classList.remove('d-none');
 
-        // Configurar opciones de Módulo
         if (puedeVerAsistencia) document.getElementById('optModoAsistencia').classList.remove('d-none');
         if (esAdmin || esTutor) document.getElementById('optModoTutoria').classList.remove('d-none');
 
@@ -590,7 +595,6 @@
         return;
       }
 
-      // Modo Calificaciones
       if (trimestreVal === 'anual') {
         document.getElementById('boxVista').classList.add('d-none');
         accAnual.classList.remove('d-none');
@@ -629,17 +633,24 @@
       const { data: estData } = await supabaseClient.from('estudiantes').select('*').eq('curso_id', cursoId).order('nombres');
       estudiantes = estData || [];
 
-      // 2. Cargar Asignaciones y Materias del Curso
+      // 2. Cargar Asignaciones y Materias del Curso (Ordenando Obligatorias primero y Optativas al final)
       const { data: asigCurso } = await supabaseClient
         .from('curso_materia_docente')
         .select(`id, curso_id, materia_id, es_optativa, materias(id, nombre)`)
         .eq('curso_id', cursoId);
 
-      const listaAsignaciones = asigCurso || [];
+      let listaAsignaciones = asigCurso || [];
+      listaAsignaciones.sort((a, b) => {
+        if (a.es_optativa === b.es_optativa) {
+          return (a.materias?.nombre || '').localeCompare(b.materias?.nombre || '');
+        }
+        return a.es_optativa ? 1 : -1;
+      });
+
       const asigIds = listaAsignaciones.map(a => a.id);
 
       // 3. Cargar Notas del Parcial
-      let notasMap = {}; // { estId: { asigId: nota } }
+      let notasMap = {};
       if (asigIds.length > 0) {
         const { data: notasData } = await supabaseClient
           .from('notas_parcial_actividades')
@@ -681,10 +692,9 @@
       const asistMap = {};
       (asistData || []).forEach(a => { asistMap[a.estudiante_id] = a; });
 
-      // Periodo para Asistencia
       const per = periodosAsistencia.find(p => p.trimestre === trimestre && p.parcial === parcial) || { total_dias_laborados: 34 };
 
-      // Estructurar Datos en Memoria para Generar Libretas PDF
+      // Estructurar Datos en Memoria
       datosConsolidadoTutoria = estudiantes.map((est, idx) => {
         let sumaNotasObligatorias = 0;
         let cantObligatorias = 0;
@@ -710,12 +720,10 @@
         const promParcial = cantObligatorias > 0 ? (sumaNotasObligatorias / cantObligatorias) : 0;
         const promCualit = obtenerEscalaCualitativa(promParcial);
 
-        // Promedio de comportamiento del curso
         const compArr = compMap[est.id] || [10];
         const promComp = compArr.reduce((a, b) => a + b, 0) / compArr.length;
         const compObj = obtenerEscalaComportamiento(promComp);
 
-        // Asistencia
         const regAsist = asistMap[est.id] || {};
         const asistidos = regAsist.total_asistencias !== undefined ? regAsist.total_asistencias : per.total_dias_laborados;
         const faltasInjust = regAsist.total_faltas || 0;
@@ -737,8 +745,8 @@
         };
       });
 
-      // Renderizar Tabla de Consolidado
-      let thMaterias = listaAsignaciones.map(a => `<th style="font-size:0.68rem;">${a.materias?.nombre}<br><span class="badge ${a.es_optativa ? 'bg-warning text-dark' : 'bg-secondary'}">${a.es_optativa ? 'Opt' : 'Obl'}</span></th>`).join('');
+      // Renderizar Tabla de Consolidado (Con notas a lo ancho)
+      let thMaterias = listaAsignaciones.map(a => `<th style="font-size:0.68rem; min-width: 85px;">${a.materias?.nombre}<br><span class="badge ${a.es_optativa ? 'bg-warning text-dark' : 'bg-secondary'}">${a.es_optativa ? 'Opt' : 'Obl'}</span></th>`).join('');
 
       let html = `
         <table class="table table-bordered table-sm mb-0 align-middle">
@@ -747,10 +755,10 @@
               <th rowspan="2" class="sticky-col-num">N°</th>
               <th rowspan="2" class="sticky-col-nombre text-center">NÓMINA DE ESTUDIANTES</th>
               <th colspan="${listaAsignaciones.length}">CALIFICACIONES POR ASIGNATURA (${trimestre}° TRIMESTRE - PARCIAL ${parcial})</th>
-              <th rowspan="2" class="bg-primary text-white" style="width: 80px;">PROM. PARCIAL</th>
-              <th rowspan="2" class="bg-success text-white" style="width: 70px;">COMP.</th>
+              <th rowspan="2" class="bg-primary text-white" style="width: 90px;">PROM. PARCIAL</th>
+              <th rowspan="2" class="bg-success text-white" style="width: 75px;">COMP.</th>
               <th rowspan="2" class="bg-secondary text-white" style="width: 70px;">ASIST.</th>
-              <th rowspan="2" style="width: 100px;">LIBRETA</th>
+              <th rowspan="2" style="width: 90px;">LIBRETA</th>
             </tr>
             <tr class="bg-secondary text-white">
               ${thMaterias}
@@ -758,10 +766,10 @@
           </thead>
           <tbody>
             ${datosConsolidadoTutoria.map((d, idx) => {
+              // Celdas a lo ancho: Cualitativa + Cuantitativa
               let celdasNotas = d.materias.map(m => `
-                <td class="${obtenerClaseColor(m.notaNum, false)}">
-                  <span class="d-block fw-bold">${m.notaCualit}</span>
-                  <small style="font-size:0.65rem;">${m.notaNum}</small>
+                <td class="${obtenerClaseColor(m.notaNum, false)}" style="white-space: nowrap;">
+                  <span class="fw-bold">${m.notaCualit}</span> <small class="text-muted">(${m.notaNum})</small>
                 </td>
               `).join('');
 
@@ -770,8 +778,12 @@
                   <td class="sticky-col-num fw-bold text-muted">${d.num}</td>
                   <td class="sticky-col-nombre">${d.nombres}</td>
                   ${celdasNotas}
-                  <td class="fw-bold fs-6 ${obtenerClaseColor(d.promedioGeneral, true)}">${d.promedioGeneral}<br><small>(${d.promedioCualitativo})</small></td>
-                  <td class="fw-bold">${d.comportamientoLetra}<br><small>${d.comportamientoNum}</small></td>
+                  <td class="fw-bold fs-6 ${obtenerClaseColor(d.promedioGeneral, true)}" style="white-space: nowrap;">
+                    ${d.promedioGeneral} <small>(${d.promedioCualitativo})</small>
+                  </td>
+                  <td class="fw-bold" style="white-space: nowrap;">
+                    ${d.comportamientoLetra} <small>(${d.comportamientoNum})</small>
+                  </td>
                   <td><span class="badge bg-light text-dark border">${d.asistencia.asistidos}/${d.asistencia.totalDias}</span></td>
                   <td>
                     <button class="btn btn-xs btn-outline-danger py-1 px-2 fw-bold" onclick="generarBoletaIndividualPDF(${idx})">
@@ -789,30 +801,9 @@
     }
 
     // =========================================================================
-    // GENERADOR PDF DE LIBRETA / BOLETÍN OFICIAL (INDIVIDUAL O LOTE)
+    // CONSTRUCTOR DEL PDF DE LIBRETA (REUTILIZABLE)
     // =========================================================================
-    async function generarLibretasLotePDF() {
-      if (!datosConsolidadoTutoria || datosConsolidadoTutoria.length === 0) return alert('No hay datos para generar libretas.');
-      await emitirPDFLibretas(datosConsolidadoTutoria);
-    }
-
-    async function generarBoletaIndividualPDF(indice) {
-      const item = datosConsolidadoTutoria[indice];
-      if (!item) return;
-      await emitirPDFLibretas([item]);
-    }
-
-    async function emitirPDFLibretas(listaEstudiantes) {
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-
-      const cursoId = document.getElementById('selectCurso').value;
-      const trimestre = parseInt(document.getElementById('selectTrimestre').value);
-      const parcial = parseInt(document.getElementById('selectParcialTutoria').value);
-
-      const cursoInfo = todosCursos.find(c => c.id == cursoId);
-      const nombreCursoLargo = (cursoInfo?.nombre_largo_mayuscula || cursoInfo?.nombre || '').toUpperCase();
-      
+    function construirPaginaLibreta(doc, est, cursoNombreLargo, trimestre, parcial, nombreRector, imgLogoIzq, imgLogoDer) {
       const nomArriba = (infoInstitucion?.nombre_arriba || 'Unidad Educativa Particular').toUpperCase();
       const nomAbajo = (infoInstitucion?.nombre_abajo || '"Vicente Rocafuerte"').toUpperCase();
       const periodo = infoInstitucion?.periodo_lectivo || '2026-2027';
@@ -822,141 +813,231 @@
       const dir1 = infoInstitucion?.direccion_1 || 'Pichincha - Manabí - Ecuador';
       const frase1 = infoInstitucion?.frase_1 ? `"${infoInstitucion.frase_1}"` : '';
 
+      // 1. Logos
+      if (imgLogoIzq) { try { doc.addImage(imgLogoIzq, 'PNG', 12, 8, 18, 18); } catch(e){} }
+      if (imgLogoDer) { try { doc.addImage(imgLogoDer, 'PNG', 180, 8, 18, 18); } catch(e){} }
+
+      // 2. Membrete
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.setTextColor(30, 41, 59);
+      doc.text(nomArriba, 105, 11, { align: 'center' });
+
+      doc.setFontSize(12);
+      doc.text(nomAbajo, 105, 16, { align: 'center' });
+
+      doc.setFontSize(9);
+      doc.text(`INFORME DE APRENDIZAJE Y ASISTENCIA - PARCIAL ${parcial}`, 105, 21, { align: 'center' });
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7);
+      doc.setTextColor(71, 85, 105);
+      doc.text(`AMIE: ${amie} | DISTRITO: ${distrito} | CIRCUITO: ${circuito} | ${dir1} | AÑO LECTIVO: ${periodo}`, 105, 25, { align: 'center' });
+
+      // 3. Ficha del Estudiante
+      doc.setDrawColor(203, 213, 225);
+      doc.setLineWidth(0.3);
+      doc.line(12, 28, 198, 28);
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7.5);
+      doc.setTextColor(15, 23, 42);
+      doc.text(`ESTUDIANTE: ${est.nombres}`, 12, 33);
+      doc.text(`CÉDULA: ${est.cedula}`, 155, 33);
+      doc.text(`CURSO: ${cursoNombreLargo}`, 12, 37.5);
+      doc.text(`PERIODO: ${trimestre}° TRIMESTRE - PARCIAL ${parcial}`, 155, 37.5);
+
+      doc.line(12, 40, 198, 40);
+
+      // 4. Tabla de Materias (Obligatorias primero, Optativas al final)
+      const tableBody = est.materias.map(m => [
+        m.materiaNombre + (m.esOptativa ? ' (Optativa)' : ''),
+        m.notaCualit,
+        m.notaNum
+      ]);
+
+      // Fila de Comportamiento
+      tableBody.push([
+        `Comportamiento (${est.comportamientoDesc})`,
+        est.comportamientoLetra,
+        est.comportamientoNum
+      ]);
+
+      doc.autoTable({
+        startY: 42,
+        head: [['ASIGNATURA / ÁREA DE CONOCIMIENTO', 'CUALITATIVA', 'CUANTITATIVA']],
+        body: tableBody,
+        margin: { left: 12, right: 12 },
+        theme: 'grid',
+        styles: { fontSize: 7.5, cellPadding: 1.5, lineColor: [200, 200, 200], lineWidth: 0.1 },
+        headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255], fontStyle: 'bold', halign: 'center' },
+        columnStyles: {
+          0: { cellWidth: 136, halign: 'left' },
+          1: { cellWidth: 25, halign: 'center', fontStyle: 'bold' },
+          2: { cellWidth: 25, halign: 'center', fontStyle: 'bold' }
+        }
+      });
+
+      // 5. Tabla de Asistencia
+      const asistY = doc.lastAutoTable.finalY + 3;
+      doc.autoTable({
+        startY: asistY,
+        head: [['Faltas Justificadas', 'Faltas Injustificadas', 'Días Asistidos', 'Total de Días Parcial']],
+        body: [[
+          est.asistencia.faltasJust,
+          est.asistencia.faltasInjust,
+          est.asistencia.asistidos,
+          est.asistencia.totalDias
+        ]],
+        margin: { left: 12, right: 12 },
+        theme: 'grid',
+        styles: { fontSize: 7.5, cellPadding: 1.5, halign: 'center' },
+        headStyles: { fillColor: [71, 85, 105], textColor: [255, 255, 255], fontStyle: 'bold' }
+      });
+
+      // 6. Cuadro de Escalas y Promedio General
+      const escalasY = doc.lastAutoTable.finalY + 3;
+      doc.autoTable({
+        startY: escalasY,
+        head: [['Eval. Comportamiento', 'Escala Cualitativa y Cuantitativa', 'PROMEDIO GENERAL']],
+        body: [
+          ['A: Muy Satisfactorio', 'A+ = (10)       C+ = (6-6.99)       E+ = (2-2.99)', { content: `${est.promedioGeneral}`, rowSpan: 5, styles: { valign: 'middle', halign: 'center', fontSize: 13, fontStyle: 'bold', fillColor: [241, 245, 249] } }],
+          ['B: Satisfactorio', 'A- = (9-9.99)   C- = (5-5.99)       E- = (1-1.99)', ''],
+          ['C: Poco Satisfactorio', 'B+ = (8-8.99)   D+ = (4-4.99)       F = (0-0.99)', ''],
+          ['D: Mejorable', 'B- = (7-7.99)   D- = (3-3.99)', ''],
+          ['E: Insatisfactorio', frase1, { content: `${est.promedioCualitativo}`, styles: { halign: 'center', fontStyle: 'bold', fontSize: 10 } }]
+        ],
+        margin: { left: 12, right: 12 },
+        theme: 'grid',
+        styles: { fontSize: 6.8, cellPadding: 1.2 },
+        headStyles: { fillColor: [15, 23, 42], textColor: [255, 255, 255], fontStyle: 'bold', halign: 'center' },
+        columnStyles: {
+          0: { cellWidth: 45 },
+          1: { cellWidth: 100 },
+          2: { cellWidth: 41 }
+        }
+      });
+
+      // 7. Firmas Oficiales
+      const firmasY = 262;
+      doc.setLineWidth(0.2);
+      doc.line(30, firmasY, 85, firmasY);
+      doc.line(125, firmasY, 180, firmasY);
+
+      doc.setFontSize(7.5);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(30, 41, 59);
+
+      const tutorNombre = usuarioActualPerfil ? `${usuarioActualPerfil.titulo || ''} ${usuarioActualPerfil.nombres} ${usuarioActualPerfil.apellidos || ''}`.trim() : 'DOCENTE TUTOR';
+      doc.text('DOCENTE TUTOR / A', 57.5, firmasY + 4, { align: 'center' });
+      doc.setFont('helvetica', 'normal');
+      doc.text(tutorNombre, 57.5, firmasY + 8, { align: 'center' });
+
+      doc.setFont('helvetica', 'bold');
+      doc.text('RECTOR / DIRECTOR', 152.5, firmasY + 4, { align: 'center' });
+      doc.setFont('helvetica', 'normal');
+      doc.text(nombreRector, 152.5, firmasY + 8, { align: 'center' });
+    }
+
+    // A. Descarga del Consolidado Completo (Todas las libretas juntas en 1 PDF)
+    async function generarLibretasLotePDF() {
+      if (!datosConsolidadoTutoria || datosConsolidadoTutoria.length === 0) return alert('No hay datos para generar libretas.');
+
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+      const cursoId = document.getElementById('selectCurso').value;
+      const trimestre = parseInt(document.getElementById('selectTrimestre').value);
+      const parcial = parseInt(document.getElementById('selectParcialTutoria').value);
+
+      const cursoInfo = todosCursos.find(c => c.id == cursoId);
+      const nombreCursoLargo = (cursoInfo?.nombre_largo_mayuscula || cursoInfo?.nombre || '').toUpperCase();
+      const nombreRector = 'ING. DÍDIMO A. SALTOS S.';
+
       const imgLogoIzq = await obtenerBase64DesdeUrl(infoInstitucion?.logo_izquierdo || infoInstitucion?.logo_institucion);
       const imgLogoDer = await obtenerBase64DesdeUrl(infoInstitucion?.logo_derecho || infoInstitucion?.escudo_nacional);
 
-      const nombreRector = 'ING. DÍDIMO A. SALTOS S.';
-
-      listaEstudiantes.forEach((est, indexPage) => {
-        if (indexPage > 0) doc.addPage();
-
-        // 1. Logos
-        if (imgLogoIzq) { try { doc.addImage(imgLogoIzq, 'PNG', 12, 8, 18, 18); } catch(e){} }
-        if (imgLogoDer) { try { doc.addImage(imgLogoDer, 'PNG', 180, 8, 18, 18); } catch(e){} }
-
-        // 2. Membrete
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(10);
-        doc.setTextColor(30, 41, 59);
-        doc.text(nomArriba, 105, 11, { align: 'center' });
-
-        doc.setFontSize(12);
-        doc.text(nomAbajo, 105, 16, { align: 'center' });
-
-        doc.setFontSize(9);
-        doc.text(`INFORME DE APRENDIZAJE Y ASISTENCIA - PARCIAL ${parcial}`, 105, 21, { align: 'center' });
-
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(7);
-        doc.setTextColor(71, 85, 105);
-        doc.text(`AMIE: ${amie} | DISTRITO: ${distrito} | CIRCUITO: ${circuito} | ${dir1} | AÑO LECTIVO: ${periodo}`, 105, 25, { align: 'center' });
-
-        // 3. Ficha del Estudiante
-        doc.setDrawColor(203, 213, 225);
-        doc.setLineWidth(0.3);
-        doc.line(12, 28, 198, 28);
-
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(7.5);
-        doc.setTextColor(15, 23, 42);
-        doc.text(`ESTUDIANTE: ${est.nombres}`, 12, 33);
-        doc.text(`CÉDULA: ${est.cedula}`, 155, 33);
-        doc.text(`CURSO: ${nombreCursoLargo}`, 12, 37.5);
-        doc.text(`PERIODO: ${trimestre}° TRIMESTRE - PARCIAL ${parcial}`, 155, 37.5);
-
-        doc.line(12, 40, 198, 40);
-
-        // 4. Tabla de Materias (Cualitativa y Cuantitativa)
-        const tableBody = est.materias.map(m => [
-          m.materiaNombre + (m.esOptativa ? ' (Optativa)' : ''),
-          m.notaCualit,
-          m.notaNum
-        ]);
-
-        // Fila de Comportamiento
-        tableBody.push([
-          `Comportamiento (${est.comportamientoDesc})`,
-          est.comportamientoLetra,
-          est.comportamientoNum
-        ]);
-
-        doc.autoTable({
-          startY: 42,
-          head: [['ASIGNATURA / ÁREA DE CONOCIMIENTO', 'CUALITATIVA', 'CUANTITATIVA']],
-          body: tableBody,
-          margin: { left: 12, right: 12 },
-          theme: 'grid',
-          styles: { fontSize: 7.5, cellPadding: 1.5, lineColor: [200, 200, 200], lineWidth: 0.1 },
-          headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255], fontStyle: 'bold', halign: 'center' },
-          columnStyles: {
-            0: { cellWidth: 136, halign: 'left' },
-            1: { cellWidth: 25, halign: 'center', fontStyle: 'bold' },
-            2: { cellWidth: 25, halign: 'center', fontStyle: 'bold' }
-          }
-        });
-
-        // 5. Tabla de Asistencia
-        const asistY = doc.lastAutoTable.finalY + 3;
-        doc.autoTable({
-          startY: asistY,
-          head: [['Faltas Justificadas', 'Faltas Injustificadas', 'Días Asistidos', 'Total de Días Parcial']],
-          body: [[
-            est.asistencia.faltasJust,
-            est.asistencia.faltasInjust,
-            est.asistencia.asistidos,
-            est.asistencia.totalDias
-          ]],
-          margin: { left: 12, right: 12 },
-          theme: 'grid',
-          styles: { fontSize: 7.5, cellPadding: 1.5, halign: 'center' },
-          headStyles: { fillColor: [71, 85, 105], textColor: [255, 255, 255], fontStyle: 'bold' }
-        });
-
-        // 6. Cuadro de Escalas y Promedio General
-        const escalasY = doc.lastAutoTable.finalY + 3;
-        doc.autoTable({
-          startY: escalasY,
-          head: [['Eval. Comportamiento', 'Escala Cualitativa y Cuantitativa', 'PROMEDIO GENERAL']],
-          body: [
-            ['A: Muy Satisfactorio', 'A+ = (10)       C+ = (6-6.99)       E+ = (2-2.99)', { content: `${est.promedioGeneral}`, rowSpan: 5, styles: { valign: 'middle', halign: 'center', fontSize: 13, fontStyle: 'bold', fillColor: [241, 245, 249] } }],
-            ['B: Satisfactorio', 'A- = (9-9.99)   C- = (5-5.99)       E- = (1-1.99)', ''],
-            ['C: Poco Satisfactorio', 'B+ = (8-8.99)   D+ = (4-4.99)       F = (0-0.99)', ''],
-            ['D: Mejorable', 'B- = (7-7.99)   D- = (3-3.99)', ''],
-            ['E: Insatisfactorio', frase1, { content: `${est.promedioCualitativo}`, styles: { halign: 'center', fontStyle: 'bold', fontSize: 10 } }]
-          ],
-          margin: { left: 12, right: 12 },
-          theme: 'grid',
-          styles: { fontSize: 6.8, cellPadding: 1.2 },
-          headStyles: { fillColor: [15, 23, 42], textColor: [255, 255, 255], fontStyle: 'bold', halign: 'center' },
-          columnStyles: {
-            0: { cellWidth: 45 },
-            1: { cellWidth: 100 },
-            2: { cellWidth: 41 }
-          }
-        });
-
-        // 7. Firmas Oficiales
-        const firmasY = 262;
-        doc.setLineWidth(0.2);
-        doc.line(30, firmasY, 85, firmasY);
-        doc.line(125, firmasY, 180, firmasY);
-
-        doc.setFontSize(7.5);
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(30, 41, 59);
-
-        const tutorNombre = usuarioActualPerfil ? `${usuarioActualPerfil.titulo || ''} ${usuarioActualPerfil.nombres} ${usuarioActualPerfil.apellidos || ''}`.trim() : 'DOCENTE TUTOR';
-        doc.text('DOCENTE TUTOR / A', 57.5, firmasY + 4, { align: 'center' });
-        doc.setFont('helvetica', 'normal');
-        doc.text(tutorNombre, 57.5, firmasY + 8, { align: 'center' });
-
-        doc.setFont('helvetica', 'bold');
-        doc.text('RECTOR / DIRECTOR', 152.5, firmasY + 4, { align: 'center' });
-        doc.setFont('helvetica', 'normal');
-        doc.text(nombreRector, 152.5, firmasY + 8, { align: 'center' });
+      datosConsolidadoTutoria.forEach((est, idx) => {
+        if (idx > 0) doc.addPage();
+        construirPaginaLibreta(doc, est, nombreCursoLargo, trimestre, parcial, nombreRector, imgLogoIzq, imgLogoDer);
       });
 
-      doc.save(`Boletas_${nombreCursoLargo.replace(/\s+/g, '_')}_T${trimestre}_P${parcial}.pdf`);
+      const nombreLimpioCurso = nombreCursoLargo.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
+      doc.save(`CONSOLIDADO_${nombreLimpioCurso}_TRIMESTRE_${trimestre}_PARCIAL_${parcial}.pdf`);
+    }
+
+    // B. Descarga de la Boleta Individual
+    async function generarBoletaIndividualPDF(indice) {
+      const est = datosConsolidadoTutoria[indice];
+      if (!est) return;
+
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+      const cursoId = document.getElementById('selectCurso').value;
+      const trimestre = parseInt(document.getElementById('selectTrimestre').value);
+      const parcial = parseInt(document.getElementById('selectParcialTutoria').value);
+
+      const cursoInfo = todosCursos.find(c => c.id == cursoId);
+      const nombreCursoLargo = (cursoInfo?.nombre_largo_mayuscula || cursoInfo?.nombre || '').toUpperCase();
+      const nombreRector = 'ING. DÍDIMO A. SALTOS S.';
+
+      const imgLogoIzq = await obtenerBase64DesdeUrl(infoInstitucion?.logo_izquierdo || infoInstitucion?.logo_institucion);
+      const imgLogoDer = await obtenerBase64DesdeUrl(infoInstitucion?.logo_derecho || infoInstitucion?.escudo_nacional);
+
+      construirPaginaLibreta(doc, est, nombreCursoLargo, trimestre, parcial, nombreRector, imgLogoIzq, imgLogoDer);
+
+      const nombreCursoFormat = (cursoInfo?.nombre || nombreCursoLargo).replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
+      const nombreEstFormat = est.nombres.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
+
+      // Formato solicitado: NOMBRE DEL CURSO_NOMBRE DEL ESTUDIANTE_TRIMESTRE_PARCIAL.pdf
+      doc.save(`${nombreCursoFormat}_${nombreEstFormat}_TRIMESTRE_${trimestre}_PARCIAL_${parcial}.pdf`);
+    }
+
+    // C. Descarga de Todas las Boletas Individuales en Archivo ZIP
+    async function descargarTodasBoletasEnZip() {
+      if (!datosConsolidadoTutoria || datosConsolidadoTutoria.length === 0) return alert('No hay datos para exportar.');
+
+      const btn = document.getElementById('btnDescargarZipIndividuales');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Generando ZIP...';
+
+      try {
+        const { jsPDF } = window.jspdf;
+        const zip = new JSZip();
+
+        const cursoId = document.getElementById('selectCurso').value;
+        const trimestre = parseInt(document.getElementById('selectTrimestre').value);
+        const parcial = parseInt(document.getElementById('selectParcialTutoria').value);
+
+        const cursoInfo = todosCursos.find(c => c.id == cursoId);
+        const nombreCursoLargo = (cursoInfo?.nombre_largo_mayuscula || cursoInfo?.nombre || '').toUpperCase();
+        const nombreCursoFormat = (cursoInfo?.nombre || nombreCursoLargo).replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
+        const nombreRector = 'ING. DÍDIMO A. SALTOS S.';
+
+        const imgLogoIzq = await obtenerBase64DesdeUrl(infoInstitucion?.logo_izquierdo || infoInstitucion?.logo_institucion);
+        const imgLogoDer = await obtenerBase64DesdeUrl(infoInstitucion?.logo_derecho || infoInstitucion?.escudo_nacional);
+
+        for (let i = 0; i < datosConsolidadoTutoria.length; i++) {
+          const est = datosConsolidadoTutoria[i];
+          const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+          construirPaginaLibreta(doc, est, nombreCursoLargo, trimestre, parcial, nombreRector, imgLogoIzq, imgLogoDer);
+
+          const nombreEstFormat = est.nombres.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
+          const nombreArchivo = `${nombreCursoFormat}_${nombreEstFormat}_TRIMESTRE_${trimestre}_PARCIAL_${parcial}.pdf`;
+
+          const pdfBlob = doc.output('blob');
+          zip.file(nombreArchivo, pdfBlob);
+        }
+
+        const zipBlob = await zip.generateAsync({ type: 'blob' });
+        saveAs(zipBlob, `BOLETAS_INDIVIDUALES_${nombreCursoFormat}_TRIMESTRE_${trimestre}_PARCIAL_${parcial}.zip`);
+      } catch (err) {
+        alert('Error al generar archivo ZIP: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-file-earmark-zip-fill me-1"></i>Descargar Individuales (ZIP)';
+      }
     }
 
     // ==========================================
@@ -1224,7 +1305,7 @@
     }
 
     // ==========================================
-    // ASISTENCIA
+    // VISTA: ASISTENCIA
     // ==========================================
     function generarDiasHabilesRango(fInicioStr, fFinStr) {
       const dias = [];
