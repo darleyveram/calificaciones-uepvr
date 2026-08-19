@@ -58,10 +58,23 @@
     /* Asistencia Cuadrícula Diaria */
     .th-dia-asig { width: 34px; min-width: 34px; padding: 2px 1px !important; font-size: 0.65rem; }
     .btn-dia-auto { font-size: 0.58rem; padding: 0 2px; line-height: 1.1; font-weight: bold; }
-    .cell-asig-input { width: 28px; height: 26px; text-align: center; font-weight: bold; border-radius: 3px; border: 1px solid #cbd5e1; margin: 0 auto; text-transform: uppercase; }
-    .asig-a { background-color: #e8f5e9 !important; color: #2e7d32 !important; }
-    .asig-f { background-color: #ffebee !important; color: #c62828 !important; }
-    .asig-j { background-color: #e3f2fd !important; color: #1565c0 !important; }
+    
+    /* Celda interactiva con cursor puntero */
+    .cell-asig-input { 
+      width: 28px; 
+      height: 26px; 
+      text-align: center; 
+      font-weight: bold; 
+      border-radius: 3px; 
+      border: 1px solid #cbd5e1; 
+      margin: 0 auto; 
+      text-transform: uppercase; 
+      cursor: pointer;
+      user-select: none;
+    }
+    .asig-a { background-color: #e8f5e9 !important; color: #2e7d32 !important; border-color: #a5d6a7 !important; }
+    .asig-f { background-color: #ffebee !important; color: #c62828 !important; border-color: #ef9a9a !important; }
+    .asig-j { background-color: #e3f2fd !important; color: #1565c0 !important; border-color: #90caf9 !important; }
 
     .bg-insumo1 { background-color: #0d6efd !important; color: #fff; }
     .bg-insumo2 { background-color: #0dcaf0 !important; color: #000; }
@@ -185,8 +198,9 @@
 
           <!-- Botones Asistencia General -->
           <div class="col-md-3 text-end pt-3 d-none" id="accionesAsistencia">
-            <button class="btn btn-outline-success btn-sm me-1 btn-control" onclick="llenarTodoConAsistencia()" disabled title="Llenar todo el parcial con A">⚡ Todo 'A'</button>
-            <button class="btn btn-success btn-sm px-3 fw-bold btn-control" id="btnGuardarAsist" onclick="guardarAsistencia()" disabled>💾 Guardar Asistencia</button>
+            <button class="btn btn-outline-success btn-sm me-1 btn-control" onclick="llenarTodoConAsistencia()" disabled title="Llenar todo el parcial con Asistencias">⚡ Todo 'A'</button>
+            <button class="btn btn-outline-secondary btn-sm me-1 btn-control" onclick="limpiarTodaAsistencia()" disabled title="Poner en blanco todo el parcial">🧹 Limpiar Todo</button>
+            <button class="btn btn-success btn-sm px-3 fw-bold btn-control" id="btnGuardarAsist" onclick="guardarAsistencia()" disabled>💾 Guardar</button>
           </div>
 
         </div>
@@ -439,7 +453,7 @@
     }
 
     // ==========================================
-    // VISTA: ASISTENCIA CON AUTO POR DÍA Y STICKY
+    // VISTA: ASISTENCIA CON INTERACCIÓN CÍCLICA
     // ==========================================
     function generarDiasHabilesRango(fInicioStr, fFinStr) {
       const dias = [];
@@ -504,13 +518,14 @@
         thMeses += `<th colspan="${span}" class="bg-light text-uppercase fw-bold border-bottom">${mes}</th>`;
       }
 
-      // Encabezado con botones de auto-llenado por columna (A / F)
+      // Encabezado con botones de auto-llenado por columna (A / F / ✕)
       let thDiasNum = diasHabilesParcialActual.map(d => `
         <th class="th-dia-asig bg-white p-1">
           <span class="d-block fw-bold">${d.diaNum}</span>
           <div class="d-flex justify-content-center gap-1 mt-1">
             <button type="button" class="btn btn-xs btn-outline-success btn-dia-auto" title="Llenar 'A' el ${d.diaNum}" onclick="llenarDiaColumna('${d.iso}', 'A')">A</button>
             <button type="button" class="btn btn-xs btn-outline-danger btn-dia-auto" title="Llenar 'F' el ${d.diaNum}" onclick="llenarDiaColumna('${d.iso}', 'F')">F</button>
+            <button type="button" class="btn btn-xs btn-outline-secondary btn-dia-auto" title="Limpiar ${d.diaNum}" onclick="llenarDiaColumna('${d.iso}', '')">✕</button>
           </div>
         </th>`).join('');
 
@@ -522,7 +537,7 @@
             <span class="badge bg-primary me-2">Trimestre ${trimestre} - Parcial ${parcial}</span>
             <small class="fw-bold text-dark">Inicio: ${per.fecha_inicio} | Término: ${per.fecha_fin} | Días Hábiles: ${diasHabilesParcialActual.length} | Festivos/No Lab: ${per.dias_no_laborados} | <b>Total Días: ${per.total_dias_laborados}</b></small>
           </div>
-          <small class="text-muted">Leyenda: <b>A</b> (Asistencia) | <b>F</b> (Falta) | <b>J</b> (Justificada)</small>
+          <small class="text-muted"><i class="bi bi-hand-index-thumb me-1"></i>Haga clic en una casilla para alternar: <b>(Vacío) → A → F → J → (Vacío)</b></small>
         </div>
 
         <table class="table table-bordered table-sm mb-0 align-middle">
@@ -558,8 +573,8 @@
 
                 return `
                   <td class="p-0">
-                    <input type="text" maxlength="1" class="cell-asig-input ${claseColor}" 
-                      data-iso="${d.iso}" value="${val}" oninput="validarYCalcularAsistenciaFila(this)">
+                    <input type="text" readonly class="cell-asig-input ${claseColor}" 
+                      data-iso="${d.iso}" value="${val}" onclick="alternarEstadoAsistencia(this)">
                   </td>
                 `;
               }).join('');
@@ -585,15 +600,23 @@
       document.querySelectorAll('#tablaCuerpoAsistencia tr').forEach(fila => calcularFilaAsistencia(fila));
     }
 
-    function validarYCalcularAsistenciaFila(input) {
-      let val = input.value.toUpperCase();
-      if (val !== 'A' && val !== 'F' && val !== 'J') val = '';
-      input.value = val;
+    // Alternador de estado por clic interactivo: Blanco -> A -> F -> J -> Blanco
+    function alternarEstadoAsistencia(input) {
+      const actual = input.value.toUpperCase();
+      let siguiente = '';
 
+      if (actual === '') siguiente = 'A';
+      else if (actual === 'A') siguiente = 'F';
+      else if (actual === 'F') siguiente = 'J';
+      else if (actual === 'J') siguiente = '';
+      else siguiente = 'A';
+
+      input.value = siguiente;
       input.className = 'cell-asig-input';
-      if (val === 'A') input.classList.add('asig-a');
-      else if (val === 'F') input.classList.add('asig-f');
-      else if (val === 'J') input.classList.add('asig-j');
+
+      if (siguiente === 'A') input.classList.add('asig-a');
+      else if (siguiente === 'F') input.classList.add('asig-f');
+      else if (siguiente === 'J') input.classList.add('asig-j');
 
       calcularFilaAsistencia(input.closest('tr'));
     }
@@ -623,21 +646,31 @@
       tr.querySelector('.dias-faltantes').innerText = faltantes;
     }
 
-    // Auto-llenar una fecha/columna específica
+    // Auto-llenar una fecha/columna específica (A / F / Vacío)
     function llenarDiaColumna(fechaIso, tipo) {
       document.querySelectorAll(`#tablaCuerpoAsistencia .cell-asig-input[data-iso="${fechaIso}"]`).forEach(inp => {
         inp.value = tipo;
-        inp.className = `cell-asig-input ${tipo === 'A' ? 'asig-a' : 'asig-f'}`;
+        inp.className = 'cell-asig-input';
+        if (tipo === 'A') inp.classList.add('asig-a');
+        else if (tipo === 'F') inp.classList.add('asig-f');
       });
       document.querySelectorAll('#tablaCuerpoAsistencia tr').forEach(fila => calcularFilaAsistencia(fila));
     }
 
     function llenarTodoConAsistencia() {
       document.querySelectorAll('#tablaCuerpoAsistencia .cell-asig-input').forEach(inp => {
-        if (!inp.value) {
-          inp.value = 'A';
-          inp.className = 'cell-asig-input asig-a';
-        }
+        inp.value = 'A';
+        inp.className = 'cell-asig-input asig-a';
+      });
+      document.querySelectorAll('#tablaCuerpoAsistencia tr').forEach(fila => calcularFilaAsistencia(fila));
+    }
+
+    // Limpiar toda la sábana de asistencia (Poner en blanco)
+    function limpiarTodaAsistencia() {
+      if (!confirm('¿Desea poner en blanco todas las casillas de este parcial?')) return;
+      document.querySelectorAll('#tablaCuerpoAsistencia .cell-asig-input').forEach(inp => {
+        inp.value = '';
+        inp.className = 'cell-asig-input';
       });
       document.querySelectorAll('#tablaCuerpoAsistencia tr').forEach(fila => calcularFilaAsistencia(fila));
     }
@@ -686,7 +719,7 @@
         if (error) throw error;
         alert('¡Control de Asistencia guardado con éxito!');
       } catch (err) {
-        alert('Error: ' + err.message);
+        alert('Error al guardar asistencia: ' + err.message);
       } finally {
         btn.disabled = false;
         btn.innerText = '💾 Guardar Asistencia';
