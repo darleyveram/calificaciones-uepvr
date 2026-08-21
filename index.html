@@ -146,7 +146,6 @@
     <div class="card shadow-sm mb-2 border-0">
       <div class="card-body py-2 px-2 px-md-3">
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
-          
           <div class="d-flex align-items-center gap-2">
             <img id="appLogoIzq" class="logo-header d-none" alt="Logo Izquierdo">
             <div>
@@ -158,14 +157,12 @@
               </div>
             </div>
           </div>
-
           <div class="d-flex align-items-center gap-2 ms-auto">
             <img id="appLogoDer" class="logo-header d-none d-sm-block" alt="Logo Derecho">
             <button class="btn btn-outline-danger btn-sm px-2 py-1" onclick="cerrarSesion()" style="font-size: 0.75rem;">
               <i class="bi bi-box-arrow-right me-1"></i><span class="d-none d-sm-inline">Cerrar Sesión</span><span class="d-inline d-sm-none">Salir</span>
             </button>
           </div>
-
         </div>
       </div>
     </div>
@@ -235,6 +232,7 @@
             </select>
           </div>
 
+          <!-- Botones de Acción Módulo -->
           <div class="col-12 col-md-3 text-end pt-2 pt-md-3" id="accionesParcial">
             <button class="btn btn-outline-primary btn-sm me-1 btn-control" onclick="agregarActividad(1)" disabled>+ Ins. 1</button>
             <button class="btn btn-outline-info btn-sm me-1 text-dark btn-control" onclick="agregarActividad(2)" disabled>+ Ins. 2</button>
@@ -275,6 +273,7 @@
       </div>
     </div>
 
+    <!-- Contenedor Principal de la Tabla -->
     <div class="card shadow-sm">
       <div class="card-body p-0">
         <div class="table-responsive" id="contenedorTabla" style="max-height: 75vh; overflow-y: auto;">
@@ -304,7 +303,7 @@
     let usuarioActualPerfil = null;
     let datosConsolidadoTutoria = [];
     
-    // CONTROLADOR DE PETICIONES (Evita cruce de pantallas)
+    // CONTROLADOR DE PETICIONES (Evita cruce de pantallas en carga asíncrona)
     let currentViewRequestId = 0;
 
     // ==========================================
@@ -510,6 +509,9 @@
       alCambiarModo();
     }
 
+    // =========================================================================
+    // NAVEGACIÓN Y FILTROS ENTRE MÓDULOS
+    // =========================================================================
     function alCambiarModo() {
       const modo = document.getElementById('selectModo').value;
       const boxMateria = document.getElementById('boxMateria');
@@ -607,7 +609,11 @@
           materiasDelCurso.map(a => `<option value="${a.id}">${a.materias.nombre} ${a.es_optativa ? '(Optativa)' : ''}</option>`).join('');
         
         selectMateria.disabled = false;
-        if (materiasDelCurso.length >= 1) selectMateria.value = materiasDelCurso[0].id;
+        if (materiasDelCurso.length > 0) {
+          selectMateria.value = String(materiasDelCurso[0].id);
+        } else {
+          selectMateria.value = "";
+        }
       }
 
       cambiarFiltro();
@@ -657,7 +663,7 @@
         return;
       }
 
-      // Modo Calificaciones
+      // MODO CALIFICACIONES ACADÉMICAS
       if (trimestreVal === 'anual') {
         document.getElementById('boxVista').classList.add('d-none');
         accAnual.classList.remove('d-none');
@@ -683,7 +689,7 @@
     }
 
     // =========================================================================
-    // VISTA DE TUTORÍA: SÁBANA GENERAL Y PREPARACIÓN DE DATOS
+    // VISTA DE TUTORÍA: SÁBANA GENERAL Y PREPARACIÓN DE DATOS (PROTEGIDO)
     // =========================================================================
     async function cargarVistaConsolidadoTutoria() {
       const reqId = ++currentViewRequestId;
@@ -1279,96 +1285,262 @@
       }
     }
 
-    // ==========================================
-    // PARCIAL ACADÉMICO / ASISTENCIA / COMPORTAMIENTO
-    // ==========================================
-    function capturarNotasDeLaTabla() {
-      const filas = document.querySelectorAll('#tablaCuerpo tr');
-      filas.forEach(tr => {
-        const estId = tr.getAttribute('data-estudiante-id');
-        if (estId) {
-          const notas1 = Array.from(tr.querySelectorAll('.nota-i1')).map(i => i.value !== '' ? i.value : '');
-          const notas2 = Array.from(tr.querySelectorAll('.nota-i2')).map(i => i.value !== '' ? i.value : '');
-          notasActualesMemoria[estId] = { i1: notas1, i2: notas2 };
+    // =========================================================================
+    // VISTA: ASISTENCIA Y MATRICULACIÓN CORREGIDA CON CURRENT_REQUEST_ID
+    // =========================================================================
+    async function cargarVistaAsistencia() {
+      const reqId = ++currentViewRequestId;
+      const cursoId = document.getElementById('selectCurso').value.trim();
+      const trimestre = parseInt(document.getElementById('selectTrimestre').value) || 1;
+      const parcial = parseInt(document.getElementById('selectParcialAsistencia').value) || 1;
+      const contenedor = document.getElementById('contenedorTabla');
+
+      if (!cursoId) {
+        if (reqId === currentViewRequestId) {
+          contenedor.innerHTML = '<div class="py-4 text-muted text-center">Seleccione un Curso para gestionar la Asistencia.</div>';
         }
-      });
-    }
-
-    function agregarActividad(insumo) {
-      capturarNotasDeLaTabla();
-      if (insumo === 1) {
-        configActividades.insumo1.push(catalogo[0] || 'Actuación en clases');
-        Object.keys(notasActualesMemoria).forEach(k => {
-          if (!notasActualesMemoria[k].i1) notasActualesMemoria[k].i1 = [];
-          notasActualesMemoria[k].i1.push('');
-        });
-      } else {
-        configActividades.insumo2.push(catalogo[0] || 'Trabajo Grupal');
-        Object.keys(notasActualesMemoria).forEach(k => {
-          if (!notasActualesMemoria[k].i2) notasActualesMemoria[k].i2 = [];
-          notasActualesMemoria[k].i2.push('');
-        });
+        return;
       }
-      renderizarTablaParcial();
+
+      contenedor.innerHTML = '<div class="py-4 text-center"><div class="spinner-border text-primary me-2"></div>Cargando sábana de control diario de asistencia...</div>';
+
+      try {
+        let per = periodosAsistencia.find(p => p.trimestre === trimestre && p.parcial === parcial);
+        if (!per || !per.fecha_inicio || !per.fecha_fin) {
+          const fallbacks = {
+            '1-1': { fecha_inicio: '2026-05-04', fecha_fin: '2026-06-19', total_dias_laborados: 34, dias_no_laborados: 1 },
+            '1-2': { fecha_inicio: '2026-06-22', fecha_fin: '2026-08-07', total_dias_laborados: 35, dias_no_laborados: 0 },
+            '2-1': { fecha_inicio: '2026-08-10', fecha_fin: '2026-09-18', total_dias_laborados: 29, dias_no_laborados: 1 },
+            '2-2': { fecha_inicio: '2026-09-21', fecha_fin: '2026-11-13', total_dias_laborados: 37, dias_no_laborados: 3 },
+            '3-1': { fecha_inicio: '2026-11-16', fecha_fin: '2026-12-18', total_dias_laborados: 25, dias_no_laborados: 0 },
+            '3-2': { fecha_inicio: '2026-12-21', fecha_fin: '2027-02-19', total_dias_laborados: 40, dias_no_laborados: 5 }
+          };
+          per = fallbacks[`${trimestre}-${parcial}`] || { fecha_inicio: '2026-05-04', fecha_fin: '2026-06-19', total_dias_laborados: 34, dias_no_laborados: 1 };
+        }
+
+        diasHabilesParcialActual = generarDiasHabilesRango(per.fecha_inicio, per.fecha_fin);
+
+        const { data: estData, error: estErr } = await supabaseClient
+          .from('estudiantes')
+          .select('*')
+          .eq('curso_id', parseInt(cursoId))
+          .order('nombres');
+
+        if (reqId !== currentViewRequestId) return;
+        if (estErr) throw estErr;
+        estudiantes = estData || [];
+
+        if (estudiantes.length === 0) {
+          contenedor.innerHTML = '<div class="py-4 text-warning text-center fw-bold">Este curso aún no tiene estudiantes registrados.</div>';
+          return;
+        }
+
+        const { data: asistData } = await supabaseClient
+          .from('asistencia_estudiantes')
+          .select('*')
+          .eq('curso_id', parseInt(cursoId))
+          .eq('trimestre', trimestre)
+          .eq('parcial', parcial);
+
+        if (reqId !== currentViewRequestId) return;
+
+        const asistMap = {};
+        (asistData || []).forEach(a => { asistMap[a.estudiante_id] = a.registro_diario || {}; });
+
+        const mesesColspan = {};
+        diasHabilesParcialActual.forEach(d => { mesesColspan[d.nombreMes] = (mesesColspan[d.nombreMes] || 0) + 1; });
+
+        let thMeses = '';
+        for (const [mes, span] of Object.entries(mesesColspan)) { 
+          thMeses += `<th colspan="${span}" class="bg-light text-uppercase fw-bold border-bottom">${mes}</th>`; 
+        }
+
+        let thDiasNum = diasHabilesParcialActual.map(d => `
+          <th class="th-dia-asig bg-white p-1">
+            <span class="d-block fw-bold">${d.diaNum}</span>
+            <div class="d-flex justify-content-center gap-1 mt-1">
+              <button type="button" class="btn btn-xs btn-outline-success btn-dia-auto" title="Llenar 'A'" onclick="llenarDiaColumna('${d.iso}', 'A')">A</button>
+              <button type="button" class="btn btn-xs btn-outline-danger btn-dia-auto" title="Llenar 'F'" onclick="llenarDiaColumna('${d.iso}', 'F')">F</button>
+              <button type="button" class="btn btn-xs btn-outline-secondary btn-dia-auto" title="Limpiar" onclick="llenarDiaColumna('${d.iso}', '')">✕</button>
+            </div>
+          </th>`).join('');
+
+        let thDiasNom = diasHabilesParcialActual.map(d => `<th class="th-dia-asig bg-light text-muted" style="font-size:0.58rem;">${d.nombreDia.substring(0,2)}</th>`).join('');
+
+        let html = `
+          <div class="p-2 bg-light border-bottom d-flex justify-content-between align-items-center">
+            <div>
+              <span class="badge bg-primary me-2">Trimestre ${trimestre} - Parcial ${parcial}</span>
+              <small class="fw-bold text-dark">Inicio: ${per.fecha_inicio} | Término: ${per.fecha_fin} | Días Hábiles: ${diasHabilesParcialActual.length} | Festivos/No Lab: ${per.dias_no_laborados || 0} | <b>Total Días: ${per.total_dias_laborados}</b></small>
+            </div>
+            <small class="text-muted"><i class="bi bi-hand-index-thumb me-1"></i>Haga clic en una casilla para alternar: <b>(Vacío) → A → F → J → (Vacío)</b></small>
+          </div>
+
+          <table class="table table-bordered table-sm mb-0 align-middle">
+            <thead>
+              <tr>
+                <th rowspan="3" class="sticky-col-num">N°</th>
+                <th rowspan="3" class="sticky-col-nombre text-center">NÓMINA DE ESTUDIANTES</th>
+                ${thMeses}
+                <th colspan="3" class="bg-primary text-white">SUMAN</th>
+                <th rowspan="3" class="bg-success text-white" style="width: 50px;">TOTAL</th>
+                <th rowspan="3" class="bg-secondary text-white" style="width: 60px;">DÍAS FALTANTES</th>
+              </tr>
+              <tr>
+                ${thDiasNum}
+                <th rowspan="2" class="bg-light text-success fw-bold" style="width: 35px;">A</th>
+                <th rowspan="2" class="bg-light text-danger fw-bold" style="width: 35px;">F</th>
+                <th rowspan="2" class="bg-light text-primary fw-bold" style="width: 35px;">J</th>
+              </tr>
+              <tr>${thDiasNom}</tr>
+            </thead>
+            <tbody id="tablaCuerpoAsistencia">
+              ${estudiantes.map((est, idx) => {
+                const regEst = asistMap[est.id] || {};
+                const celdasDias = diasHabilesParcialActual.map(d => {
+                  const val = (regEst[d.iso] || '').toUpperCase();
+                  let claseColor = val === 'A' ? 'asig-a' : (val === 'F' ? 'asig-f' : (val === 'J' ? 'asig-j' : ''));
+                  return `<td class="p-0"><input type="text" readonly class="cell-asig-input ${claseColor}" data-iso="${d.iso}" value="${val}" onclick="alternarEstadoAsistencia(this)"></td>`;
+                }).join('');
+
+                return `
+                  <tr data-est-id="${est.id}">
+                    <td class="sticky-col-num fw-bold text-muted">${idx + 1}</td>
+                    <td class="sticky-col-nombre" title="${est.nombres}">${formatearNombreVisual(est.nombres)}</td>
+                    ${celdasDias}
+                    <td class="sum-a fw-bold text-success">0</td>
+                    <td class="sum-f fw-bold text-danger">0</td>
+                    <td class="sum-j fw-bold text-primary">0</td>
+                    <td class="total-asist fw-bold bg-light">0</td>
+                    <td class="dias-faltantes fw-bold text-muted">${per.total_dias_laborados}</td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+        `;
+
+        if (reqId === currentViewRequestId) {
+          contenedor.innerHTML = html;
+          document.querySelectorAll('#tablaCuerpoAsistencia tr').forEach(fila => calcularFilaAsistencia(fila));
+        }
+      } catch (err) {
+        if (reqId === currentViewRequestId) {
+          contenedor.innerHTML = `<div class="py-4 text-danger text-center fw-bold">Error al cargar asistencia: ${err.message}</div>`;
+        }
+      }
     }
 
-    function eliminarActividad(insumo, index) {
-      capturarNotasDeLaTabla();
-      if (insumo === 1) {
-        configActividades.insumo1.splice(index, 1);
-        Object.keys(notasActualesMemoria).forEach(k => {
-          if (notasActualesMemoria[k] && notasActualesMemoria[k].i1) {
-            notasActualesMemoria[k].i1.splice(index, 1);
+    function alternarEstadoAsistencia(input) {
+      const actual = input.value.toUpperCase();
+      let siguiente = actual === '' ? 'A' : (actual === 'A' ? 'F' : (actual === 'F' ? 'J' : ''));
+      input.value = siguiente;
+      input.className = 'cell-asig-input';
+      if (siguiente === 'A') input.classList.add('asig-a');
+      else if (siguiente === 'F') input.classList.add('asig-f');
+      else if (siguiente === 'J') input.classList.add('asig-j');
+      calcularFilaAsistencia(input.closest('tr'));
+    }
+
+    function calcularFilaAsistencia(tr) {
+      const inputs = Array.from(tr.querySelectorAll('.cell-asig-input'));
+      let a = 0, f = 0, j = 0;
+      inputs.forEach(inp => {
+        const v = inp.value.toUpperCase();
+        if (v === 'A') a++; else if (v === 'F') f++; else if (v === 'J') j++;
+      });
+
+      const trimestre = parseInt(document.getElementById('selectTrimestre').value);
+      const parcial = parseInt(document.getElementById('selectParcialAsistencia').value);
+      const per = periodosAsistencia.find(p => p.trimestre === trimestre && p.parcial === parcial);
+      const metaDias = per ? per.total_dias_laborados : diasHabilesParcialActual.length;
+      const faltantes = Math.max(metaDias - a, 0);
+
+      tr.querySelector('.sum-a').innerText = a;
+      tr.querySelector('.sum-f').innerText = f;
+      tr.querySelector('.sum-j').innerText = j;
+      tr.querySelector('.total-asist').innerText = a;
+      tr.querySelector('.dias-faltantes').innerText = faltantes;
+    }
+
+    function llenarDiaColumna(fechaIso, tipo) {
+      document.querySelectorAll(`#tablaCuerpoAsistencia .cell-asig-input[data-iso="${fechaIso}"]`).forEach(inp => {
+        inp.value = tipo;
+        inp.className = 'cell-asig-input';
+        if (tipo === 'A') inp.classList.add('asig-a');
+        else if (tipo === 'F') inp.classList.add('asig-f');
+      });
+      document.querySelectorAll('#tablaCuerpoAsistencia tr').forEach(fila => calcularFilaAsistencia(fila));
+    }
+
+    function llenarTodoConAsistencia() {
+      document.querySelectorAll('#tablaCuerpoAsistencia .cell-asig-input').forEach(inp => {
+        inp.value = 'A';
+        inp.className = 'cell-asig-input asig-a';
+      });
+      document.querySelectorAll('#tablaCuerpoAsistencia tr').forEach(fila => calcularFilaAsistencia(fila));
+    }
+
+    function limpiarTodaAsistencia() {
+      if (!confirm('¿Desea poner en blanco todas las casillas de este parcial?')) return;
+      document.querySelectorAll('#tablaCuerpoAsistencia .cell-asig-input').forEach(inp => {
+        inp.value = '';
+        inp.className = 'cell-asig-input';
+      });
+      document.querySelectorAll('#tablaCuerpoAsistencia tr').forEach(fila => calcularFilaAsistencia(fila));
+    }
+
+    async function guardarAsistencia() {
+      const cursoId = parseInt(document.getElementById('selectCurso').value);
+      const trimestre = parseInt(document.getElementById('selectTrimestre').value);
+      const parcial = parseInt(document.getElementById('selectParcialAsistencia').value);
+      const btn = document.getElementById('btnGuardarAsist');
+
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Guardando...';
+
+      try {
+        const filas = document.querySelectorAll('#tablaCuerpoAsistencia tr');
+        const payload = [];
+
+        filas.forEach(tr => {
+          const estId = parseInt(tr.getAttribute('data-est-id'));
+          if (estId) {
+            const regDiario = {};
+            tr.querySelectorAll('.cell-asig-input').forEach(inp => {
+              const iso = inp.getAttribute('data-iso');
+              if (inp.value) regDiario[iso] = inp.value.toUpperCase();
+            });
+
+            payload.push({
+              curso_id: cursoId,
+              estudiante_id: estId,
+              trimestre: trimestre,
+              parcial: parcial,
+              registro_diario: regDiario,
+              total_asistencias: parseInt(tr.querySelector('.sum-a').innerText) || 0,
+              total_faltas: parseInt(tr.querySelector('.sum-f').innerText) || 0,
+              total_justificadas: parseInt(tr.querySelector('.sum-j').innerText) || 0,
+              total_dias: parseInt(tr.querySelector('.total-asist').innerText) || 0,
+              dias_faltantes: parseInt(tr.querySelector('.dias-faltantes').innerText) || 0
+            });
           }
         });
-      } else {
-        configActividades.insumo2.splice(index, 1);
-        Object.keys(notasActualesMemoria).forEach(k => {
-          if (notasActualesMemoria[k] && notasActualesMemoria[k].i2) {
-            notasActualesMemoria[k].i2.splice(index, 1);
-          }
-        });
+
+        const { error } = await supabaseClient.from('asistencia_estudiantes').upsert(payload, { onConflict: 'curso_id,estudiante_id,trimestre,parcial' });
+        if (error) throw error;
+        alert('¡Control de Asistencia guardado con éxito!');
+      } catch (err) {
+        alert('Error al guardar asistencia: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerText = '💾 Guardar';
       }
-      renderizarTablaParcial();
     }
 
-    function autoLlenarColumnaActividad(insumo, colIndex) {
-      const selectorClase = insumo === 1 ? `.col-act-i1-${colIndex}` : `.col-act-i2-${colIndex}`;
-      document.querySelectorAll(selectorClase).forEach(input => {
-        input.value = '10';
-        input.className = `form-control form-control-sm input-nota-app ${insumo === 1 ? 'nota-i1' : 'nota-i2'} col-act-i${insumo}-${colIndex} ${obtenerClaseColor('10', false)}`;
-      });
-      document.querySelectorAll('#tablaCuerpo tr').forEach(fila => calcularFilaParcial(fila));
-    }
-
-    function limpiarColumnaActividad(insumo, colIndex) {
-      const selectorClase = insumo === 1 ? `.col-act-i1-${colIndex}` : `.col-act-i2-${colIndex}`;
-      document.querySelectorAll(selectorClase).forEach(input => {
-        input.value = '';
-        input.className = `form-control form-control-sm input-nota-app ${insumo === 1 ? 'nota-i1' : 'nota-i2'} col-act-i${insumo}-${colIndex}`;
-      });
-      document.querySelectorAll('#tablaCuerpo tr').forEach(fila => calcularFilaParcial(fila));
-    }
-
-    function autoLlenarTodoCon10() {
-      document.querySelectorAll('#tablaCuerpo input[type="number"]').forEach(input => {
-        if (!input.value) {
-          input.value = '10';
-          input.classList.remove('nota-baja-roja', 'nota-media-amarilla');
-        }
-      });
-      document.querySelectorAll('#tablaCuerpo tr').forEach(fila => calcularFilaParcial(fila));
-    }
-
-    function limpiarTodasNotasParcial() {
-      if (!confirm('¿Desea limpiar todas las calificaciones de este parcial?')) return;
-      document.querySelectorAll('#tablaCuerpo input[type="number"]').forEach(input => {
-        input.value = '';
-        input.className = `form-control form-control-sm input-nota-app ${input.classList.contains('nota-i1') ? 'nota-i1' : 'nota-i2'}`;
-      });
-      document.querySelectorAll('#tablaCuerpo tr').forEach(fila => calcularFilaParcial(fila));
-    }
-
+    // ==========================================
+    // PARCIAL ACADÉMICO / COMPORTAMIENTO CON CURRENT_REQUEST_ID
+    // ==========================================
     async function cargarVistaParcial(parcialNum) {
       const reqId = ++currentViewRequestId;
       const asigId = document.getElementById('selectMateria').value.trim();
@@ -1378,7 +1550,9 @@
 
       const asig = todasAsignaciones.find(a => String(a.id) === asigId);
       if (!asig) {
-        if (reqId === currentViewRequestId) contenedor.innerHTML = '<div class="py-4 text-muted text-center">Seleccione un Curso y una Materia.</div>';
+        if (reqId === currentViewRequestId) {
+          contenedor.innerHTML = '<div class="py-4 text-muted text-center">Seleccione un Curso y una Materia para visualizar las calificaciones.</div>';
+        }
         return;
       }
 
@@ -1415,7 +1589,9 @@
 
         renderizarTablaParcial();
       } catch (err) {
-        if (reqId === currentViewRequestId) contenedor.innerHTML = `<div class="py-4 text-danger text-center fw-bold">Error al cargar parcial: ${err.message}</div>`;
+        if (reqId === currentViewRequestId) {
+          contenedor.innerHTML = `<div class="py-4 text-danger text-center fw-bold">Error al cargar parcial: ${err.message}</div>`;
+        }
       }
     }
 
@@ -1847,7 +2023,7 @@
 
         let html = `
           <table class="table table-bordered table-sm mb-0 align-middle">
-            <thead class="table-dark">
+            <thead>
               <tr>
                 <th rowspan="2" class="sticky-col-num">No.</th>
                 <th rowspan="2" class="sticky-col-nombre text-center">Apellidos y Nombres</th>
@@ -1921,6 +2097,157 @@
         if (reqId === currentViewRequestId) contenedor.innerHTML = html;
       } catch (err) {
         if (reqId === currentViewRequestId) contenedor.innerHTML = `<div class="py-4 text-danger text-center fw-bold">Error: ${err.message}</div>`;
+      }
+    }
+
+    async function exportarResumenAnualPDF() {
+      if (!datosResumenAnualActual || datosResumenAnualActual.length === 0) {
+        alert('No hay calificaciones cargadas para exportar.');
+        return;
+      }
+
+      const asigId = document.getElementById('selectMateria').value;
+      const asig = todasAsignaciones.find(a => String(a.id) === String(asigId));
+      if (!asig) return alert('Seleccione una materia.');
+
+      const btn = document.getElementById('btnDescargarPDF');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Generando PDF...';
+
+      try {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+
+        const nomArriba = (infoInstitucion?.nombre_arriba || 'Unidad Educativa Particular').toUpperCase();
+        const nomAbajo = (infoInstitucion?.nombre_abajo || '"Vicente Rocafuerte"').toUpperCase();
+        const periodo = infoInstitucion?.periodo_lectivo || '2026-2027';
+        const amie = infoInstitucion?.amie || '13H03021';
+        const distrito = infoInstitucion?.distrito || '13D08';
+        const circuito = infoInstitucion?.circuito || '13D08C0_b';
+        const dir1 = infoInstitucion?.direccion_1 || 'Pichincha - Manabí - Ecuador';
+        const frase1 = infoInstitucion?.frase_1 ? `"${infoInstitucion.frase_1}"` : '';
+
+        const cursoEncontrado = (todosCursos && todosCursos.length > 0) ? todosCursos.find(c => c.id === asig.curso_id) : asig.cursos;
+        const nombreCursoLargo = (cursoEncontrado?.nombre_largo_mayuscula || cursoEncontrado?.nombre || asig.cursos?.nombre || '').toUpperCase();
+        const nombreMateria = (asig.materias?.nombre || '').toUpperCase();
+
+        const nombreDocenteActual = usuarioActualPerfil 
+          ? `${usuarioActualPerfil.titulo ? usuarioActualPerfil.titulo + ' ' : ''}${usuarioActualPerfil.nombres} ${usuarioActualPerfil.apellidos || ''}`.trim().toUpperCase()
+          : 'DOCENTE RESPONSABLE';
+        
+        const nombreSecretaria = 'C.P.A. MERCEDES A. SALAMEA M.';
+        const nombreRector = 'ING. DÍDIMO A. SALTOS S.';
+
+        const imgLogoIzq = await obtenerBase64DesdeUrl(infoInstitucion?.logo_izquierdo || infoInstitucion?.logo_institucion);
+        const imgLogoDer = await obtenerBase64DesdeUrl(infoInstitucion?.logo_derecho || infoInstitucion?.escudo_nacional);
+
+        const headers = [
+          [
+            { content: 'N°', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } },
+            { content: 'NÓMINA DE ESTUDIANTES', rowSpan: 2, styles: { valign: 'middle', halign: 'left' } },
+            { content: 'CALIFICACIONES ACADÉMICAS', colSpan: 3, styles: { halign: 'center' } },
+            { content: 'PROM. ANUAL', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } },
+            { content: 'EVALUACIÓN DEL COMPORTAMIENTO', colSpan: 3, styles: { halign: 'center' } },
+            { content: 'COMP. ANUAL', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } },
+            { content: 'ESTADO', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } }
+          ],
+          ['1er Trim.', '2do Trim.', '3er Trim.', '1er T.', '2do T.', '3er T.']
+        ];
+
+        const bodyData = datosResumenAnualActual.map(d => [d.num, d.nombres, d.t1, d.t2, d.t3, d.promAnual, d.ct1, d.ct2, d.ct3, d.compAnual, d.estado]);
+
+        doc.autoTable({
+          head: headers,
+          body: bodyData,
+          margin: { top: 48, bottom: 32, left: 12, right: 12 },
+          theme: 'grid',
+          styles: { fontSize: 7.5, cellPadding: 1.5, lineColor: [200, 200, 200], lineWidth: 0.1, valign: 'middle' },
+          headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255], fontStyle: 'bold' },
+          columnStyles: {
+            0: { cellWidth: 10, halign: 'center' },
+            1: { cellWidth: 68, halign: 'left' },
+            2: { cellWidth: 17, halign: 'center' },
+            3: { cellWidth: 17, halign: 'center' },
+            4: { cellWidth: 17, halign: 'center' },
+            5: { cellWidth: 22, halign: 'center', fontStyle: 'bold', fillColor: [241, 245, 249] },
+            6: { cellWidth: 24, halign: 'center' },
+            7: { cellWidth: 24, halign: 'center' },
+            8: { cellWidth: 24, halign: 'center' },
+            9: { cellWidth: 24, halign: 'center', fontStyle: 'bold' },
+            10: { cellWidth: 26, halign: 'center', fontStyle: 'bold' }
+          },
+          didDrawPage: function () {
+            const pageNumber = doc.internal.getNumberOfPages();
+            if (imgLogoIzq) { try { doc.addImage(imgLogoIzq, 'PNG', 12, 7, 22, 22); } catch(e){} }
+            if (imgLogoDer) { try { doc.addImage(imgLogoDer, 'PNG', 263, 7, 22, 22); } catch(e){} }
+
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(11);
+            doc.setTextColor(30, 41, 59);
+            doc.text(nomArriba, 148.5, 11, { align: 'center' });
+
+            doc.setFontSize(13);
+            doc.text(nomAbajo, 148.5, 16, { align: 'center' });
+
+            doc.setFontSize(9.5);
+            doc.text('CUADRO CONSOLIDADO GENERAL DE CALIFICACIONES ANUALES', 148.5, 21, { align: 'center' });
+
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(7.5);
+            doc.setTextColor(71, 85, 105);
+            doc.text(`AMIE: ${amie} | DISTRITO: ${distrito} | CIRCUITO: ${circuito} | ${dir1} | AÑO LECTIVO: ${periodo}`, 148.5, 25.5, { align: 'center' });
+            if (frase1) {
+              doc.setFont('helvetica', 'italic');
+              doc.text(frase1, 148.5, 29, { align: 'center' });
+            }
+
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(8);
+            doc.setTextColor(15, 23, 42);
+            doc.setDrawColor(203, 213, 225);
+            doc.setLineWidth(0.3);
+            doc.line(12, 33, 285, 33);
+            doc.text(`CURSO: ${nombreCursoLargo}`, 12, 38);
+            doc.text(`ASIGNATURA: ${nombreMateria}`, 12, 43);
+            doc.text(`DOCENTE: ${nombreDocenteActual}`, 180, 43);
+            doc.line(12, 45, 285, 45);
+
+            const footerY = 188;
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(7.5);
+            doc.setTextColor(30, 41, 59);
+            doc.setLineWidth(0.2);
+            doc.line(25, footerY, 85, footerY);
+            doc.line(118, footerY, 178, footerY);
+            doc.line(212, footerY, 272, footerY);
+
+            doc.setFont('helvetica', 'bold');
+            doc.text('DOCENTE RESPONSABLE', 55, footerY + 4, { align: 'center' });
+            doc.setFont('helvetica', 'normal');
+            doc.text(nombreDocenteActual, 55, footerY + 8, { align: 'center' });
+
+            doc.setFont('helvetica', 'bold');
+            doc.text('SECRETARIO/A GENERAL', 148.5, footerY + 4, { align: 'center' });
+            doc.setFont('helvetica', 'normal');
+            doc.text(nombreSecretaria, 148.5, footerY + 8, { align: 'center' });
+
+            doc.setFont('helvetica', 'bold');
+            doc.text('RECTOR / DIRECTOR', 242, footerY + 4, { align: 'center' });
+            doc.setFont('helvetica', 'normal');
+            doc.text(nombreRector, 242, footerY + 8, { align: 'center' });
+
+            doc.setFontSize(7);
+            doc.setTextColor(148, 163, 184);
+            doc.text(`Página ${pageNumber}`, 285, 202, { align: 'right' });
+          }
+        });
+
+        doc.save(`Sabana_Anual_${nombreCursoLargo.replace(/\s+/g, '_')}_${nombreMateria.replace(/\s+/g, '_')}.pdf`);
+      } catch (err) {
+        alert('Error al exportar PDF: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '📄 Descargar PDF';
       }
     }
 
