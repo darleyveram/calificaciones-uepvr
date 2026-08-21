@@ -15,18 +15,19 @@
   <style>
     th, td { font-size: 0.76rem; vertical-align: middle; text-align: center; }
     
+    /* Columnas fijas (Sticky) en Computadora */
     .sticky-col-num {
       position: sticky;
       left: 0;
       background-color: #f8fafc !important;
       color: #212529 !important;
       z-index: 10;
-      width: 35px;
-      min-width: 35px;
+      width: 32px;
+      min-width: 32px;
     }
     .sticky-col-nombre {
       position: sticky;
-      left: 35px;
+      left: 32px;
       background-color: #ffffff !important;
       color: #212529 !important;
       z-index: 10;
@@ -45,6 +46,31 @@
       color: #0f172a !important;
       font-weight: bold;
     }
+
+    /* Adaptación Exclusiva para Celulares / Pantallas Pequeñas */
+    @media (max-width: 768px) {
+      .sticky-col-num {
+        width: 24px;
+        min-width: 24px;
+        font-size: 0.68rem;
+        padding-left: 1px !important;
+        padding-right: 1px !important;
+      }
+      .sticky-col-nombre {
+        left: 24px;
+        min-width: 105px !important;
+        max-width: 115px !important;
+        font-size: 0.68rem;
+        padding-left: 3px !important;
+        padding-right: 3px !important;
+      }
+      .logo-header {
+        height: 36px !important;
+      }
+      .header-nombre-inst {
+        font-size: 0.95rem !important;
+      }
+    }
     
     .th-actividad { width: 95px; min-width: 95px; padding: 4px 2px !important; background-color: #f8fafc; }
     .th-comp-ind { width: 60px; min-width: 60px; font-size: 0.68rem; padding: 4px 1px !important; line-height: 1.1; }
@@ -54,11 +80,13 @@
 
     .input-nota-app { width: 55px; margin: 0 auto; text-align: center; font-weight: bold; padding: 2px; }
 
+    /* Semáforo Notas */
     .nota-baja-roja { background-color: #f8d7da !important; color: #842029 !important; font-weight: bold; }
     .nota-media-amarilla { background-color: #fff3cd !important; color: #664d03 !important; font-weight: bold; }
     .nota-aprobada-verde { background-color: #d1e7dd !important; color: #0f5132 !important; font-weight: bold; }
     .nota-perfecta-10 { background-color: #198754 !important; color: #ffffff !important; font-weight: bold; }
 
+    /* Asistencia */
     .th-dia-asig { width: 34px; min-width: 34px; padding: 2px 1px !important; font-size: 0.65rem; }
     .btn-dia-auto { font-size: 0.58rem; padding: 0 2px; line-height: 1.1; font-weight: bold; }
     .cell-asig-input { 
@@ -83,12 +111,13 @@
     .bg-nota-final { background-color: #198754 !important; color: #fff; font-weight: bold; }
     .bg-examen { background-color: #fd7e14 !important; color: #fff; font-weight: bold; }
     
-    .logo-header { height: 50px; width: auto; object-fit: contain; }
+    .logo-header { height: 48px; width: auto; object-fit: contain; }
     .logo-login { height: 75px; width: auto; object-fit: contain; }
   </style>
 </head>
-<body class="bg-light py-3">
+<body class="bg-light py-2">
 
+  <!-- LOGIN -->
   <div class="container" id="seccionLogin" style="max-width: 440px; margin-top: 50px;">
     <div class="card shadow border-0">
       <div class="card-header bg-primary text-white text-center py-3">
@@ -119,36 +148,44 @@
     </div>
   </div>
 
-  <div class="container-fluid px-3 d-none" id="seccionApp">
+  <!-- APLICATIVO PRINCIPAL -->
+  <div class="container-fluid px-2 px-md-3 d-none" id="seccionApp">
     
+    <!-- Cabecera Dinámica Responsiva (Sin desbordes en móvil) -->
     <div class="card shadow-sm mb-2 border-0">
-      <div class="card-body py-2 px-3">
-        <div class="d-flex justify-content-between align-items-center">
-          <div class="d-flex align-items-center gap-3">
+      <div class="card-body py-2 px-2 px-md-3">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+          
+          <div class="d-flex align-items-center gap-2">
             <img id="appLogoIzq" class="logo-header d-none" alt="Logo Izquierdo">
             <div>
-              <h5 class="fw-bold text-primary mb-0 header-nombre-inst">Unidad Educativa Particular "VICENTE ROCAFUERTE"</h5>
-              <div class="d-flex align-items-center gap-2 mt-1">
+              <h6 class="fw-bold text-primary mb-0 header-nombre-inst" style="font-size: 1.05rem;">Unidad Educativa Particular "VICENTE ROCAFUERTE"</h6>
+              <div class="d-flex flex-wrap align-items-center gap-1 mt-1">
                 <span class="badge bg-primary header-periodo-badge">2026-2027</span>
-                <small class="text-muted fw-bold" id="usuarioConectado"></small>
+                <small class="text-muted fw-bold" id="usuarioConectado" style="font-size: 0.72rem;"></small>
                 <span id="badgeTutorInfo" class="badge bg-success d-none"><i class="bi bi-award me-1"></i>Docente Tutor</span>
               </div>
             </div>
           </div>
-          <div class="d-flex align-items-center gap-3">
-            <img id="appLogoDer" class="logo-header d-none" alt="Logo Derecho">
-            <button class="btn btn-outline-danger btn-sm" onclick="cerrarSesion()"><i class="bi bi-box-arrow-right me-1"></i>Cerrar Sesión</button>
+
+          <div class="d-flex align-items-center gap-2 ms-auto">
+            <img id="appLogoDer" class="logo-header d-none d-sm-block" alt="Logo Derecho">
+            <button class="btn btn-outline-danger btn-sm px-2 py-1" onclick="cerrarSesion()" style="font-size: 0.75rem;">
+              <i class="bi bi-box-arrow-right me-1"></i><span class="d-none d-sm-inline">Cerrar Sesión</span><span class="d-inline d-sm-none">Salir</span>
+            </button>
           </div>
+
         </div>
       </div>
     </div>
 
+    <!-- Barra de Filtros -->
     <div class="card shadow-sm mb-3">
-      <div class="card-body py-2">
+      <div class="card-body py-2 px-2 px-md-3">
         <div class="row g-2 align-items-center">
           
-          <div class="col-md-3" id="boxModo">
-            <label class="form-label mb-1 fw-bold">Módulo Activo:</label>
+          <div class="col-12 col-md-3" id="boxModo">
+            <label class="form-label mb-1 fw-bold small">Módulo Activo:</label>
             <select id="selectModo" class="form-select form-select-sm fw-bold border-primary text-primary" onchange="alCambiarModo()">
               <option value="calificaciones">📘 Calificaciones Académicas</option>
               <option value="asistencia" id="optModoAsistencia" class="d-none">📅 Control Diario de Asistencia</option>
@@ -156,22 +193,22 @@
             </select>
           </div>
 
-          <div class="col-md-2" id="boxCurso">
-            <label class="form-label mb-1 fw-bold">Curso / Grado:</label>
+          <div class="col-6 col-md-2" id="boxCurso">
+            <label class="form-label mb-1 fw-bold small">Curso / Grado:</label>
             <select id="selectCurso" class="form-select form-select-sm" onchange="alCambiarCurso()">
-              <option value="">Seleccione curso...</option>
+              <option value="">Seleccione...</option>
             </select>
           </div>
 
-          <div class="col-md-2" id="boxMateria">
-            <label class="form-label mb-1 fw-bold">Materia / Asignatura:</label>
+          <div class="col-6 col-md-2" id="boxMateria">
+            <label class="form-label mb-1 fw-bold small">Materia / Asignatura:</label>
             <select id="selectMateria" class="form-select form-select-sm" onchange="cambiarFiltro()" disabled>
-              <option value="">Seleccione materia...</option>
+              <option value="">Seleccione...</option>
             </select>
           </div>
           
-          <div class="col-md-2" id="boxTrimestre">
-            <label class="form-label mb-1 fw-bold">Trimestre / Ciclo:</label>
+          <div class="col-6 col-md-2" id="boxTrimestre">
+            <label class="form-label mb-1 fw-bold small">Trimestre / Ciclo:</label>
             <select id="selectTrimestre" class="form-select form-select-sm" onchange="cambiarFiltro()">
               <option value="1">Trimestre 1</option>
               <option value="2">Trimestre 2</option>
@@ -180,8 +217,8 @@
             </select>
           </div>
 
-          <div class="col-md-2" id="boxVista">
-            <label class="form-label mb-1 fw-bold">Evaluación / Parcial:</label>
+          <div class="col-6 col-md-2" id="boxVista">
+            <label class="form-label mb-1 fw-bold small">Evaluación / Parcial:</label>
             <select id="selectVista" class="form-select form-select-sm" onchange="cambiarFiltro()">
               <option value="p1">Parcial 1 (Insumos 1 y 2)</option>
               <option value="comp1">Comportamiento Parcial 1</option>
@@ -191,16 +228,16 @@
             </select>
           </div>
 
-          <div class="col-md-2 d-none" id="boxParcialAsistencia">
-            <label class="form-label mb-1 fw-bold">Parcial Asistencia:</label>
+          <div class="col-6 col-md-2 d-none" id="boxParcialAsistencia">
+            <label class="form-label mb-1 fw-bold small">Parcial Asistencia:</label>
             <select id="selectParcialAsistencia" class="form-select form-select-sm" onchange="cambiarFiltro()">
               <option value="1">1er Parcial</option>
               <option value="2">2do Parcial</option>
             </select>
           </div>
 
-          <div class="col-md-2 d-none" id="boxParcialTutoria">
-            <label class="form-label mb-1 fw-bold">Tipo de Reporte:</label>
+          <div class="col-6 col-md-2 d-none" id="boxParcialTutoria">
+            <label class="form-label mb-1 fw-bold small">Tipo de Reporte:</label>
             <select id="selectParcialTutoria" class="form-select form-select-sm fw-bold text-dark" onchange="cambiarFiltro()">
               <option value="1">Libretas del 1er Parcial</option>
               <option value="2">Libretas del 2do Parcial</option>
@@ -208,36 +245,37 @@
             </select>
           </div>
 
-          <div class="col-md-3 text-end pt-3" id="accionesParcial">
+          <!-- Botones Calificaciones -->
+          <div class="col-12 col-md-3 text-end pt-2 pt-md-3" id="accionesParcial">
             <button class="btn btn-outline-primary btn-sm me-1 btn-control" onclick="agregarActividad(1)" disabled>+ Ins. 1</button>
             <button class="btn btn-outline-info btn-sm me-1 text-dark btn-control" onclick="agregarActividad(2)" disabled>+ Ins. 2</button>
             <button class="btn btn-outline-success btn-sm me-1 btn-control" onclick="autoLlenarTodoCon10()" disabled>⚡ 10</button>
-            <button class="btn btn-success btn-sm px-3 fw-bold btn-control" id="btnGuardarParcial" onclick="guardarDatos()" disabled>💾 Guardar</button>
+            <button class="btn btn-success btn-sm px-2 px-md-3 fw-bold btn-control" id="btnGuardarParcial" onclick="guardarDatos()" disabled>💾 Guardar</button>
           </div>
 
-          <div class="col-md-3 text-end pt-3 d-none" id="accionesComportamiento">
+          <div class="col-12 col-md-3 text-end pt-2 pt-md-3 d-none" id="accionesComportamiento">
             <button class="btn btn-outline-secondary btn-sm me-1 btn-control" onclick="llenarTodoCon10Comportamiento()" disabled>⚡ Auto 10</button>
             <button class="btn btn-success btn-sm px-3 fw-bold btn-control" id="btnGuardarComp" onclick="guardarDatos()" disabled>💾 Guardar</button>
           </div>
 
-          <div class="col-md-3 text-end pt-3 d-none" id="accionesResumen">
+          <div class="col-12 col-md-3 text-end pt-2 pt-md-3 d-none" id="accionesResumen">
             <button class="btn btn-success btn-sm px-3 fw-bold btn-control" id="btnGuardarResumen" onclick="guardarDatos()" disabled>💾 Guardar</button>
           </div>
 
-          <div class="col-md-3 text-end pt-3 d-none" id="accionesAnual">
+          <div class="col-12 col-md-3 text-end pt-2 pt-md-3 d-none" id="accionesAnual">
             <button class="btn btn-danger btn-sm px-3 fw-bold btn-control" id="btnDescargarPDF" onclick="exportarResumenAnualPDF()">📄 Descargar PDF</button>
           </div>
 
-          <div class="col-md-3 text-end pt-3 d-none" id="accionesAsistencia">
+          <div class="col-12 col-md-3 text-end pt-2 pt-md-3 d-none" id="accionesAsistencia">
             <button class="btn btn-outline-success btn-sm me-1 btn-control" onclick="llenarTodoConAsistencia()" disabled>⚡ Todo 'A'</button>
             <button class="btn btn-success btn-sm px-3 fw-bold btn-control" id="btnGuardarAsist" onclick="guardarAsistencia()" disabled>💾 Guardar</button>
           </div>
 
-          <div class="col-md-3 text-end pt-3 d-none" id="accionesTutoria">
-            <button class="btn btn-danger btn-sm px-2 fw-bold me-1" id="btnDescargarTodasLibretas" onclick="generarLibretasLotePDF()" title="Descargar un solo archivo PDF con todas las libretas juntas">
+          <div class="col-12 col-md-3 text-end pt-2 pt-md-3 d-none" id="accionesTutoria">
+            <button class="btn btn-danger btn-sm px-2 fw-bold me-1" id="btnDescargarTodasLibretas" onclick="generarLibretasLotePDF()">
               <i class="bi bi-file-earmark-pdf-fill me-1"></i>Consolidado (PDF)
             </button>
-            <button class="btn btn-outline-primary btn-sm px-2 fw-bold" id="btnDescargarZipIndividuales" onclick="descargarTodasBoletasEnZip()" title="Descargar cada boleta individual en formato ZIP">
+            <button class="btn btn-outline-primary btn-sm px-2 fw-bold" id="btnDescargarZipIndividuales" onclick="descargarTodasBoletasEnZip()">
               <i class="bi bi-file-earmark-zip-fill me-1"></i>Individuales (ZIP)
             </button>
           </div>
@@ -246,6 +284,7 @@
       </div>
     </div>
 
+    <!-- Contenedor de Tablas -->
     <div class="card shadow-sm">
       <div class="card-body p-0">
         <div class="table-responsive" id="contenedorTabla" style="max-height: 75vh; overflow-y: auto;">
@@ -274,6 +313,21 @@
     let diasHabilesParcialActual = [];
     let usuarioActualPerfil = null;
     let datosConsolidadoTutoria = [];
+
+    // Formateador inteligente de nombres: En celulares muestra "1er Apellido + 1er Nombre"
+    function formatearNombreVisual(nombreCompleto) {
+      if (!nombreCompleto) return '';
+      const esMovil = window.innerWidth <= 768;
+      if (!esMovil) return nombreCompleto;
+
+      const partes = nombreCompleto.trim().split(/\s+/);
+      if (partes.length >= 3) {
+        return `${partes[0]} ${partes[2]}`; // Apellido1 + Nombre1
+      } else if (partes.length === 2) {
+        return `${partes[0]} ${partes[1]}`;
+      }
+      return partes[0];
+    }
 
     function obtenerEscalaCualitativa(nota) {
       if (nota === null || nota === '' || isNaN(nota)) return '-';
@@ -393,7 +447,6 @@
         const puedeVerAsistencia = (esAdmin || perfil?.puede_gestionar_asistencia === true);
 
         if (esTutor) document.getElementById('badgeTutorInfo').classList.remove('d-none');
-
         if (puedeVerAsistencia) document.getElementById('optModoAsistencia').classList.remove('d-none');
         if (esAdmin || esTutor) document.getElementById('optModoTutoria').classList.remove('d-none');
 
@@ -477,7 +530,7 @@
         if (document.getElementById('selectTrimestre').value === 'anual') document.getElementById('selectTrimestre').value = '1';
 
         const cursosDisponibles = esAdmin ? todosCursos : cursosTutor;
-        selectCurso.innerHTML = '<option value="">Seleccione curso...</option>' + 
+        selectCurso.innerHTML = '<option value="">Seleccione...</option>' + 
           cursosDisponibles.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
 
         if (cursoSeleccionadoPrevio && cursosDisponibles.some(c => String(c.id) === String(cursoSeleccionadoPrevio))) {
@@ -498,7 +551,7 @@
           ? todosCursos 
           : Array.from(new Map(todasAsignaciones.map(a => [a.cursos.id, a.cursos])).values());
 
-        selectCurso.innerHTML = '<option value="">Seleccione curso...</option>' + 
+        selectCurso.innerHTML = '<option value="">Seleccione...</option>' + 
           cursosDisponibles.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
 
         if (cursoSeleccionadoPrevio && cursosDisponibles.some(c => String(c.id) === String(cursoSeleccionadoPrevio))) {
@@ -519,7 +572,7 @@
           if (a.cursos) cursosMap.set(a.cursos.id, a.cursos.nombre);
         });
 
-        selectCurso.innerHTML = '<option value="">Seleccione curso...</option>';
+        selectCurso.innerHTML = '<option value="">Seleccione...</option>';
         cursosMap.forEach((nombre, id) => {
           selectCurso.innerHTML += `<option value="${id}">${nombre}</option>`;
         });
@@ -539,14 +592,14 @@
 
       if (modo === 'calificaciones') {
         if (!cursoId) {
-          selectMateria.innerHTML = '<option value="">Seleccione materia...</option>';
+          selectMateria.innerHTML = '<option value="">Seleccione...</option>';
           selectMateria.disabled = true;
           cambiarFiltro();
           return;
         }
 
         const materiasDelCurso = todasAsignaciones.filter(a => String(a.curso_id) === String(cursoId));
-        selectMateria.innerHTML = '<option value="">Seleccione materia...</option>' + 
+        selectMateria.innerHTML = '<option value="">Seleccione...</option>' + 
           materiasDelCurso.map(a => `<option value="${a.id}">${a.materias.nombre} ${a.es_optativa ? '(Optativa)' : ''}</option>`).join('');
         
         selectMateria.disabled = false;
@@ -808,7 +861,7 @@
               return `
                 <tr>
                   <td class="sticky-col-num fw-bold text-muted">${d.num}</td>
-                  <td class="sticky-col-nombre">${d.nombres}</td>
+                  <td class="sticky-col-nombre" title="${d.nombres}">${formatearNombreVisual(d.nombres)}</td>
                   ${celdasNotas}
                   <td class="fw-bold fs-6 ${obtenerClaseColor(d.promedioGeneral, true)}" style="white-space: nowrap;">
                     ${d.promedioGeneral} <small>(${d.promedioCualitativo})</small>
@@ -1313,7 +1366,7 @@
                 return `
                   <tr data-est-id="${est.id}">
                     <td class="sticky-col-num fw-bold text-muted">${idx + 1}</td>
-                    <td class="sticky-col-nombre" title="${est.nombres}">${est.nombres}</td>
+                    <td class="sticky-col-nombre" title="${est.nombres}">${formatearNombreVisual(est.nombres)}</td>
                     ${celdasDias}
                     <td class="sum-a fw-bold text-success">0</td>
                     <td class="sum-f fw-bold text-danger">0</td>
@@ -1384,15 +1437,6 @@
       document.querySelectorAll('#tablaCuerpoAsistencia tr').forEach(fila => calcularFilaAsistencia(fila));
     }
 
-    function limpiarTodaAsistencia() {
-      if (!confirm('¿Desea poner en blanco todas las casillas de este parcial?')) return;
-      document.querySelectorAll('#tablaCuerpoAsistencia .cell-asig-input').forEach(inp => {
-        inp.value = '';
-        inp.className = 'cell-asig-input';
-      });
-      document.querySelectorAll('#tablaCuerpoAsistencia tr').forEach(fila => calcularFilaAsistencia(fila));
-    }
-
     async function guardarAsistencia() {
       const cursoId = parseInt(document.getElementById('selectCurso').value);
       const trimestre = parseInt(document.getElementById('selectTrimestre').value);
@@ -1444,80 +1488,6 @@
     // ==========================================
     // PARCIAL ACADÉMICO / COMPORTAMIENTO
     // ==========================================
-    function capturarNotasDeLaTabla() {
-      const filas = document.querySelectorAll('#tablaCuerpo tr');
-      filas.forEach(tr => {
-        const estId = tr.getAttribute('data-estudiante-id');
-        if (estId) {
-          const notas1 = Array.from(tr.querySelectorAll('.nota-i1')).map(i => i.value !== '' ? i.value : '');
-          const notas2 = Array.from(tr.querySelectorAll('.nota-i2')).map(i => i.value !== '' ? i.value : '');
-          notasActualesMemoria[estId] = { i1: notas1, i2: notas2 };
-        }
-      });
-    }
-
-    function agregarActividad(insumo) {
-      capturarNotasDeLaTabla();
-      if (insumo === 1) {
-        configActividades.insumo1.push(catalogo[0] || 'Actuación en clases');
-        Object.keys(notasActualesMemoria).forEach(k => {
-          if (!notasActualesMemoria[k].i1) notasActualesMemoria[k].i1 = [];
-          notasActualesMemoria[k].i1.push('');
-        });
-      } else {
-        configActividades.insumo2.push(catalogo[0] || 'Trabajo Grupal');
-        Object.keys(notasActualesMemoria).forEach(k => {
-          if (!notasActualesMemoria[k].i2) notasActualesMemoria[k].i2 = [];
-          notasActualesMemoria[k].i2.push('');
-        });
-      }
-      renderizarTablaParcial();
-    }
-
-    function eliminarActividad(insumo, index) {
-      capturarNotasDeLaTabla();
-      if (insumo === 1) {
-        configActividades.insumo1.splice(index, 1);
-        Object.keys(notasActualesMemoria).forEach(k => {
-          if (notasActualesMemoria[k].i1) notasActualesMemoria[k].i1.splice(index, 1);
-        });
-      } else {
-        configActividades.insumo2.splice(index, 1);
-        Object.keys(notasActualesMemoria).forEach(k => {
-          if (notasActualesMemoria[k].i2) notasActualesMemoria[k].i2.splice(index, 1);
-        });
-      }
-      renderizarTablaParcial();
-    }
-
-    function autoLlenarColumnaActividad(insumo, colIndex) {
-      const selectorClase = insumo === 1 ? `.col-act-i1-${colIndex}` : `.col-act-i2-${colIndex}`;
-      document.querySelectorAll(selectorClase).forEach(input => {
-        input.value = '10';
-        input.className = `form-control form-control-sm input-nota-app ${insumo === 1 ? 'nota-i1' : 'nota-i2'} col-act-i${insumo}-${colIndex} ${obtenerClaseColor('10', false)}`;
-      });
-      document.querySelectorAll('#tablaCuerpo tr').forEach(fila => calcularFilaParcial(fila));
-    }
-
-    function limpiarColumnaActividad(insumo, colIndex) {
-      const selectorClase = insumo === 1 ? `.col-act-i1-${colIndex}` : `.col-act-i2-${colIndex}`;
-      document.querySelectorAll(selectorClase).forEach(input => {
-        input.value = '';
-        input.className = `form-control form-control-sm input-nota-app ${insumo === 1 ? 'nota-i1' : 'nota-i2'} col-act-i${insumo}-${colIndex}`;
-      });
-      document.querySelectorAll('#tablaCuerpo tr').forEach(fila => calcularFilaParcial(fila));
-    }
-
-    function autoLlenarTodoCon10() {
-      document.querySelectorAll('#tablaCuerpo input[type="number"]').forEach(input => {
-        if (!input.value) {
-          input.value = '10';
-          input.classList.remove('nota-baja-roja', 'nota-media-amarilla');
-        }
-      });
-      document.querySelectorAll('#tablaCuerpo tr').forEach(fila => calcularFilaParcial(fila));
-    }
-
     async function cargarVistaParcial(parcialNum) {
       const asigId = document.getElementById('selectMateria').value;
       const trimestre = parseInt(document.getElementById('selectTrimestre').value);
@@ -1634,7 +1604,7 @@
               return `
                 <tr data-estudiante-id="${est.id}">
                   <td class="sticky-col-num fw-bold text-muted">${idx + 1}</td>
-                  <td class="sticky-col-nombre" title="${est.nombres}">${est.nombres}</td>
+                  <td class="sticky-col-nombre" title="${est.nombres}">${formatearNombreVisual(est.nombres)}</td>
                   ${inp1}
                   <td class="prom-i1">0.00</td>
                   ${inp2}
@@ -1694,468 +1664,6 @@
       cProm1.className = `prom-i1 fw-bold ${obtenerClaseColor(prom1, true)}`;
       cProm2.className = `prom-i2 fw-bold ${obtenerClaseColor(prom2, true)}`;
       cTotal.className = `nota-parcial fw-bold ${obtenerClaseColor(total, true)}`;
-    }
-
-    async function cargarVistaComportamiento(parcialNum) {
-      const asigId = document.getElementById('selectMateria').value;
-      const trimestre = parseInt(document.getElementById('selectTrimestre').value);
-      const contenedor = document.getElementById('contenedorTabla');
-      contenedor.innerHTML = `<div class="py-4 text-center">Cargando comportamiento (Parcial ${parcialNum})...</div>`;
-
-      const asig = todasAsignaciones.find(a => a.id == asigId);
-      const { data: estData } = await supabaseClient.from('estudiantes').select('*').eq('curso_id', asig.curso_id).order('nombres');
-      estudiantes = estData || [];
-
-      const { data: compData } = await supabaseClient.from('comportamiento_parcial').select('*').eq('asignacion_id', asigId).eq('trimestre', trimestre).eq('parcial', parcialNum);
-      const compMap = {};
-      (compData || []).forEach(c => { compMap[c.estudiante_id] = c; });
-
-      let html = `
-        <table class="table table-bordered table-sm mb-0 align-middle">
-          <thead>
-            <tr>
-              <th rowspan="2" class="sticky-col-num">N°</th>
-              <th rowspan="2" class="sticky-col-nombre text-center">NÓMINA / INDICADORES</th>
-              <th>Puntualidad</th>
-              <th colspan="3">Limpieza</th>
-              <th colspan="2">Respeto y Consideración</th>
-              <th colspan="2">Valoración Diversidad</th>
-              <th>Patrimonio</th>
-              <th>Propiedad</th>
-              <th rowspan="2" class="bg-prom-ins" style="width: 75px;">TOTAL CUANT.</th>
-              <th rowspan="2" class="bg-nota-final" style="width: 75px;">TOTAL CUALIT.</th>
-            </tr>
-            <tr class="bg-light">
-              <th class="th-comp-ind">1. Asiste puntual</th>
-              <th class="th-comp-ind">2. Aseo personal</th>
-              <th class="th-comp-ind">3. Aseo lugar trab.</th>
-              <th class="th-comp-ind">4. Aseo del aula</th>
-              <th class="th-comp-ind">5. Saludo cordial</th>
-              <th class="th-comp-ind">6. Evita leng. soez</th>
-              <th class="th-comp-ind">7. Leng. no agresivo</th>
-              <th class="th-comp-ind">8. Tolerancia div.</th>
-              <th class="th-comp-ind">9. Cuida infraest.</th>
-              <th class="th-comp-ind">10. Respeta objeto</th>
-            </tr>
-          </thead>
-          <tbody id="tablaCuerpoComp">
-            ${estudiantes.map((est, idx) => {
-              const c = compMap[est.id] || {};
-              const v = (val) => val !== undefined && val !== null ? val : '10';
-
-              return `
-                <tr data-estudiante-id="${est.id}">
-                  <td class="sticky-col-num fw-bold text-muted">${idx + 1}</td>
-                  <td class="sticky-col-nombre" title="${est.nombres}">${est.nombres}</td>
-                  <td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind1" value="${v(c.ind1)}" oninput="validarYCalcularComp(this)"></td>
-                  <td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind2" value="${v(c.ind2)}" oninput="validarYCalcularComp(this)"></td>
-                  <td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind3" value="${v(c.ind3)}" oninput="validarYCalcularComp(this)"></td>
-                  <td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind4" value="${v(c.ind4)}" oninput="validarYCalcularComp(this)"></td>
-                  <td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind5" value="${v(c.ind5)}" oninput="validarYCalcularComp(this)"></td>
-                  <td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind6" value="${v(c.ind6)}" oninput="validarYCalcularComp(this)"></td>
-                  <td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind7" value="${v(c.ind7)}" oninput="validarYCalcularComp(this)"></td>
-                  <td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind8" value="${v(c.ind8)}" oninput="validarYCalcularComp(this)"></td>
-                  <td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind9" value="${v(c.ind9)}" oninput="validarYCalcularComp(this)"></td>
-                  <td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind10" value="${v(c.ind10)}" oninput="validarYCalcularComp(this)"></td>
-                  <td class="total-cuant fw-bold">10.00</td>
-                  <td class="total-cualit fw-bold">A</td>
-                </tr>
-              `;
-            }).join('')}
-          </tbody>
-        </table>
-      `;
-
-      contenedor.innerHTML = html;
-      document.querySelectorAll('#tablaCuerpoComp tr').forEach(fila => calcularFilaComp(fila));
-    }
-
-    function validarYCalcularComp(input) {
-      if (parseFloat(input.value) > 10) input.value = 10;
-      if (parseFloat(input.value) < 0) input.value = 0;
-      calcularFilaComp(input.closest('tr'));
-    }
-
-    function calcularFilaComp(tr) {
-      const inputs = Array.from(tr.querySelectorAll('.comp-ind'));
-      const valores = inputs.map(i => parseFloat(i.value)).filter(n => !isNaN(n));
-      const promedio = valores.length > 0 ? (valores.reduce((a, b) => a + b, 0) / valores.length) : 0;
-      const cualitativo = convertirCualitativo(promedio);
-
-      const celdaCuant = tr.querySelector('.total-cuant');
-      const celdaCualit = tr.querySelector('.total-cualit');
-
-      celdaCuant.innerText = promedio.toFixed(2);
-      celdaCualit.innerText = cualitativo;
-
-      celdaCuant.className = `total-cuant fw-bold ${obtenerClaseColor(promedio, true)}`;
-      celdaCualit.className = `total-cualit fw-bold ${obtenerClaseColor(promedio, true)}`;
-    }
-
-    function llenarTodoCon10Comportamiento() {
-      document.querySelectorAll('#tablaCuerpoComp .comp-ind').forEach(inp => { inp.value = '10'; });
-      document.querySelectorAll('#tablaCuerpoComp tr').forEach(fila => calcularFilaComp(fila));
-    }
-
-    async function cargarVistaResumenTrimestre() {
-      const asigId = document.getElementById('selectMateria').value;
-      const trimestre = parseInt(document.getElementById('selectTrimestre').value);
-      const contenedor = document.getElementById('contenedorTabla');
-      contenedor.innerHTML = '<div class="py-4 text-center">Cargando consolidado del trimestre...</div>';
-
-      const asig = todasAsignaciones.find(a => a.id == asigId);
-      const { data: estData } = await supabaseClient.from('estudiantes').select('*').eq('curso_id', asig.curso_id).order('nombres');
-      estudiantes = estData || [];
-
-      const { data: pData } = await supabaseClient.from('notas_parcial_actividades').select('*').eq('asignacion_id', asigId).eq('trimestre', trimestre);
-      const notasP1 = {}, notasP2 = {};
-      (pData || []).forEach(n => {
-        if (n.parcial === 1) notasP1[n.estudiante_id] = n.nota_parcial || 0;
-        if (n.parcial === 2) notasP2[n.estudiante_id] = n.nota_parcial || 0;
-      });
-
-      const { data: compData } = await supabaseClient.from('comportamiento_parcial').select('*').eq('asignacion_id', asigId).eq('trimestre', trimestre);
-      const compP1 = {}, compP2 = {};
-      (compData || []).forEach(c => {
-        if (c.parcial === 1) compP1[c.estudiante_id] = parseFloat(c.total_cuantitativo) || 0;
-        if (c.parcial === 2) compP2[c.estudiante_id] = parseFloat(c.total_cuantitativo) || 0;
-      });
-
-      const { data: tData } = await supabaseClient.from('notas_trimestre').select('*').eq('asignacion_id', asigId).eq('trimestre', trimestre);
-      const trimMap = {};
-      (tData || []).forEach(t => { trimMap[t.estudiante_id] = t; });
-
-      let html = `
-        <table class="table table-bordered table-sm mb-0 align-middle">
-          <thead class="table-dark">
-            <tr>
-              <th class="sticky-col-num">No.</th>
-              <th class="sticky-col-nombre text-center">Nómina del Estudiante</th>
-              <th style="width: 90px;">Parcial 1 (35%)</th>
-              <th style="width: 90px;">Parcial 2 (35%)</th>
-              <th class="bg-examen" style="width: 100px;">Examen (30%)</th>
-              <th style="width: 110px;">Total Trimestre</th>
-              <th style="width: 110px;">Comp. Trimestral</th>
-            </tr>
-          </thead>
-          <tbody id="tablaCuerpoTrimestre">
-            ${estudiantes.map((est, idx) => {
-              const p1 = parseFloat(notasP1[est.id] || 0);
-              const p2 = parseFloat(notasP2[est.id] || 0);
-              const tInfo = trimMap[est.id] || {};
-              const ex = tInfo.examen !== undefined && tInfo.examen !== null ? tInfo.examen : '';
-
-              const cp1 = compP1[est.id] !== undefined ? compP1[est.id] : 10;
-              const cp2 = compP2[est.id] !== undefined ? compP2[est.id] : 10;
-              const compPromNum = (cp1 + cp2) / 2;
-              const compCualit = convertirCualitativo(compPromNum);
-
-              return `
-                <tr data-estudiante-id="${est.id}" data-comp-num="${compPromNum.toFixed(2)}" data-comp-letra="${compCualit}">
-                  <td class="sticky-col-num fw-bold text-muted">${idx + 1}</td>
-                  <td class="sticky-col-nombre" title="${est.nombres}">${est.nombres}</td>
-                  <td class="p1-val">${p1.toFixed(2)}</td>
-                  <td class="p2-val">${p2.toFixed(2)}</td>
-                  <td><input type="number" step="0.5" min="0" max="10" class="form-control form-control-sm input-nota-app nota-examen" value="${ex}" oninput="validarYCalcularTrimestre(this)"></td>
-                  <td class="total-trimestre">0.00</td>
-                  <td class="comp-trimestral-badge fw-bold">${compPromNum.toFixed(2)} (${compCualit})</td>
-                </tr>
-              `;
-            }).join('')}
-          </tbody>
-        </table>
-      `;
-
-      contenedor.innerHTML = html;
-      document.querySelectorAll('#tablaCuerpoTrimestre tr').forEach(fila => calcularFilaTrimestre(fila));
-    }
-
-    function validarYCalcularTrimestre(input) {
-      if (parseFloat(input.value) > 10) input.value = 10;
-      if (parseFloat(input.value) < 0) input.value = 0;
-      calcularFilaTrimestre(input.closest('tr'));
-    }
-
-    function calcularFilaTrimestre(tr) {
-      const p1 = parseFloat(tr.querySelector('.p1-val').innerText) || 0;
-      const p2 = parseFloat(tr.querySelector('.p2-val').innerText) || 0;
-      const inputEx = tr.querySelector('.nota-examen');
-      const ex = parseFloat(inputEx.value) || 0;
-
-      inputEx.className = `form-control form-control-sm input-nota-app nota-examen ${obtenerClaseColor(inputEx.value, false)}`;
-
-      const total = (p1 * 0.35) + (p2 * 0.35) + (ex * 0.30);
-      const celdaTotal = tr.querySelector('.total-trimestre');
-      celdaTotal.innerText = total.toFixed(2);
-      celdaTotal.className = `total-trimestre fw-bold ${obtenerClaseColor(total, true)}`;
-    }
-
-    async function cargarVistaResumenAnual() {
-      const asigId = document.getElementById('selectMateria').value;
-      const contenedor = document.getElementById('contenedorTabla');
-      contenedor.innerHTML = '<div class="py-4 text-center">Cargando sábana anual...</div>';
-
-      const asig = todasAsignaciones.find(a => a.id == asigId);
-      const { data: estData } = await supabaseClient.from('estudiantes').select('*').eq('curso_id', asig.curso_id).order('nombres');
-      estudiantes = estData || [];
-
-      const { data: pData } = await supabaseClient.from('notas_parcial_actividades').select('*').eq('asignacion_id', asigId);
-      const { data: tData } = await supabaseClient.from('notas_trimestre').select('*').eq('asignacion_id', asigId);
-      const { data: cData } = await supabaseClient.from('comportamiento_parcial').select('*').eq('asignacion_id', asigId);
-
-      const notasMatriz = {}, compMatriz = {};
-      estudiantes.forEach(e => {
-        notasMatriz[e.id] = { 1: { p1: 0, p2: 0, ex: 0 }, 2: { p1: 0, p2: 0, ex: 0 }, 3: { p1: 0, p2: 0, ex: 0 } };
-        compMatriz[e.id] = { 1: { p1: 10, p2: 10 }, 2: { p1: 10, p2: 10 }, 3: { p1: 10, p2: 10 } };
-      });
-
-      (pData || []).forEach(n => {
-        if (notasMatriz[n.estudiante_id] && notasMatriz[n.estudiante_id][n.trimestre]) {
-          if (n.parcial === 1) notasMatriz[n.estudiante_id][n.trimestre].p1 = n.nota_parcial || 0;
-          if (n.parcial === 2) notasMatriz[n.estudiante_id][n.trimestre].p2 = n.nota_parcial || 0;
-        }
-      });
-
-      (tData || []).forEach(t => {
-        if (notasMatriz[t.estudiante_id] && notasMatriz[t.estudiante_id][t.trimestre]) {
-          notasMatriz[t.estudiante_id][t.trimestre].ex = t.examen || 0;
-        }
-      });
-
-      (cData || []).forEach(c => {
-        if (compMatriz[c.estudiante_id] && compMatriz[c.estudiante_id][c.trimestre]) {
-          if (c.parcial === 1) compMatriz[c.estudiante_id][c.trimestre].p1 = parseFloat(c.total_cuantitativo) || 0;
-          if (c.parcial === 2) compMatriz[c.estudiante_id][c.trimestre].p2 = parseFloat(c.total_cuantitativo) || 0;
-        }
-      });
-
-      datosResumenAnualActual = [];
-
-      let html = `
-        <table class="table table-bordered table-sm mb-0 align-middle">
-          <thead>
-            <tr>
-              <th rowspan="2" class="sticky-col-num">No.</th>
-              <th rowspan="2" class="sticky-col-nombre text-center">Apellidos y Nombres</th>
-              <th colspan="3" class="bg-dark text-white">CALIFICACIONES ACADÉMICAS</th>
-              <th rowspan="2" class="bg-dark text-white" style="width: 95px;">Promedio Anual</th>
-              <th colspan="3" class="bg-dark text-white">COMPORTAMIENTO</th>
-              <th rowspan="2" class="bg-dark text-white" style="width: 100px;">Comp. Anual</th>
-              <th rowspan="2" class="bg-dark text-white" style="width: 110px;">Estado</th>
-            </tr>
-            <tr class="bg-secondary text-white">
-              <th style="width: 75px;">1er Trim.</th>
-              <th style="width: 75px;">2do Trim.</th>
-              <th style="width: 75px;">3er Trim.</th>
-              <th style="width: 70px;">1er T.</th>
-              <th style="width: 70px;">2do T.</th>
-              <th style="width: 70px;">3er T.</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${estudiantes.map((est, idx) => {
-              const reg = notasMatriz[est.id] || {};
-              const cReg = compMatriz[est.id] || {};
-              
-              const t1 = (reg[1].p1 * 0.35) + (reg[1].p2 * 0.35) + (reg[1].ex * 0.30);
-              const t2 = (reg[2].p1 * 0.35) + (reg[2].p2 * 0.35) + (reg[2].ex * 0.30);
-              const t3 = (reg[3].p1 * 0.35) + (reg[3].p2 * 0.35) + (reg[3].ex * 0.30);
-              const promAnual = (t1 + t2 + t3) / 3;
-
-              const ct1 = (cReg[1].p1 + cReg[1].p2) / 2;
-              const ct2 = (cReg[2].p1 + cReg[2].p2) / 2;
-              const ct3 = (cReg[3].p1 + cReg[3].p2) / 2;
-              const promCompAnual = (ct1 + ct2 + ct3) / 3;
-              const letraCompAnual = convertirCualitativo(promCompAnual);
-
-              const obsBadge = promAnual >= 7 ? '<span class="badge bg-success">APROBADO</span>' : (promAnual >= 4 ? '<span class="badge bg-warning text-dark">SUPLETORIO</span>' : '<span class="badge bg-danger">REPROBADO</span>');
-              const estadoTexto = promAnual >= 7 ? 'APROBADO' : (promAnual >= 4 ? 'SUPLETORIO' : 'REPROBADO');
-
-              datosResumenAnualActual.push({
-                num: idx + 1,
-                nombres: est.nombres,
-                t1: t1.toFixed(2),
-                t2: t2.toFixed(2),
-                t3: t3.toFixed(2),
-                promAnual: promAnual.toFixed(2),
-                ct1: `${ct1.toFixed(2)} (${convertirCualitativo(ct1)})`,
-                ct2: `${ct2.toFixed(2)} (${convertirCualitativo(ct2)})`,
-                ct3: `${ct3.toFixed(2)} (${convertirCualitativo(ct3)})`,
-                compAnual: `${promCompAnual.toFixed(2)} (${letraCompAnual})`,
-                estado: estadoTexto
-              });
-
-              return `
-                <tr>
-                  <td class="sticky-col-num fw-bold text-muted">${idx + 1}</td>
-                  <td class="sticky-col-nombre" title="${est.nombres}">${est.nombres}</td>
-                  <td class="${obtenerClaseColor(t1, false)}">${t1.toFixed(2)}</td>
-                  <td class="${obtenerClaseColor(t2, false)}">${t2.toFixed(2)}</td>
-                  <td class="${obtenerClaseColor(t3, false)}">${t3.toFixed(2)}</td>
-                  <td class="${obtenerClaseColor(promAnual, true)}">${promAnual.toFixed(2)}</td>
-                  <td>${ct1.toFixed(2)} (${convertirCualitativo(ct1)})</td>
-                  <td>${ct2.toFixed(2)} (${convertirCualitativo(ct2)})</td>
-                  <td>${ct3.toFixed(2)} (${convertirCualitativo(ct3)})</td>
-                  <td class="fw-bold">${promCompAnual.toFixed(2)} (${letraCompAnual})</td>
-                  <td>${obsBadge}</td>
-                </tr>
-              `;
-            }).join('')}
-          </tbody>
-        </table>
-      `;
-      contenedor.innerHTML = html;
-    }
-
-    async function exportarResumenAnualPDF() {
-      if (!datosResumenAnualActual || datosResumenAnualActual.length === 0) {
-        alert('No hay calificaciones cargadas para exportar.');
-        return;
-      }
-
-      const asigId = document.getElementById('selectMateria').value;
-      const asig = todasAsignaciones.find(a => a.id == asigId);
-      if (!asig) return alert('Seleccione una materia.');
-
-      const btn = document.getElementById('btnDescargarPDF');
-      btn.disabled = true;
-      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Generando PDF...';
-
-      try {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-
-        const nomArriba = (infoInstitucion?.nombre_arriba || 'Unidad Educativa Particular').toUpperCase();
-        const nomAbajo = (infoInstitucion?.nombre_abajo || '"Vicente Rocafuerte"').toUpperCase();
-        const periodo = infoInstitucion?.periodo_lectivo || '2026-2027';
-        const amie = infoInstitucion?.amie || '13H03021';
-        const distrito = infoInstitucion?.distrito || '13D08';
-        const circuito = infoInstitucion?.circuito || '13D08C0_b';
-        const dir1 = infoInstitucion?.direccion_1 || 'Pichincha - Manabí - Ecuador';
-        const frase1 = infoInstitucion?.frase_1 ? `"${infoInstitucion.frase_1}"` : '';
-
-        const cursoEncontrado = (todosCursos && todosCursos.length > 0) ? todosCursos.find(c => c.id === asig.curso_id) : asig.cursos;
-        const nombreCursoLargo = (cursoEncontrado?.nombre_largo_mayuscula || cursoEncontrado?.nombre || asig.cursos?.nombre || '').toUpperCase();
-        const nombreMateria = (asig.materias?.nombre || '').toUpperCase();
-
-        const nombreDocenteActual = usuarioActualPerfil 
-          ? `${usuarioActualPerfil.titulo ? usuarioActualPerfil.titulo + ' ' : ''}${usuarioActualPerfil.nombres} ${usuarioActualPerfil.apellidos || ''}`.trim().toUpperCase()
-          : 'DOCENTE RESPONSABLE';
-        
-        const nombreSecretaria = 'C.P.A. MERCEDES A. SALAMEA M.';
-        const nombreRector = 'ING. DÍDIMO A. SALTOS S.';
-
-        const imgLogoIzq = await obtenerBase64DesdeUrl(infoInstitucion?.logo_izquierdo || infoInstitucion?.logo_institucion);
-        const imgLogoDer = await obtenerBase64DesdeUrl(infoInstitucion?.logo_derecho || infoInstitucion?.escudo_nacional);
-
-        const headers = [
-          [
-            { content: 'N°', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } },
-            { content: 'NÓMINA DE ESTUDIANTES', rowSpan: 2, styles: { valign: 'middle', halign: 'left' } },
-            { content: 'CALIFICACIONES ACADÉMICAS', colSpan: 3, styles: { halign: 'center' } },
-            { content: 'PROM. ANUAL', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } },
-            { content: 'EVALUACIÓN DEL COMPORTAMIENTO', colSpan: 3, styles: { halign: 'center' } },
-            { content: 'COMP. ANUAL', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } },
-            { content: 'ESTADO', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } }
-          ],
-          ['1er Trim.', '2do Trim.', '3er Trim.', '1er T.', '2do T.', '3er T.']
-        ];
-
-        const bodyData = datosResumenAnualActual.map(d => [d.num, d.nombres, d.t1, d.t2, d.t3, d.promAnual, d.ct1, d.ct2, d.ct3, d.compAnual, d.estado]);
-
-        doc.autoTable({
-          head: headers,
-          body: bodyData,
-          margin: { top: 48, bottom: 32, left: 12, right: 12 },
-          theme: 'grid',
-          styles: { fontSize: 7.5, cellPadding: 1.5, lineColor: [200, 200, 200], lineWidth: 0.1, valign: 'middle' },
-          headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255], fontStyle: 'bold' },
-          columnStyles: {
-            0: { cellWidth: 10, halign: 'center' },
-            1: { cellWidth: 68, halign: 'left' },
-            2: { cellWidth: 17, halign: 'center' },
-            3: { cellWidth: 17, halign: 'center' },
-            4: { cellWidth: 17, halign: 'center' },
-            5: { cellWidth: 22, halign: 'center', fontStyle: 'bold', fillColor: [241, 245, 249] },
-            6: { cellWidth: 24, halign: 'center' },
-            7: { cellWidth: 24, halign: 'center' },
-            8: { cellWidth: 24, halign: 'center' },
-            9: { cellWidth: 24, halign: 'center', fontStyle: 'bold' },
-            10: { cellWidth: 26, halign: 'center', fontStyle: 'bold' }
-          },
-          didDrawPage: function () {
-            const pageNumber = doc.internal.getNumberOfPages();
-            if (imgLogoIzq) { try { doc.addImage(imgLogoIzq, 'PNG', 12, 7, 22, 22); } catch(e){} }
-            if (imgLogoDer) { try { doc.addImage(imgLogoDer, 'PNG', 263, 7, 22, 22); } catch(e){} }
-
-            doc.setFont('helvetica', 'bold');
-            doc.setFontSize(11);
-            doc.setTextColor(30, 41, 59);
-            doc.text(nomArriba, 148.5, 11, { align: 'center' });
-
-            doc.setFontSize(13);
-            doc.text(nomAbajo, 148.5, 16, { align: 'center' });
-
-            doc.setFontSize(9.5);
-            doc.text('CUADRO CONSOLIDADO GENERAL DE CALIFICACIONES ANUALES', 148.5, 21, { align: 'center' });
-
-            doc.setFont('helvetica', 'normal');
-            doc.setFontSize(7.5);
-            doc.setTextColor(71, 85, 105);
-            doc.text(`AMIE: ${amie} | DISTRITO: ${distrito} | CIRCUITO: ${circuito} | ${dir1} | AÑO LECTIVO: ${periodo}`, 148.5, 25.5, { align: 'center' });
-            if (frase1) {
-              doc.setFont('helvetica', 'italic');
-              doc.text(frase1, 148.5, 29, { align: 'center' });
-            }
-
-            doc.setFont('helvetica', 'bold');
-            doc.setFontSize(8);
-            doc.setTextColor(15, 23, 42);
-            doc.setDrawColor(203, 213, 225);
-            doc.setLineWidth(0.3);
-            doc.line(12, 33, 285, 33);
-            doc.text(`CURSO: ${nombreCursoLargo}`, 12, 38);
-            doc.text(`ASIGNATURA: ${nombreMateria}`, 12, 43);
-            doc.text(`DOCENTE: ${nombreDocenteActual}`, 180, 43);
-            doc.line(12, 45, 285, 45);
-
-            const footerY = 188;
-            doc.setFont('helvetica', 'normal');
-            doc.setFontSize(7.5);
-            doc.setTextColor(30, 41, 59);
-            doc.setLineWidth(0.2);
-            doc.line(25, footerY, 85, footerY);
-            doc.line(118, footerY, 178, footerY);
-            doc.line(212, footerY, 272, footerY);
-
-            doc.setFont('helvetica', 'bold');
-            doc.text('DOCENTE RESPONSABLE', 55, footerY + 4, { align: 'center' });
-            doc.setFont('helvetica', 'normal');
-            doc.text(nombreDocenteActual, 55, footerY + 8, { align: 'center' });
-
-            doc.setFont('helvetica', 'bold');
-            doc.text('SECRETARIO/A GENERAL', 148.5, footerY + 4, { align: 'center' });
-            doc.setFont('helvetica', 'normal');
-            doc.text(nombreSecretaria, 148.5, footerY + 8, { align: 'center' });
-
-            doc.setFont('helvetica', 'bold');
-            doc.text('RECTOR / DIRECTOR', 242, footerY + 4, { align: 'center' });
-            doc.setFont('helvetica', 'normal');
-            doc.text(nombreRector, 242, footerY + 8, { align: 'center' });
-
-            doc.setFontSize(7);
-            doc.setTextColor(148, 163, 184);
-            doc.text(`Página ${pageNumber}`, 285, 202, { align: 'right' });
-          }
-        });
-
-        doc.save(`Sabana_Anual_${nombreCursoLargo.replace(/\s+/g, '_')}_${nombreMateria.replace(/\s+/g, '_')}.pdf`);
-      } catch (err) {
-        alert('Error al exportar PDF: ' + err.message);
-      } finally {
-        btn.disabled = false;
-        btn.innerHTML = '📄 Descargar PDF';
-      }
     }
 
     async function guardarDatos() {
@@ -2300,6 +1808,15 @@
     }
 
     document.addEventListener('DOMContentLoaded', verificarSesion);
+    window.addEventListener('resize', () => {
+      // Reajustar formato de nombres si el usuario rota o redimensiona la pantalla
+      document.querySelectorAll('#tablaCuerpo tr, #tablaCuerpoAsistencia tr').forEach(tr => {
+        const celda = tr.querySelector('.sticky-col-nombre');
+        if (celda && celda.getAttribute('title')) {
+          celda.innerText = formatearNombreVisual(celda.getAttribute('title'));
+        }
+      });
+    });
   </script>
 </body>
 </html>
