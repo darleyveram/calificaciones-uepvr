@@ -1390,6 +1390,187 @@
       }
     }
 
+    async function exportarComportamientoPDF() {
+      const asigId = document.getElementById('selectMateria').value.trim();
+      const asig = todasAsignaciones.find(a => String(a.id) === String(asigId));
+      if (!asig) return alert('Seleccione una materia.');
+
+      const btn = document.getElementById('btnDescargarCompPDF');
+      const originalHtml = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+
+      try {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+
+        const nomArriba = (infoInstitucion?.nombre_arriba || 'Unidad Educativa Particular').toUpperCase();
+        const nomAbajo = (infoInstitucion?.nombre_abajo || '"Vicente Rocafuerte"').toUpperCase();
+        const periodo = infoInstitucion?.periodo_lectivo || '2026-2027';
+        const amie = infoInstitucion?.amie || '13H03021';
+        const distrito = infoInstitucion?.distrito || '13D08';
+        const circuito = infoInstitucion?.circuito || '13D08C0_b';
+        const dir1 = infoInstitucion?.direccion_1 || 'Pichincha - Manabí - Ecuador';
+        const frase1 = infoInstitucion?.frase_1 ? `"${infoInstitucion.frase_1}"` : '';
+
+        const cursoEncontrado = (todosCursos && todosCursos.length > 0) ? todosCursos.find(c => c.id === asig.curso_id) : asig.cursos;
+        const nombreCursoLargo = (cursoEncontrado?.nombre_largo_mayuscula || cursoEncontrado?.nombre || asig.cursos?.nombre || '').toUpperCase();
+        const nombreMateria = (asig.materias?.nombre || '').toUpperCase();
+
+        const selectVista = document.getElementById('selectVista');
+        const nombreParcial = selectVista.options[selectVista.selectedIndex].text.toUpperCase();
+        const trimestreVal = document.getElementById('selectTrimestre').value;
+
+        // CONSULTAR DOCENTE TITULAR DE LA MATERIA DESDE LA BD
+        let nombreDocenteMateria = 'DOCENTE RESPONSABLE';
+        if (asig.docente_id) {
+          try {
+            const { data: prof } = await supabaseClient.from('perfiles').select('titulo, nombres, apellidos').eq('id', asig.docente_id).maybeSingle();
+            if (prof) {
+               nombreDocenteMateria = `${prof.titulo ? prof.titulo + ' ' : ''}${prof.nombres} ${prof.apellidos || ''}`.trim().toUpperCase();
+            }
+          } catch(e) {}
+        }
+
+        const nombreSecretaria = 'C.P.A. MERCEDES A. SALAMEA M.';
+        const nombreRector = 'ING. DÍDIMO A. SALTOS S.';
+
+        const imgLogoIzq = await obtenerBase64DesdeUrl(infoInstitucion?.logo_izquierdo || infoInstitucion?.logo_institucion);
+        const imgLogoDer = await obtenerBase64DesdeUrl(infoInstitucion?.logo_derecho || infoInstitucion?.escudo_nacional);
+
+        // CONFIGURACIÓN DE MARCA DE AGUA
+        const usuarioDescarga = usuarioActualPerfil ? `${usuarioActualPerfil.nombres} ${usuarioActualPerfil.apellidos || ''}`.trim().toUpperCase() : 'USUARIO DESCONOCIDO';
+        const fechaActual = new Date().toLocaleString('es-EC');
+
+        // EXTRACCIÓN DE DATOS DE LA TABLA COMPORTAMIENTO
+        const bodyData = [];
+        document.querySelectorAll('#tablaCuerpoComp tr').forEach(tr => {
+            const num = tr.querySelector('.sticky-col-num').innerText;
+            const nom = tr.querySelector('.sticky-col-nombre').getAttribute('title') || tr.querySelector('.sticky-col-nombre').innerText;
+            const i1 = tr.querySelector('.c-ind1').value;
+            const i2 = tr.querySelector('.c-ind2').value;
+            const i3 = tr.querySelector('.c-ind3').value;
+            const i4 = tr.querySelector('.c-ind4').value;
+            const i5 = tr.querySelector('.c-ind5').value;
+            const i6 = tr.querySelector('.c-ind6').value;
+            const i7 = tr.querySelector('.c-ind7').value;
+            const i8 = tr.querySelector('.c-ind8').value;
+            const i9 = tr.querySelector('.c-ind9').value;
+            const i10 = tr.querySelector('.c-ind10').value;
+            const tc = tr.querySelector('.total-cuant').innerText;
+            const tcl = tr.querySelector('.total-cualit').innerText;
+            bodyData.push([num, nom, i1, i2, i3, i4, i5, i6, i7, i8, i9, i10, tc, tcl]);
+        });
+
+        const headers = [
+          [
+            { content: 'N°', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } },
+            { content: 'NÓMINA DE ESTUDIANTES', rowSpan: 2, styles: { valign: 'middle', halign: 'left' } },
+            { content: 'Punt.', colSpan: 1, styles: { halign: 'center' } },
+            { content: 'Limpieza', colSpan: 3, styles: { halign: 'center' } },
+            { content: 'Respeto y Consideración', colSpan: 2, styles: { halign: 'center' } },
+            { content: 'Valoración Div.', colSpan: 2, styles: { halign: 'center' } },
+            { content: 'Patri.', colSpan: 1, styles: { halign: 'center' } },
+            { content: 'Propi.', colSpan: 1, styles: { halign: 'center' } },
+            { content: 'TOTAL\nCUANT.', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } },
+            { content: 'TOTAL\nCUALIT.', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } }
+          ],
+          ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']
+        ];
+
+        doc.autoTable({
+          head: headers,
+          body: bodyData,
+          margin: { top: 48, bottom: 32, left: 12, right: 12 },
+          theme: 'grid',
+          styles: { fontSize: 7.2, cellPadding: 1.5, lineColor: [200, 200, 200], lineWidth: 0.1, valign: 'middle' },
+          headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255], fontStyle: 'bold' },
+          columnStyles: {
+            0: { cellWidth: 10, halign: 'center' },
+            1: { cellWidth: 65, halign: 'left' },
+            2: { cellWidth: 12, halign: 'center' },
+            3: { cellWidth: 12, halign: 'center' },
+            4: { cellWidth: 12, halign: 'center' },
+            5: { cellWidth: 12, halign: 'center' },
+            6: { cellWidth: 12, halign: 'center' },
+            7: { cellWidth: 12, halign: 'center' },
+            8: { cellWidth: 12, halign: 'center' },
+            9: { cellWidth: 12, halign: 'center' },
+            10: { cellWidth: 12, halign: 'center' },
+            11: { cellWidth: 12, halign: 'center' },
+            12: { cellWidth: 18, halign: 'center', fontStyle: 'bold', fillColor: [241, 245, 249] },
+            13: { cellWidth: 18, halign: 'center', fontStyle: 'bold', fillColor: [220, 252, 231], textColor: [21, 128, 61] } 
+          },
+          didDrawPage: function (data) {
+            const pageNumber = doc.internal.getNumberOfPages();
+            
+            // DIBUJAR MARCA DE AGUA
+            doc.saveGraphicsState();
+            doc.setTextColor(225, 230, 235); // Gris muy claro para no estorbar
+            doc.setFontSize(30);
+            doc.setFont('helvetica', 'bold');
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const pageHeight = doc.internal.pageSize.getHeight();
+            // Texto en diagonal en el centro de la página
+            doc.text(`DESCARGADO POR: ${usuarioDescarga}`, pageWidth / 2, pageHeight / 2 - 10, { align: 'center', angle: 35 });
+            doc.text(`EL: ${fechaActual}`, pageWidth / 2, pageHeight / 2 + 10, { align: 'center', angle: 35 });
+            doc.restoreGraphicsState();
+
+            // HEADER
+            if (imgLogoIzq) { try { doc.addImage(imgLogoIzq, 'PNG', 12, 7, 22, 22); } catch(e){} }
+            if (imgLogoDer) { try { doc.addImage(imgLogoDer, 'PNG', 263, 7, 22, 22); } catch(e){} }
+
+            doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(30, 41, 59); 
+            doc.text(nomArriba, 148.5, 11, { align: 'center' });
+            doc.setFontSize(13); doc.text(nomAbajo, 148.5, 16, { align: 'center' });
+            
+            doc.setFontSize(9.5); 
+            doc.text(`REPORTE DE EVALUACIÓN DEL COMPORTAMIENTO - TRIMESTRE ${trimestreVal} - ${nombreParcial}`, 148.5, 21, { align: 'center' });
+
+            doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(71, 85, 105); 
+            doc.text(`AMIE: ${amie} | DISTRITO: ${distrito} | CIRCUITO: ${circuito} | ${dir1} | AÑO LECTIVO: ${periodo}`, 148.5, 25.5, { align: 'center' });
+            if (frase1) { doc.setFont('helvetica', 'italic'); doc.text(frase1, 148.5, 29, { align: 'center' }); }
+
+            doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(15, 23, 42); doc.setDrawColor(203, 213, 225); doc.setLineWidth(0.3); doc.line(12, 33, 285, 33);
+            doc.text(`CURSO: ${nombreCursoLargo}`, 12, 38); 
+            doc.text(`ASIGNATURA: ${nombreMateria}`, 12, 43); 
+            doc.text(`DOCENTE RESPONSABLE: ${nombreDocenteMateria}`, 180, 43); 
+            doc.line(12, 45, 285, 45);
+
+            // FOOTER CON FIRMAS Y CARGOS DEBAJO
+            const footerY = 188; 
+            doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(30, 41, 59); doc.setLineWidth(0.2); 
+            doc.line(25, footerY, 85, footerY); doc.line(118, footerY, 178, footerY); doc.line(212, footerY, 272, footerY);
+
+            doc.setFont('helvetica', 'bold');
+            doc.text(nombreDocenteMateria, 55, footerY + 4, { align: 'center' });
+            doc.setFont('helvetica', 'normal');
+            doc.text('DOCENTE RESPONSABLE', 55, footerY + 7.5, { align: 'center' });
+
+            doc.setFont('helvetica', 'bold');
+            doc.text(nombreSecretaria, 148.5, footerY + 4, { align: 'center' });
+            doc.setFont('helvetica', 'normal');
+            doc.text('SECRETARIO/A GENERAL', 148.5, footerY + 7.5, { align: 'center' });
+
+            doc.setFont('helvetica', 'bold');
+            doc.text(nombreRector, 242, footerY + 4, { align: 'center' });
+            doc.setFont('helvetica', 'normal');
+            doc.text('RECTOR / DIRECTOR', 242, footerY + 7.5, { align: 'center' });
+
+            doc.setFontSize(7); doc.setTextColor(148, 163, 184); 
+            doc.text(`Página ${pageNumber}`, 285, 202, { align: 'right' });
+          }
+        });
+
+        doc.save(`Comportamiento_${nombreCursoLargo.replace(/\s+/g, '_')}_${nombreMateria.replace(/\s+/g, '_')}.pdf`);
+      } catch (err) {
+        alert('Error al exportar PDF: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalHtml;
+      }
+    }
+
     async function exportarResumenAnualPDF() {
       if (!datosResumenAnualActual || datosResumenAnualActual.length === 0) return alert('No hay calificaciones cargadas para exportar.');
       const asigId = document.getElementById('selectMateria').value;
