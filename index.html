@@ -14,104 +14,43 @@
   
   <style>
     th, td { font-size: 0.76rem; vertical-align: middle; text-align: center; }
-    
-    .sticky-col-num {
-      position: sticky;
-      left: 0;
-      background-color: #f8fafc !important;
-      color: #212529 !important;
-      z-index: 10;
-      width: 32px;
-      min-width: 32px;
-    }
-    .sticky-col-nombre {
-      position: sticky;
-      left: 32px;
-      background-color: #ffffff !important;
-      color: #212529 !important;
-      z-index: 10;
-      min-width: 220px;
-      max-width: 260px;
-      text-align: left !important;
-      font-weight: 600;
-      box-shadow: 2px 0 5px rgba(0,0,0,0.08);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    thead th.sticky-col-num, thead th.sticky-col-nombre {
-      z-index: 15;
-      background-color: #e2e8f0 !important;
-      color: #0f172a !important;
-      font-weight: bold;
-    }
-
+    .sticky-col-num { position: sticky; left: 0; background-color: #f8fafc !important; color: #212529 !important; z-index: 10; width: 32px; min-width: 32px; }
+    .sticky-col-nombre { position: sticky; left: 32px; background-color: #ffffff !important; color: #212529 !important; z-index: 10; min-width: 220px; max-width: 260px; text-align: left !important; font-weight: 600; box-shadow: 2px 0 5px rgba(0,0,0,0.08); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    thead th.sticky-col-num, thead th.sticky-col-nombre { z-index: 15; background-color: #e2e8f0 !important; color: #0f172a !important; font-weight: bold; }
     @media (max-width: 768px) {
-      .sticky-col-num {
-        width: 24px;
-        min-width: 24px;
-        font-size: 0.68rem;
-        padding-left: 1px !important;
-        padding-right: 1px !important;
-      }
-      .sticky-col-nombre {
-        left: 24px;
-        min-width: 105px !important;
-        max-width: 115px !important;
-        font-size: 0.68rem;
-        padding-left: 3px !important;
-        padding-right: 3px !important;
-      }
+      .sticky-col-num { width: 24px; min-width: 24px; font-size: 0.68rem; padding-left: 1px !important; padding-right: 1px !important; }
+      .sticky-col-nombre { left: 24px; min-width: 105px !important; max-width: 115px !important; font-size: 0.68rem; padding-left: 3px !important; padding-right: 3px !important; }
       .logo-header { height: 36px !important; }
       .header-nombre-inst { font-size: 0.95rem !important; }
     }
-    
     .th-actividad { width: 98px; min-width: 98px; padding: 4px 2px !important; background-color: #f8fafc; }
     .th-comp-ind { width: 60px; min-width: 60px; font-size: 0.68rem; padding: 4px 1px !important; line-height: 1.1; }
-    
     .select-act-custom { font-size: 0.68rem; width: 100%; border: 1px solid #cbd5e1; border-radius: 4px; padding: 2px; background-color: #fff; font-weight: 500; }
-    .btn-act-header { font-size: 0.65rem; padding: 1px 4px; line-height: 1.2; font-weight: bold; border-radius: 3px; }
-    .btn-del-col { border: 1px solid #fca5a5; background: #fee2e2; color: #dc2626; font-size: 0.65rem; font-weight: bold; padding: 1px 4px; line-height: 1.2; border-radius: 3px; cursor: pointer; }
+    .btn-act-header { font-size: 0.60rem; padding: 1px 3px; line-height: 1.1; font-weight: bold; border-radius: 3px; }
+    .btn-del-col { border: 1px solid #fca5a5; background: #fee2e2; color: #dc2626; font-size: 0.65rem; font-weight: bold; padding: 1px 4px; line-height: 1.1; border-radius: 3px; cursor: pointer; }
     .btn-del-col:hover { background: #dc2626; color: #ffffff; }
-
     .input-nota-app { width: 55px; margin: 0 auto; text-align: center; font-weight: bold; padding: 2px; }
-
     .nota-baja-roja { background-color: #f8d7da !important; color: #842029 !important; font-weight: bold; }
     .nota-media-amarilla { background-color: #fff3cd !important; color: #664d03 !important; font-weight: bold; }
     .nota-aprobada-verde { background-color: #d1e7dd !important; color: #0f5132 !important; font-weight: bold; }
     .nota-perfecta-10 { background-color: #198754 !important; color: #ffffff !important; font-weight: bold; }
-
     .th-dia-asig { width: 34px; min-width: 34px; padding: 2px 1px !important; font-size: 0.65rem; }
     .btn-dia-auto { font-size: 0.58rem; padding: 0 2px; line-height: 1.1; font-weight: bold; }
-    .cell-asig-input { 
-      width: 28px; 
-      height: 26px; 
-      text-align: center; 
-      font-weight: bold; 
-      border-radius: 3px; 
-      border: 1px solid #cbd5e1; 
-      margin: 0 auto; 
-      text-transform: uppercase; 
-      cursor: pointer;
-      user-select: none;
-    }
+    .cell-asig-input { width: 28px; height: 26px; text-align: center; font-weight: bold; border-radius: 3px; border: 1px solid #cbd5e1; margin: 0 auto; text-transform: uppercase; cursor: pointer; user-select: none; }
     .asig-a { background-color: #e8f5e9 !important; color: #2e7d32 !important; border-color: #a5d6a7 !important; }
     .asig-f { background-color: #ffebee !important; color: #c62828 !important; border-color: #ef9a9a !important; }
     .asig-j { background-color: #e3f2fd !important; color: #1565c0 !important; border-color: #90caf9 !important; }
-
     .bg-insumo1 { background-color: #0d6efd !important; color: #fff; }
     .bg-insumo2 { background-color: #0dcaf0 !important; color: #000; }
     .bg-prom-ins { background-color: #ffeb3b !important; font-weight: bold; color: #000; }
     .bg-nota-final { background-color: #198754 !important; color: #fff; font-weight: bold; }
     .bg-examen { background-color: #fd7e14 !important; color: #fff; font-weight: bold; }
-    
     .logo-header { height: 48px; width: auto; object-fit: contain; }
     .logo-login { height: 75px; width: auto; object-fit: contain; }
   </style>
 </head>
 <body class="bg-light py-2">
 
-  <!-- LOGIN -->
   <div class="container" id="seccionLogin" style="max-width: 440px; margin-top: 50px;">
     <div class="card shadow border-0">
       <div class="card-header bg-primary text-white text-center py-3">
@@ -142,13 +81,10 @@
     </div>
   </div>
 
-  <!-- APLICATIVO PRINCIPAL -->
   <div class="container-fluid px-2 px-md-3 d-none" id="seccionApp">
-    
     <div class="card shadow-sm mb-2 border-0">
       <div class="card-body py-2 px-2 px-md-3">
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
-          
           <div class="d-flex align-items-center gap-2">
             <img id="appLogoIzq" class="logo-header d-none" alt="Logo Izquierdo">
             <div>
@@ -160,19 +96,16 @@
               </div>
             </div>
           </div>
-
           <div class="d-flex align-items-center gap-2 ms-auto">
             <img id="appLogoDer" class="logo-header d-none d-sm-block" alt="Logo Derecho">
             <button class="btn btn-outline-danger btn-sm px-2 py-1" onclick="cerrarSesion()" style="font-size: 0.75rem;">
               <i class="bi bi-box-arrow-right me-1"></i><span class="d-none d-sm-inline">Cerrar Sesión</span><span class="d-inline d-sm-none">Salir</span>
             </button>
           </div>
-
         </div>
       </div>
     </div>
 
-    <!-- Barra de Filtros -->
     <div class="card shadow-sm mb-3">
       <div class="card-body py-2 px-2 px-md-3">
         <div class="row g-2 align-items-center">
@@ -238,7 +171,6 @@
             </select>
           </div>
 
-          <!-- Botones Calificaciones -->
           <div class="col-12 col-md-3 text-end pt-2 pt-md-3" id="accionesParcial">
             <button class="btn btn-outline-primary btn-sm me-1 btn-control" onclick="agregarActividad(1)" disabled title="Añadir columna a Insumo 1">+ Ins. 1</button>
             <button class="btn btn-outline-info btn-sm me-1 text-dark btn-control" onclick="agregarActividad(2)" disabled title="Añadir columna a Insumo 2">+ Ins. 2</button>
@@ -279,7 +211,6 @@
       </div>
     </div>
 
-    <!-- Contenedor de Tablas -->
     <div class="card shadow-sm">
       <div class="card-body p-0">
         <div class="table-responsive" id="contenedorTabla" style="max-height: 75vh; overflow-y: auto;">
@@ -287,7 +218,6 @@
         </div>
       </div>
     </div>
-
   </div>
 
   <script>
@@ -310,16 +240,12 @@
     let datosConsolidadoTutoria = [];
     let currentViewRequestId = 0;
 
-    // ==========================================
-    // FUNCIONES AUXILIARES GLOBALES
-    // ==========================================
     function generarDiasHabilesRango(fInicioStr, fFinStr) {
       const dias = [];
       const nombresDias = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
       const nombresMeses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
       let cur = new Date(fInicioStr + 'T00:00:00');
       const fin = new Date(fFinStr + 'T00:00:00');
-
       while (cur <= fin) {
         const day = cur.getDay();
         if (day !== 0 && day !== 6) {
@@ -404,17 +330,10 @@
         document.querySelectorAll('.header-lema-inst').forEach(el => el.innerText = data.frase_1 || 'Educación de calidad para la vida');
         document.querySelectorAll('.header-dir-inst').forEach(el => el.innerText = data.direccion_1 || 'Pichincha - Manabí - Ecuador');
         document.querySelectorAll('.header-periodo-badge').forEach(el => el.innerText = data.periodo_lectivo || '2026-2027');
-
         const logoIzq = data.logo_izquierdo || data.logo_institucion;
         const logoDer = data.logo_derecho || data.escudo_nacional;
-        if (logoIzq) {
-          const l1 = document.getElementById('loginLogoIzq'); if (l1) { l1.src = logoIzq; l1.classList.remove('d-none'); }
-          const a1 = document.getElementById('appLogoIzq'); if (a1) { a1.src = logoIzq; a1.classList.remove('d-none'); }
-        }
-        if (logoDer) {
-          const l2 = document.getElementById('loginLogoDer'); if (l2) { l2.src = logoDer; l2.classList.remove('d-none'); }
-          const a2 = document.getElementById('appLogoDer'); if (a2) { a2.src = logoDer; a2.classList.remove('d-none'); }
-        }
+        if (logoIzq) { const l1 = document.getElementById('loginLogoIzq'); if (l1) { l1.src = logoIzq; l1.classList.remove('d-none'); } const a1 = document.getElementById('appLogoIzq'); if (a1) { a1.src = logoIzq; a1.classList.remove('d-none'); } }
+        if (logoDer) { const l2 = document.getElementById('loginLogoDer'); if (l2) { l2.src = logoDer; l2.classList.remove('d-none'); } const a2 = document.getElementById('appLogoDer'); if (a2) { a2.src = logoDer; a2.classList.remove('d-none'); } }
       }
     }
 
@@ -434,26 +353,18 @@
       if (session) {
         const { data: perfil } = await supabaseClient.from('perfiles').select('*').eq('id', session.user.id).maybeSingle();
         usuarioActualPerfil = perfil;
-
-        const nombreDocente = perfil 
-          ? `${perfil.titulo ? perfil.titulo + ' ' : ''}${perfil.nombres} ${perfil.apellidos || ''}`.trim() 
-          : session.user.email;
-
+        const nombreDocente = perfil ? `${perfil.titulo ? perfil.titulo + ' ' : ''}${perfil.nombres} ${perfil.apellidos || ''}`.trim() : session.user.email;
         document.getElementById('seccionLogin').classList.add('d-none');
         document.getElementById('seccionApp').classList.remove('d-none');
         document.getElementById('usuarioConectado').innerText = `Docente: ${nombreDocente}`;
-        
         const { data: cursosT } = await supabaseClient.from('cursos').select('*').eq('tutor_id', session.user.id);
         cursosTutor = cursosT || [];
-
         const esAdmin = perfil?.rol === 'admin';
         const esTutor = cursosTutor.length > 0;
         const puedeVerAsistencia = (esAdmin || perfil?.puede_gestionar_asistencia === true);
-
         if (esTutor) document.getElementById('badgeTutorInfo').classList.remove('d-none');
         if (puedeVerAsistencia) document.getElementById('optModoAsistencia').classList.remove('d-none');
         if (esAdmin || esTutor) document.getElementById('optModoTutoria').classList.remove('d-none');
-
         await cargarCatalogo();
         await cargarPeriodosAsistenciaDB();
         await cargarCursosYMaterias(session.user.id, perfil?.rol, perfil?.puede_gestionar_asistencia);
@@ -495,20 +406,10 @@
     async function cargarCursosYMaterias(userId, userRol, puedeAsistencia) {
       const { data: cData } = await supabaseClient.from('cursos').select('id, nombre, nombre_largo_mayuscula').order('id');
       todosCursos = cData || [];
-
-      let query = supabaseClient.from('curso_materia_docente').select(`
-        id, curso_id, materia_id, docente_id, docente_id_2, docente_id_3, es_optativa,
-        cursos(id, nombre, nombre_largo_mayuscula),
-        materias(id, nombre)
-      `);
-
-      if (userRol !== 'admin') {
-        query = query.or(`docente_id.eq.${userId},docente_id_2.eq.${userId},docente_id_3.eq.${userId}`);
-      }
-
+      let query = supabaseClient.from('curso_materia_docente').select(`id, curso_id, materia_id, docente_id, docente_id_2, docente_id_3, es_optativa, cursos(id, nombre, nombre_largo_mayuscula), materias(id, nombre)`);
+      if (userRol !== 'admin') { query = query.or(`docente_id.eq.${userId},docente_id_2.eq.${userId},docente_id_3.eq.${userId}`); }
       const { data } = await query;
       todasAsignaciones = data || [];
-
       alCambiarModo();
     }
 
@@ -520,7 +421,6 @@
       const boxParcialTut = document.getElementById('boxParcialTutoria');
       const optAnual = document.getElementById('optTrimAnual');
       const selectCurso = document.getElementById('selectCurso');
-
       const esAdmin = usuarioActualPerfil?.rol === 'admin';
       const puedeVerAsistencia = (esAdmin || usuarioActualPerfil?.puede_gestionar_asistencia === true);
       const cursoSeleccionadoPrevio = selectCurso.value;
@@ -532,17 +432,10 @@
         boxParcialTut.classList.remove('d-none');
         optAnual.classList.add('d-none');
         if (document.getElementById('selectTrimestre').value === 'anual') document.getElementById('selectTrimestre').value = '1';
-
         const cursosDisponibles = esAdmin ? todosCursos : cursosTutor;
-        selectCurso.innerHTML = '<option value="">Seleccione curso...</option>' + 
-          cursosDisponibles.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
-
-        if (cursoSeleccionadoPrevio && cursosDisponibles.some(c => String(c.id) === String(cursoSeleccionadoPrevio))) {
-          selectCurso.value = cursoSeleccionadoPrevio;
-        } else if (cursosDisponibles.length > 0) {
-          selectCurso.value = cursosDisponibles[0].id;
-        }
-
+        selectCurso.innerHTML = '<option value="">Seleccione curso...</option>' + cursosDisponibles.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
+        if (cursoSeleccionadoPrevio && cursosDisponibles.some(c => String(c.id) === String(cursoSeleccionadoPrevio))) { selectCurso.value = cursoSeleccionadoPrevio; } 
+        else if (cursosDisponibles.length > 0) { selectCurso.value = cursosDisponibles[0].id; }
       } else if (modo === 'asistencia') {
         boxMateria.classList.add('d-none');
         boxVista.classList.add('d-none');
@@ -550,42 +443,23 @@
         boxParcialTut.classList.add('d-none');
         optAnual.classList.add('d-none');
         if (document.getElementById('selectTrimestre').value === 'anual') document.getElementById('selectTrimestre').value = '1';
-
-        const cursosDisponibles = puedeVerAsistencia 
-          ? todosCursos 
-          : Array.from(new Map(todasAsignaciones.map(a => [a.cursos.id, a.cursos])).values());
-
-        selectCurso.innerHTML = '<option value="">Seleccione curso...</option>' + 
-          cursosDisponibles.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
-
-        if (cursoSeleccionadoPrevio && cursosDisponibles.some(c => String(c.id) === String(cursoSeleccionadoPrevio))) {
-          selectCurso.value = cursoSeleccionadoPrevio;
-        } else if (cursosDisponibles.length > 0) {
-          selectCurso.value = cursosDisponibles[0].id;
-        }
-
+        const cursosDisponibles = puedeVerAsistencia ? todosCursos : Array.from(new Map(todasAsignaciones.map(a => [a.cursos.id, a.cursos])).values());
+        selectCurso.innerHTML = '<option value="">Seleccione curso...</option>' + cursosDisponibles.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
+        if (cursoSeleccionadoPrevio && cursosDisponibles.some(c => String(c.id) === String(cursoSeleccionadoPrevio))) { selectCurso.value = cursoSeleccionadoPrevio; } 
+        else if (cursosDisponibles.length > 0) { selectCurso.value = cursosDisponibles[0].id; }
       } else {
         boxMateria.classList.remove('d-none');
         boxVista.classList.remove('d-none');
         boxParcialAsist.classList.add('d-none');
         boxParcialTut.classList.add('d-none');
         optAnual.classList.remove('d-none');
-
         const cursosMap = new Map();
         todasAsignaciones.forEach(a => { if (a.cursos) cursosMap.set(String(a.cursos.id), a.cursos.nombre); });
-
         selectCurso.innerHTML = '<option value="">Seleccione curso...</option>';
-        cursosMap.forEach((nombre, id) => {
-          selectCurso.innerHTML += `<option value="${id}">${nombre}</option>`;
-        });
-
-        if (cursoSeleccionadoPrevio && cursosMap.has(String(cursoSeleccionadoPrevio))) {
-          selectCurso.value = cursoSeleccionadoPrevio;
-        } else if (cursosMap.size > 0) {
-          selectCurso.value = Array.from(cursosMap.keys())[0];
-        }
+        cursosMap.forEach((nombre, id) => { selectCurso.innerHTML += `<option value="${id}">${nombre}</option>`; });
+        if (cursoSeleccionadoPrevio && cursosMap.has(String(cursoSeleccionadoPrevio))) { selectCurso.value = cursoSeleccionadoPrevio; } 
+        else if (cursosMap.size > 0) { selectCurso.value = Array.from(cursosMap.keys())[0]; }
       }
-
       alCambiarCurso();
     }
 
@@ -593,23 +467,13 @@
       const modo = document.getElementById('selectModo').value;
       const cursoId = document.getElementById('selectCurso').value;
       const selectMateria = document.getElementById('selectMateria');
-
       if (modo === 'calificaciones') {
-        if (!cursoId) {
-          selectMateria.innerHTML = '<option value="">Seleccione materia...</option>';
-          selectMateria.disabled = true;
-          cambiarFiltro();
-          return;
-        }
-
+        if (!cursoId) { selectMateria.innerHTML = '<option value="">Seleccione materia...</option>'; selectMateria.disabled = true; cambiarFiltro(); return; }
         const materiasDelCurso = todasAsignaciones.filter(a => String(a.curso_id) === String(cursoId));
-        selectMateria.innerHTML = '<option value="">Seleccione materia...</option>' + 
-          materiasDelCurso.map(a => `<option value="${a.id}">${a.materias.nombre} ${a.es_optativa ? '(Optativa)' : ''}</option>`).join('');
-        
+        selectMateria.innerHTML = '<option value="">Seleccione materia...</option>' + materiasDelCurso.map(a => `<option value="${a.id}">${a.materias.nombre} ${a.es_optativa ? '(Optativa)' : ''}</option>`).join('');
         selectMateria.disabled = false;
-        if (materiasDelCurso.length >= 1) selectMateria.value = materiasDelCurso[0].id;
+        if (materiasDelCurso.length > 0) { selectMateria.value = String(materiasDelCurso[0].id); } else { selectMateria.value = ""; }
       }
-
       cambiarFiltro();
     }
 
@@ -628,351 +492,42 @@
       const accAsist = document.getElementById('accionesAsistencia');
       const accTutoria = document.getElementById('accionesTutoria');
 
-      accParcial.classList.add('d-none');
-      accComp.classList.add('d-none');
-      accResumen.classList.add('d-none');
-      accAnual.classList.add('d-none');
-      accAsist.classList.add('d-none');
-      accTutoria.classList.add('d-none');
+      accParcial.classList.add('d-none'); accComp.classList.add('d-none'); accResumen.classList.add('d-none'); accAnual.classList.add('d-none'); accAsist.classList.add('d-none'); accTutoria.classList.add('d-none');
 
       if (modo === 'tutoria') {
         accTutoria.classList.remove('d-none');
-        if (!cursoId) {
-          document.getElementById('contenedorTabla').innerHTML = '<div class="py-4 text-muted text-center">Seleccione un Curso de Tutoría para consultar el consolidado y emitir libretas.</div>';
-          return;
-        }
-        cargarVistaConsolidadoTutoria();
-        return;
+        if (!cursoId) { document.getElementById('contenedorTabla').innerHTML = '<div class="py-4 text-muted text-center">Seleccione un Curso de Tutoría para consultar el consolidado y emitir libretas.</div>'; return; }
+        cargarVistaConsolidadoTutoria(); return;
       }
-
       if (modo === 'asistencia') {
         accAsist.classList.remove('d-none');
-        if (!cursoId) {
-          controles.forEach(b => b.disabled = true);
-          document.getElementById('contenedorTabla').innerHTML = '<div class="py-4 text-muted text-center">Seleccione un Curso para gestionar la Asistencia.</div>';
-          return;
-        }
-        controles.forEach(b => b.disabled = false);
-        cargarVistaAsistencia();
-        return;
+        if (!cursoId) { controles.forEach(b => b.disabled = true); document.getElementById('contenedorTabla').innerHTML = '<div class="py-4 text-muted text-center">Seleccione un Curso para gestionar la Asistencia.</div>'; return; }
+        controles.forEach(b => b.disabled = false); cargarVistaAsistencia(); return;
       }
-
       if (trimestreVal === 'anual') {
-        document.getElementById('boxVista').classList.add('d-none');
-        accAnual.classList.remove('d-none');
+        document.getElementById('boxVista').classList.add('d-none'); accAnual.classList.remove('d-none');
       } else {
         document.getElementById('boxVista').classList.remove('d-none');
         if (vistaVal === 'comp1' || vistaVal === 'comp2') accComp.classList.remove('d-none');
         else if (vistaVal === 'resumen_trimestre') accResumen.classList.remove('d-none');
         else accParcial.classList.remove('d-none');
       }
-
       if (!asigId) {
-        controles.forEach(b => b.disabled = true);
-        document.getElementById('contenedorTabla').innerHTML = '<div class="py-4 text-muted text-center">Seleccione un Curso y una Materia para visualizar las calificaciones.</div>';
-        return;
+        controles.forEach(b => b.disabled = true); document.getElementById('contenedorTabla').innerHTML = '<div class="py-4 text-muted text-center">Seleccione un Curso y una Materia para visualizar las calificaciones.</div>'; return;
       }
-      
       controles.forEach(b => b.disabled = false);
-
       if (trimestreVal === 'anual') cargarVistaResumenAnual();
       else if (vistaVal === 'comp1' || vistaVal === 'comp2') cargarVistaComportamiento(vistaVal === 'comp1' ? 1 : 2);
       else if (vistaVal === 'resumen_trimestre') cargarVistaResumenTrimestre();
       else cargarVistaParcial(vistaVal === 'p1' ? 1 : 2);
     }
 
-    // =========================================================================
-    // CALIFICACIONES PARCIALES (CON BOTONES DE ICONO CORREGIDOS)
-    // =========================================================================
-    function capturarNotasDeLaTabla() {
-      const filas = document.querySelectorAll('#tablaCuerpo tr');
-      filas.forEach(tr => {
-        const estId = tr.getAttribute('data-estudiante-id');
-        if (estId) {
-          const notas1 = Array.from(tr.querySelectorAll('.nota-i1')).map(i => i.value !== '' ? i.value : '');
-          const notas2 = Array.from(tr.querySelectorAll('.nota-i2')).map(i => i.value !== '' ? i.value : '');
-          notasActualesMemoria[estId] = { i1: notas1, i2: notas2 };
-        }
-      });
-    }
-
-    function agregarActividad(insumo) {
-      capturarNotasDeLaTabla();
-      if (insumo === 1) {
-        configActividades.insumo1.push(catalogo[0] || 'Actuación en clases');
-        Object.keys(notasActualesMemoria).forEach(k => {
-          if (!notasActualesMemoria[k].i1) notasActualesMemoria[k].i1 = [];
-          notasActualesMemoria[k].i1.push('');
-        });
-      } else {
-        configActividades.insumo2.push(catalogo[0] || 'Trabajo Grupal');
-        Object.keys(notasActualesMemoria).forEach(k => {
-          if (!notasActualesMemoria[k].i2) notasActualesMemoria[k].i2 = [];
-          notasActualesMemoria[k].i2.push('');
-        });
-      }
-      renderizarTablaParcial();
-    }
-
-    function eliminarActividad(insumo, index) {
-      capturarNotasDeLaTabla();
-      if (insumo === 1) {
-        configActividades.insumo1.splice(index, 1);
-        Object.keys(notasActualesMemoria).forEach(k => {
-          if (notasActualesMemoria[k] && notasActualesMemoria[k].i1) {
-            notasActualesMemoria[k].i1.splice(index, 1);
-          }
-        });
-      } else {
-        configActividades.insumo2.splice(index, 1);
-        Object.keys(notasActualesMemoria).forEach(k => {
-          if (notasActualesMemoria[k] && notasActualesMemoria[k].i2) {
-            notasActualesMemoria[k].i2.splice(index, 1);
-          }
-        });
-      }
-      renderizarTablaParcial();
-    }
-
-    function autoLlenarColumnaActividad(insumo, colIndex) {
-      const selectorClase = insumo === 1 ? `.col-act-i1-${colIndex}` : `.col-act-i2-${colIndex}`;
-      document.querySelectorAll(selectorClase).forEach(input => {
-        input.value = '10';
-      });
-      document.querySelectorAll('#tablaCuerpo tr').forEach(fila => calcularFilaParcial(fila));
-    }
-
-    function limpiarColumnaActividad(insumo, colIndex) {
-      const selectorClase = insumo === 1 ? `.col-act-i1-${colIndex}` : `.col-act-i2-${colIndex}`;
-      document.querySelectorAll(selectorClase).forEach(input => {
-        input.value = '';
-      });
-      document.querySelectorAll('#tablaCuerpo tr').forEach(fila => calcularFilaParcial(fila));
-    }
-
-    function autoLlenarTodoCon10() {
-      if (!confirm('¿Desea rellenar con 10 todas las calificaciones vacías?')) return;
-      document.querySelectorAll('#tablaCuerpo input[type="number"]').forEach(input => {
-        if (!input.value) input.value = '10';
-      });
-      document.querySelectorAll('#tablaCuerpo tr').forEach(fila => calcularFilaParcial(fila));
-    }
-
-    function limpiarTodasNotasParcial() {
-      if (!confirm('¿Desea limpiar TODAS las calificaciones de la tabla actual?')) return;
-      document.querySelectorAll('#tablaCuerpo input[type="number"]').forEach(input => {
-        input.value = '';
-      });
-      document.querySelectorAll('#tablaCuerpo tr').forEach(fila => calcularFilaParcial(fila));
-    }
-
-    async function cargarVistaParcial(parcialNum) {
-      const reqId = ++currentViewRequestId;
-      const asigId = document.getElementById('selectMateria').value.trim();
-      const trimestre = parseInt(document.getElementById('selectTrimestre').value);
-      const contenedor = document.getElementById('contenedorTabla');
-      contenedor.innerHTML = '<div class="py-4 text-center"><div class="spinner-border text-primary me-2"></div>Cargando parcial...</div>';
-
-      const asig = todasAsignaciones.find(a => String(a.id) === asigId);
-      if (!asig) {
-        if (reqId === currentViewRequestId) {
-          contenedor.innerHTML = '<div class="py-4 text-muted text-center">Seleccione un Curso y una Materia para visualizar las calificaciones.</div>';
-        }
-        return;
-      }
-
-      try {
-        const { data: confData } = await supabaseClient
-          .from('config_parcial_cabeceras')
-          .select('*')
-          .eq('asignacion_id', parseInt(asigId))
-          .eq('trimestre', trimestre)
-          .eq('parcial', parcialNum)
-          .maybeSingle();
-
-        if (reqId !== currentViewRequestId) return;
-        configActividades.insumo1 = confData?.actividades_insumo1 || ['Actuación en clases', 'Participación en Clases', 'Actuación en clases', 'Lección en clases'];
-        configActividades.insumo2 = confData?.actividades_insumo2 || ['Colaboración en el Aula'];
-
-        const { data: estData } = await supabaseClient.from('estudiantes').select('*').eq('curso_id', parseInt(asig.curso_id)).order('nombres');
-        if (reqId !== currentViewRequestId) return;
-        estudiantes = estData || [];
-
-        const { data: notasData } = await supabaseClient
-          .from('notas_parcial_actividades')
-          .select('*')
-          .eq('asignacion_id', parseInt(asigId))
-          .eq('trimestre', trimestre)
-          .eq('parcial', parcialNum);
-
-        if (reqId !== currentViewRequestId) return;
-
-        notasActualesMemoria = {};
-        (notasData || []).forEach(n => {
-          notasActualesMemoria[n.estudiante_id] = { i1: n.insumo1_notas || [], i2: n.insumo2_notas || [] };
-        });
-
-        renderizarTablaParcial();
-      } catch (err) {
-        if (reqId === currentViewRequestId) {
-          contenedor.innerHTML = `<div class="py-4 text-danger text-center fw-bold">Error al cargar parcial: ${err.message}</div>`;
-        }
-      }
-    }
-
-    function renderizarTablaParcial() {
-      const contenedor = document.getElementById('contenedorTabla');
-      const colIns1 = Math.max(configActividades.insumo1.length, 1);
-      const colIns2 = Math.max(configActividades.insumo2.length, 1);
-
-      let thIns1 = configActividades.insumo1.length === 0 
-        ? '<th class="text-muted fst-italic py-2" style="font-size:0.75rem;">Sin actividades</th>' 
-        : configActividades.insumo1.map((act, i) => `
-            <th class="th-actividad">
-              <div class="d-flex justify-content-between align-items-center mb-1">
-                <span class="badge bg-primary">${i+1}</span>
-                <div class="d-flex gap-1 align-items-center">
-                  <button type="button" class="btn btn-xs btn-outline-success btn-act-header" title="Llenar 10" onclick="autoLlenarColumnaActividad(1, ${i})">10</button>
-                  <button type="button" class="btn btn-xs btn-outline-secondary btn-act-header" title="Limpiar" onclick="limpiarColumnaActividad(1, ${i})"><i class="bi bi-eraser-fill"></i></button>
-                  <button type="button" class="btn-del-col" title="Quitar actividad" onclick="eliminarActividad(1, ${i})"><i class="bi bi-x-lg"></i></button>
-                </div>
-              </div>
-              <select class="select-act-custom" onchange="configActividades.insumo1[${i}]=this.value">
-                ${catalogo.map(c => `<option value="${c}" ${c === act ? 'selected' : ''}>${c}</option>`).join('')}
-              </select>
-            </th>`).join('');
-
-      let thIns2 = configActividades.insumo2.length === 0 
-        ? '<th class="text-muted fst-italic py-2" style="font-size:0.75rem;">Sin actividades</th>' 
-        : configActividades.insumo2.map((act, i) => `
-            <th class="th-actividad">
-              <div class="d-flex justify-content-between align-items-center mb-1">
-                <span class="badge bg-info text-dark">${i+1}</span>
-                <div class="d-flex gap-1 align-items-center">
-                  <button type="button" class="btn btn-xs btn-outline-success btn-act-header" title="Llenar 10" onclick="autoLlenarColumnaActividad(2, ${i})">10</button>
-                  <button type="button" class="btn btn-xs btn-outline-secondary btn-act-header" title="Limpiar" onclick="limpiarColumnaActividad(2, ${i})"><i class="bi bi-eraser-fill"></i></button>
-                  <button type="button" class="btn-del-col" title="Quitar actividad" onclick="eliminarActividad(2, ${i})"><i class="bi bi-x-lg"></i></button>
-                </div>
-              </div>
-              <select class="select-act-custom" onchange="configActividades.insumo2[${i}]=this.value">
-                ${catalogo.map(c => `<option value="${c}" ${c === act ? 'selected' : ''}>${c}</option>`).join('')}
-              </select>
-            </th>`).join('');
-
-      let html = `
-        <table class="table table-bordered table-sm mb-0 align-middle">
-          <thead>
-            <tr>
-              <th rowspan="2" class="sticky-col-num">No.</th>
-              <th rowspan="2" class="sticky-col-nombre text-center">Nómina del Estudiante</th>
-              <th colspan="${colIns1}" class="bg-insumo1">INSUMO 1 (Actividades Individuales)</th>
-              <th rowspan="2" class="bg-prom-ins" style="width: 75px;">Promedio Insumo 1</th>
-              <th colspan="${colIns2}" class="bg-insumo2">INSUMO 2 (Actividades Grupales)</th>
-              <th rowspan="2" class="bg-prom-ins" style="width: 75px;">Promedio Insumo 2</th>
-              <th rowspan="2" class="bg-nota-final" style="width: 80px;">Nota Parcial</th>
-            </tr>
-            <tr>
-              ${thIns1}
-              ${thIns2}
-            </tr>
-          </thead>
-          <tbody id="tablaCuerpo">
-            ${estudiantes.map((est, idx) => {
-              const memData = notasActualesMemoria[est.id] || { i1: [], i2: [] };
-              const i1Notas = memData.i1 || [];
-              const i2Notas = memData.i2 || [];
-
-              const inp1 = configActividades.insumo1.length === 0 ? '<td class="text-muted">-</td>' : configActividades.insumo1.map((_, i) => `
-                <td>
-                  <input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app nota-i1 col-act-i1-${i}" 
-                    value="${i1Notas[i] !== undefined && i1Notas[i] !== null ? i1Notas[i] : ''}" oninput="validarYCalcularParcial(this)">
-                </td>
-              `).join('');
-
-              const inp2 = configActividades.insumo2.length === 0 ? '<td class="text-muted">-</td>' : configActividades.insumo2.map((_, i) => `
-                <td>
-                  <input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app nota-i2 col-act-i2-${i}" 
-                    value="${i2Notas[i] !== undefined && i2Notas[i] !== null ? i2Notas[i] : ''}" oninput="validarYCalcularParcial(this)">
-                </td>
-              `).join('');
-
-              return `
-                <tr data-estudiante-id="${est.id}">
-                  <td class="sticky-col-num fw-bold text-muted">${idx + 1}</td>
-                  <td class="sticky-col-nombre" title="${est.nombres}">${formatearNombreVisual(est.nombres)}</td>
-                  ${inp1}
-                  <td class="prom-i1">0.00</td>
-                  ${inp2}
-                  <td class="prom-i2">0.00</td>
-                  <td class="nota-parcial">0.00</td>
-                </tr>
-              `;
-            }).join('')}
-          </tbody>
-        </table>
-      `;
-
-      contenedor.innerHTML = html;
-      document.querySelectorAll('#tablaCuerpo tr').forEach(fila => calcularFilaParcial(fila));
-    }
-
-    function validarYCalcularParcial(input) {
-      if (parseFloat(input.value) > 10) input.value = 10;
-      if (parseFloat(input.value) < 0) input.value = 0;
-      calcularFilaParcial(input.closest('tr'));
-    }
-
-    function calcularFilaParcial(tr) {
-      const inputs1 = Array.from(tr.querySelectorAll('.nota-i1'));
-      const inputs2 = Array.from(tr.querySelectorAll('.nota-i2'));
-
-      inputs1.forEach(i => {
-        const colClase = Array.from(i.classList).find(c => c.startsWith('col-act-')) || '';
-        i.className = `form-control form-control-sm input-nota-app nota-i1 ${colClase} ${obtenerClaseColor(i.value, false)}`;
-      });
-      inputs2.forEach(i => {
-        const colClase = Array.from(i.classList).find(c => c.startsWith('col-act-')) || '';
-        i.className = `form-control form-control-sm input-nota-app nota-i2 ${colClase} ${obtenerClaseColor(i.value, false)}`;
-      });
-
-      const cantAct1 = configActividades.insumo1.length;
-      const cantAct2 = configActividades.insumo2.length;
-
-      const suma1 = inputs1.reduce((acc, inp) => acc + (parseFloat(inp.value) || 0), 0);
-      const suma2 = inputs2.reduce((acc, inp) => acc + (parseFloat(inp.value) || 0), 0);
-
-      const prom1 = cantAct1 > 0 ? (suma1 / cantAct1) : 0;
-      const prom2 = cantAct2 > 0 ? (suma2 / cantAct2) : 0;
-      const total = (prom1 + prom2) / 2;
-
-      const cProm1 = tr.querySelector('.prom-i1');
-      const cProm2 = tr.querySelector('.prom-i2');
-      const cTotal = tr.querySelector('.nota-parcial');
-
-      if (cProm1) {
-        cProm1.innerText = prom1.toFixed(2);
-        cProm1.className = `prom-i1 fw-bold ${obtenerClaseColor(prom1, true)}`;
-      }
-      if (cProm2) {
-        cProm2.innerText = prom2.toFixed(2);
-        cProm2.className = `prom-i2 fw-bold ${obtenerClaseColor(prom2, true)}`;
-      }
-      if (cTotal) {
-        cTotal.innerText = total.toFixed(2);
-        cTotal.className = `nota-parcial fw-bold ${obtenerClaseColor(total, true)}`;
-      }
-    }
-
-    // =========================================================================
-    // VISTA: TUTORÍA Y REPORTES PDF
-    // =========================================================================
     async function cargarVistaConsolidadoTutoria() {
       const reqId = ++currentViewRequestId;
       const cursoId = document.getElementById('selectCurso').value;
       const trimestre = parseInt(document.getElementById('selectTrimestre').value);
       const reporteTipo = document.getElementById('selectParcialTutoria').value;
       const contenedor = document.getElementById('contenedorTabla');
-
       contenedor.innerHTML = '<div class="py-4 text-center"><div class="spinner-border text-primary me-2"></div>Cargando consolidado de tutoría...</div>';
 
       try {
@@ -982,7 +537,6 @@
 
         const { data: asigCurso } = await supabaseClient.from('curso_materia_docente').select(`id, curso_id, materia_id, es_optativa, materias(id, nombre)`).eq('curso_id', parseInt(cursoId));
         if (reqId !== currentViewRequestId) return;
-        
         let listaAsignaciones = asigCurso || [];
         listaAsignaciones.sort((a, b) => {
           if (a.es_optativa === b.es_optativa) return (a.materias?.nombre || '').localeCompare(b.materias?.nombre || '');
@@ -990,19 +544,13 @@
         });
 
         const asigIds = listaAsignaciones.map(a => a.id);
-
         let notasP1 = {}, notasP2 = {};
         if (asigIds.length > 0) {
           const { data: nData } = await supabaseClient.from('notas_parcial_actividades').select('asignacion_id, estudiante_id, parcial, nota_parcial').in('asignacion_id', asigIds).eq('trimestre', trimestre);
           if (reqId !== currentViewRequestId) return;
           (nData || []).forEach(n => {
-            if (n.parcial === 1) {
-              if (!notasP1[n.estudiante_id]) notasP1[n.estudiante_id] = {};
-              notasP1[n.estudiante_id][n.asignacion_id] = n.nota_parcial;
-            } else if (n.parcial === 2) {
-              if (!notasP2[n.estudiante_id]) notasP2[n.estudiante_id] = {};
-              notasP2[n.estudiante_id][n.asignacion_id] = n.nota_parcial;
-            }
+            if (n.parcial === 1) { if (!notasP1[n.estudiante_id]) notasP1[n.estudiante_id] = {}; notasP1[n.estudiante_id][n.asignacion_id] = n.nota_parcial; }
+            else if (n.parcial === 2) { if (!notasP2[n.estudiante_id]) notasP2[n.estudiante_id] = {}; notasP2[n.estudiante_id][n.asignacion_id] = n.nota_parcial; }
           });
         }
 
@@ -1010,10 +558,7 @@
         if (reporteTipo === 'trimestre' && asigIds.length > 0) {
           const { data: tData } = await supabaseClient.from('notas_trimestre').select('asignacion_id, estudiante_id, examen').in('asignacion_id', asigIds).eq('trimestre', trimestre);
           if (reqId !== currentViewRequestId) return;
-          (tData || []).forEach(t => {
-            if (!examenesMap[t.estudiante_id]) examenesMap[t.estudiante_id] = {};
-            examenesMap[t.estudiante_id][t.asignacion_id] = parseFloat(t.examen) || 0;
-          });
+          (tData || []).forEach(t => { if (!examenesMap[t.estudiante_id]) examenesMap[t.estudiante_id] = {}; examenesMap[t.estudiante_id][t.asignacion_id] = parseFloat(t.examen) || 0; });
         }
 
         let compMapP1 = {}, compMapP2 = {};
@@ -1021,19 +566,13 @@
           const { data: cData } = await supabaseClient.from('comportamiento_parcial').select('estudiante_id, parcial, total_cuantitativo').in('asignacion_id', asigIds).eq('trimestre', trimestre);
           if (reqId !== currentViewRequestId) return;
           (cData || []).forEach(c => {
-            if (c.parcial === 1) {
-              if (!compMapP1[c.estudiante_id]) compMapP1[c.estudiante_id] = [];
-              compMapP1[c.estudiante_id].push(parseFloat(c.total_cuantitativo) || 10);
-            } else if (c.parcial === 2) {
-              if (!compMapP2[c.estudiante_id]) compMapP2[c.estudiante_id] = [];
-              compMapP2[c.estudiante_id].push(parseFloat(c.total_cuantitativo) || 10);
-            }
+            if (c.parcial === 1) { if (!compMapP1[c.estudiante_id]) compMapP1[c.estudiante_id] = []; compMapP1[c.estudiante_id].push(parseFloat(c.total_cuantitativo) || 10); }
+            else if (c.parcial === 2) { if (!compMapP2[c.estudiante_id]) compMapP2[c.estudiante_id] = []; compMapP2[c.estudiante_id].push(parseFloat(c.total_cuantitativo) || 10); }
           });
         }
 
         const { data: asistData } = await supabaseClient.from('asistencia_estudiantes').select('*').eq('curso_id', parseInt(cursoId)).eq('trimestre', trimestre);
         if (reqId !== currentViewRequestId) return;
-        
         const asistMapP1 = {}, asistMapP2 = {};
         (asistData || []).forEach(a => {
           if (a.parcial === 1) asistMapP1[a.estudiante_id] = a;
@@ -1044,113 +583,36 @@
         const perP2 = periodosAsistencia.find(p => p.trimestre === trimestre && p.parcial === 2) || { total_dias_laborados: 35 };
 
         datosConsolidadoTutoria = estudiantes.map((est, idx) => {
-          let sumaNotasObligatorias = 0;
-          let cantObligatorias = 0;
-          let materiasDetalle = [];
-
+          let sumaNotasObligatorias = 0, cantObligatorias = 0, materiasDetalle = [];
           listaAsignaciones.forEach(a => {
             const nP1 = notasP1[est.id] && notasP1[est.id][a.id] !== undefined ? parseFloat(notasP1[est.id][a.id]) : 0;
             const nP2 = notasP2[est.id] && notasP2[est.id][a.id] !== undefined ? parseFloat(notasP2[est.id][a.id]) : 0;
             const nEx = examenesMap[est.id] && examenesMap[est.id][a.id] !== undefined ? parseFloat(examenesMap[est.id][a.id]) : 0;
-
-            let notaFinalMateria = 0;
-            if (reporteTipo === '1') notaFinalMateria = nP1;
-            else if (reporteTipo === '2') notaFinalMateria = nP2;
-            else {
-              notaFinalMateria = (nP1 * 0.35) + (nP2 * 0.35) + (nEx * 0.30);
-            }
-
+            let notaFinalMateria = (reporteTipo === '1') ? nP1 : (reporteTipo === '2') ? nP2 : (nP1 * 0.35) + (nP2 * 0.35) + (nEx * 0.30);
             const cualit = obtenerEscalaCualitativa(notaFinalMateria);
-
-            if (!a.es_optativa) {
-              sumaNotasObligatorias += notaFinalMateria;
-              cantObligatorias++;
-            }
-
-            materiasDetalle.push({
-              materiaNombre: a.materias?.nombre || 'Materia',
-              p1: nP1.toFixed(2),
-              p2: nP2.toFixed(2),
-              examen: nEx.toFixed(2),
-              notaNum: notaFinalMateria.toFixed(2),
-              notaCualit: cualit,
-              esOptativa: a.es_optativa
-            });
+            if (!a.es_optativa) { sumaNotasObligatorias += notaFinalMateria; cantObligatorias++; }
+            materiasDetalle.push({ materiaNombre: a.materias?.nombre || 'Materia', p1: nP1.toFixed(2), p2: nP2.toFixed(2), examen: nEx.toFixed(2), notaNum: notaFinalMateria.toFixed(2), notaCualit: cualit, esOptativa: a.es_optativa });
           });
 
           const promGeneral = cantObligatorias > 0 ? (sumaNotasObligatorias / cantObligatorias) : 0;
           const promCualit = obtenerEscalaCualitativa(promGeneral);
-
-          const arrP1 = compMapP1[est.id] || [10];
-          const promP1Comp = arrP1.reduce((a, b) => a + b, 0) / arrP1.length;
-          const arrP2 = compMapP2[est.id] || [10];
-          const promP2Comp = arrP2.reduce((a, b) => a + b, 0) / arrP2.length;
-
-          let compFinalNum = 10;
-          if (reporteTipo === '1') compFinalNum = promP1Comp;
-          else if (reporteTipo === '2') compFinalNum = promP2Comp;
-          else compFinalNum = (promP1Comp + promP2Comp) / 2;
-
+          const arrP1 = compMapP1[est.id] || [10], promP1Comp = arrP1.reduce((a, b) => a + b, 0) / arrP1.length;
+          const arrP2 = compMapP2[est.id] || [10], promP2Comp = arrP2.reduce((a, b) => a + b, 0) / arrP2.length;
+          let compFinalNum = (reporteTipo === '1') ? promP1Comp : (reporteTipo === '2') ? promP2Comp : (promP1Comp + promP2Comp) / 2;
           const compObj = obtenerEscalaComportamiento(compFinalNum);
 
-          const r1 = asistMapP1[est.id] || {};
-          const r2 = asistMapP2[est.id] || {};
-
+          const r1 = asistMapP1[est.id] || {}, r2 = asistMapP2[est.id] || {};
           let a1 = 0, j1 = 0;
-          if (r1.registro_diario && typeof r1.registro_diario === 'object') {
-            Object.values(r1.registro_diario).forEach(v => {
-              const val = String(v).toUpperCase();
-              if (val === 'A') a1++;
-              else if (val === 'J') j1++;
-            });
-          } else {
-            a1 = r1.total_asistencias || 0;
-            j1 = r1.total_justificadas || 0;
-          }
-          let t1 = perP1.total_dias_laborados || 34;
-          let f1 = Math.max(t1 - a1 - j1, 0);
+          if (r1.registro_diario && typeof r1.registro_diario === 'object') { Object.values(r1.registro_diario).forEach(v => { const val = String(v).toUpperCase(); if (val === 'A') a1++; else if (val === 'J') j1++; }); } else { a1 = r1.total_asistencias || 0; j1 = r1.total_justificadas || 0; }
+          let t1 = perP1.total_dias_laborados || 34, f1 = Math.max(t1 - a1 - j1, 0);
 
           let a2 = 0, j2 = 0;
-          if (r2.registro_diario && typeof r2.registro_diario === 'object') {
-            Object.values(r2.registro_diario).forEach(v => {
-              const val = String(v).toUpperCase();
-              if (val === 'A') a2++;
-              else if (val === 'J') j2++;
-            });
-          } else {
-            a2 = r2.total_asistencias || 0;
-            j2 = r2.total_justificadas || 0;
-          }
-          let t2 = perP2.total_dias_laborados || 35;
-          let f2 = Math.max(t2 - a2 - j2, 0);
+          if (r2.registro_diario && typeof r2.registro_diario === 'object') { Object.values(r2.registro_diario).forEach(v => { const val = String(v).toUpperCase(); if (val === 'A') a2++; else if (val === 'J') j2++; }); } else { a2 = r2.total_asistencias || 0; j2 = r2.total_justificadas || 0; }
+          let t2 = perP2.total_dias_laborados || 35, f2 = Math.max(t2 - a2 - j2, 0);
 
-          let finalAsist = { asistidos: 0, faltasInjust: 0, faltasJust: 0, totalDias: 0 };
-          if (reporteTipo === '1') {
-            finalAsist = { asistidos: a1, faltasInjust: f1, faltasJust: j1, totalDias: t1 };
-          } else if (reporteTipo === '2') {
-            finalAsist = { asistidos: a2, faltasInjust: f2, faltasJust: j2, totalDias: t2 };
-          } else {
-            finalAsist = { asistidos: a1 + a2, faltasInjust: f1 + f2, faltasJust: j1 + j2, totalDias: t1 + t2 };
-          }
+          let finalAsist = (reporteTipo === '1') ? { asistidos: a1, faltasInjust: f1, faltasJust: j1, totalDias: t1 } : (reporteTipo === '2') ? { asistidos: a2, faltasInjust: f2, faltasJust: j2, totalDias: t2 } : { asistidos: a1 + a2, faltasInjust: f1 + f2, faltasJust: j1 + j2, totalDias: t1 + t2 };
 
-          const repNom = est.representante_nombres || `${est.rep_apellidos || ''} ${est.rep_nombres || ''}`.trim() || 'REPRESENTANTE LEGAL';
-          const repCed = est.rep_cedula ? `C.I.: ${est.rep_cedula}` : '';
-
-          return {
-            num: idx + 1,
-            estudianteId: est.id,
-            nombres: est.nombres,
-            cedula: est.cedula || 'S/N',
-            representanteNombre: repNom,
-            representanteCedula: repCed,
-            materias: materiasDetalle,
-            promedioGeneral: promGeneral.toFixed(2),
-            promedioCualitativo: promCualit,
-            comportamientoNum: compFinalNum.toFixed(2),
-            comportamientoLetra: compObj.letra,
-            comportamientoDesc: compObj.desc,
-            asistencia: finalAsist
-          };
+          return { num: idx + 1, estudianteId: est.id, nombres: est.nombres, cedula: est.cedula || 'S/N', representanteNombre: est.representante_nombres || `${est.rep_apellidos || ''} ${est.rep_nombres || ''}`.trim() || 'REPRESENTANTE LEGAL', representanteCedula: est.rep_cedula ? `C.I.: ${est.rep_cedula}` : '', materias: materiasDetalle, promedioGeneral: promGeneral.toFixed(2), promedioCualitativo: promCualit, comportamientoNum: compFinalNum.toFixed(2), comportamientoLetra: compObj.letra, comportamientoDesc: compObj.desc, asistencia: finalAsist };
         });
 
         let thMaterias = listaAsignaciones.map(a => `<th style="font-size:0.68rem; min-width: 85px;">${a.materias?.nombre}<br><span class="badge ${a.es_optativa ? 'bg-warning text-dark' : 'bg-secondary'}">${a.es_optativa ? 'Opt' : 'Obl'}</span></th>`).join('');
@@ -1168,49 +630,27 @@
                 <th rowspan="2" class="bg-secondary text-white" style="width: 70px;">ASIST.</th>
                 <th rowspan="2" style="width: 90px;">LIBRETA</th>
               </tr>
-              <tr class="bg-secondary text-white">
-                ${thMaterias}
-              </tr>
+              <tr class="bg-secondary text-white">${thMaterias}</tr>
             </thead>
             <tbody>
               ${datosConsolidadoTutoria.map((d, idx) => {
-                let celdasNotas = d.materias.map(m => `
-                  <td class="${obtenerClaseColor(m.notaNum, false)}" style="white-space: nowrap;">
-                    <span class="fw-bold">${m.notaCualit}</span> <small class="text-muted">(${m.notaNum})</small>
-                  </td>
-                `).join('');
-
-                return `
-                  <tr>
-                    <td class="sticky-col-num fw-bold text-muted">${d.num}</td>
-                    <td class="sticky-col-nombre" title="${d.nombres}">${formatearNombreVisual(d.nombres)}</td>
-                    ${celdasNotas}
-                    <td class="fw-bold fs-6 ${obtenerClaseColor(d.promedioGeneral, true)}" style="white-space: nowrap;">
-                      ${d.promedioGeneral} <small>(${d.promedioCualitativo})</small>
-                    </td>
-                    <td class="fw-bold" style="white-space: nowrap;">
-                      ${d.comportamientoLetra} <small>(${d.comportamientoNum})</small>
-                    </td>
-                    <td><span class="badge bg-light text-dark border">${d.asistencia.asistidos}/${d.asistencia.totalDias}</span></td>
-                    <td>
-                      <button class="btn btn-xs btn-outline-danger py-1 px-2 fw-bold" onclick="generarBoletaIndividualPDF(${idx})">
-                        <i class="bi bi-file-pdf"></i> Boleta
-                      </button>
-                    </td>
-                  </tr>
-                `;
+                let celdasNotas = d.materias.map(m => `<td class="${obtenerClaseColor(m.notaNum, false)}" style="white-space: nowrap;"><span class="fw-bold">${m.notaCualit}</span> <small class="text-muted">(${m.notaNum})</small></td>`).join('');
+                return `<tr>
+                  <td class="sticky-col-num fw-bold text-muted">${d.num}</td>
+                  <td class="sticky-col-nombre" title="${d.nombres}">${formatearNombreVisual(d.nombres)}</td>
+                  ${celdasNotas}
+                  <td class="fw-bold fs-6 ${obtenerClaseColor(d.promedioGeneral, true)}" style="white-space: nowrap;">${d.promedioGeneral} <small>(${d.promedioCualitativo})</small></td>
+                  <td class="fw-bold" style="white-space: nowrap;">${d.comportamientoLetra} <small>(${d.comportamientoNum})</small></td>
+                  <td><span class="badge bg-light text-dark border">${d.asistencia.asistidos}/${d.asistencia.totalDias}</span></td>
+                  <td><button class="btn btn-xs btn-outline-danger py-1 px-2 fw-bold" onclick="generarBoletaIndividualPDF(${idx})"><i class="bi bi-file-pdf"></i> Boleta</button></td>
+                </tr>`;
               }).join('')}
             </tbody>
           </table>
         `;
-
-        if (reqId === currentViewRequestId) {
-          contenedor.innerHTML = html;
-        }
+        if (reqId === currentViewRequestId) contenedor.innerHTML = html;
       } catch (err) {
-        if (reqId === currentViewRequestId) {
-          contenedor.innerHTML = `<div class="py-4 text-danger text-center fw-bold">Error al cargar tutoría: ${err.message}</div>`;
-        }
+        if (reqId === currentViewRequestId) contenedor.innerHTML = `<div class="py-4 text-danger text-center fw-bold">Error: ${err.message}</div>`;
       }
     }
 
@@ -1225,177 +665,72 @@
       const frase1 = infoInstitucion?.frase_1 ? `"${infoInstitucion.frase_1}"` : '';
 
       const esTrimestral = (reporteTipo === 'trimestre');
-      const tituloDocumento = esTrimestral 
-        ? `Informe de aprendizaje Trimestre: ${trimestre}`
-        : `Informe de aprendizaje Parcial: ${reporteTipo}`;
+      const tituloDocumento = esTrimestral ? `Informe de aprendizaje Trimestre: ${trimestre}` : `Informe de aprendizaje Parcial: ${reporteTipo}`;
 
       if (imgLogoIzq) { try { doc.addImage(imgLogoIzq, 'PNG', 12, 8, 18, 18); } catch(e){} }
       if (imgLogoDer) { try { doc.addImage(imgLogoDer, 'PNG', 180, 8, 18, 18); } catch(e){} }
 
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(10.5);
-      doc.setTextColor(15, 23, 42);
-      doc.text(nomArriba, 105, 11, { align: 'center' });
-
-      doc.setFontSize(12.5);
-      doc.text(nomAbajo, 105, 16, { align: 'center' });
-
-      doc.setFontSize(9);
-      doc.setFont('helvetica', 'normal');
-      doc.text(tituloDocumento, 105, 21, { align: 'center' });
-
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(8);
-      doc.setTextColor(30, 41, 59);
-      doc.text(`Curso: ${cursoNombreLargo}`, 12, 27);
-      doc.text(`Año Lectivo: ${periodo}`, 198, 27, { align: 'right' });
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(10.5); doc.setTextColor(15, 23, 42); doc.text(nomArriba, 105, 11, { align: 'center' });
+      doc.setFontSize(12.5); doc.text(nomAbajo, 105, 16, { align: 'center' });
+      doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.text(tituloDocumento, 105, 21, { align: 'center' });
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(30, 41, 59); doc.text(`Curso: ${cursoNombreLargo}`, 12, 27); doc.text(`Año Lectivo: ${periodo}`, 198, 27, { align: 'right' });
 
       const tutorNombre = usuarioActualPerfil ? `${usuarioActualPerfil.titulo ? usuarioActualPerfil.titulo + ' ' : ''}${usuarioActualPerfil.nombres} ${usuarioActualPerfil.apellidos || ''}`.trim() : 'Docente Tutor';
 
-      doc.setFillColor(56, 189, 248);
-      doc.rect(12, 29, 95, 6.5, 'F');
-      doc.setDrawColor(30, 41, 59);
-      doc.setLineWidth(0.2);
-      doc.rect(12, 29, 95, 6.5, 'S');
+      doc.setFillColor(56, 189, 248); doc.rect(12, 29, 95, 6.5, 'F'); doc.setDrawColor(30, 41, 59); doc.setLineWidth(0.2); doc.rect(12, 29, 95, 6.5, 'S');
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(7.5); doc.setTextColor(15, 23, 42); doc.text(est.nombres, 59.5, 33.5, { align: 'center' });
 
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(7.5);
-      doc.setTextColor(15, 23, 42);
-      doc.text(est.nombres, 59.5, 33.5, { align: 'center' });
-
-      doc.setFillColor(187, 247, 208);
-      doc.rect(107, 29, 91, 6.5, 'F');
-      doc.rect(107, 29, 91, 6.5, 'S');
-
+      doc.setFillColor(187, 247, 208); doc.rect(107, 29, 91, 6.5, 'F'); doc.rect(107, 29, 91, 6.5, 'S');
       doc.text(`Tutor: ${tutorNombre}`, 152.5, 33.5, { align: 'center' });
 
       const obligatorias = est.materias.filter(m => !m.esOptativa);
       const optativas = est.materias.filter(m => m.esOptativa);
 
-      let tableHead = [];
-      let tableBody = [];
-
+      let tableHead = [], tableBody = [];
       if (esTrimestral) {
-        tableHead = [
-          [
-            { content: 'Asignaturas', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } },
-            { content: 'Nota Parcial', colSpan: 2, styles: { halign: 'center' } },
-            { content: 'Total Prom.\nParciales', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } },
-            { content: 'Porcentaje\nParciales (70%)', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } },
-            { content: 'Nota Examen', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } },
-            { content: 'Examen (30%)', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } },
-            { content: 'Promedio\nTrimestral', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } },
-            { content: 'Promedio\nCualitativo', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } }
-          ],
-          ['P1 (35%)', 'P2 (35%)']
-        ];
-
+        tableHead = [[
+          { content: 'Asignaturas', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } },
+          { content: 'Nota Parcial', colSpan: 2, styles: { halign: 'center' } },
+          { content: 'Total Prom.\nParciales', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } },
+          { content: 'Porcentaje\nParciales (70%)', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } },
+          { content: 'Nota Examen', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } },
+          { content: 'Examen (30%)', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } },
+          { content: 'Promedio\nTrimestral', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } },
+          { content: 'Promedio\nCualitativo', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } }
+        ], ['P1 (35%)', 'P2 (35%)']];
         const procesarFilaTrimestral = (m) => {
-          const p1 = parseFloat(m.p1) || 0;
-          const p2 = parseFloat(m.p2) || 0;
-          const totalPromParciales = (p1 + p2) / 2;
-          const porc70 = totalPromParciales * 0.70;
-          const notaExamen = parseFloat(m.examen) || 0;
-          const porc30 = notaExamen * 0.30;
-          const promTrimestral = porc70 + porc30;
-          const cualit = obtenerEscalaCualitativa(promTrimestral);
-
-          return [
-            m.materiaNombre,
-            p1.toFixed(2),
-            p2.toFixed(2),
-            totalPromParciales.toFixed(2),
-            porc70.toFixed(2),
-            notaExamen.toFixed(2),
-            porc30.toFixed(2),
-            promTrimestral.toFixed(2),
-            cualit
-          ];
+          const p1 = parseFloat(m.p1) || 0, p2 = parseFloat(m.p2) || 0, totalProm = (p1 + p2) / 2, porc70 = totalProm * 0.70;
+          const ex = parseFloat(m.examen) || 0, porc30 = ex * 0.30, prom = porc70 + porc30, cualit = obtenerEscalaCualitativa(prom);
+          return [m.materiaNombre, p1.toFixed(2), p2.toFixed(2), totalProm.toFixed(2), porc70.toFixed(2), ex.toFixed(2), porc30.toFixed(2), prom.toFixed(2), cualit];
         };
-
         obligatorias.forEach(m => tableBody.push(procesarFilaTrimestral(m)));
-
         if (optativas.length > 0) {
-          tableBody.push([
-            { content: 'ASIGNATURAS OPTATIVAS / CUALITATIVAS', colSpan: 9, styles: { fillColor: [248, 250, 252], textColor: [71, 85, 105], fontStyle: 'bold', fontSize: 6.8, halign: 'left' } }
-          ]);
+          tableBody.push([{ content: 'ASIGNATURAS OPTATIVAS / CUALITATIVAS', colSpan: 9, styles: { fillColor: [248, 250, 252], textColor: [71, 85, 105], fontStyle: 'bold', fontSize: 6.8, halign: 'left' } }]);
           optativas.forEach(m => tableBody.push(procesarFilaTrimestral(m)));
         }
-
-        tableBody.push([
-          'Comportamiento',
-          { content: est.comportamientoLetra, styles: { halign: 'center', fontStyle: 'bold' } },
-          { content: est.comportamientoNum, styles: { halign: 'center', fontStyle: 'bold' } },
-          { content: est.comportamientoDesc, colSpan: 6, styles: { halign: 'left', fontStyle: 'normal', fontSize: 6.5 } }
-        ]);
-
+        tableBody.push(['Comportamiento', { content: est.comportamientoLetra, styles: { halign: 'center', fontStyle: 'bold' } }, { content: est.comportamientoNum, styles: { halign: 'center', fontStyle: 'bold' } }, { content: est.comportamientoDesc, colSpan: 6, styles: { halign: 'left', fontStyle: 'normal', fontSize: 6.5 } }]);
       } else {
         tableHead = [['Asignaturas', 'Cualitativa', 'Cuantitativa']];
-
         obligatorias.forEach(m => tableBody.push([m.materiaNombre, m.notaCualit, m.notaNum]));
         if (optativas.length > 0) {
           tableBody.push([{ content: 'ASIGNATURAS OPTATIVAS / CUALITATIVAS', colSpan: 3, styles: { fillColor: [248, 250, 252], textColor: [71, 85, 105], fontStyle: 'bold', fontSize: 6.8, halign: 'left' } }]);
           optativas.forEach(m => tableBody.push([m.materiaNombre, m.notaCualit, m.notaNum]));
         }
-
-        tableBody.push([
-          `Comportamiento (${est.comportamientoDesc})`,
-          est.comportamientoLetra,
-          est.comportamientoNum
-        ]);
+        tableBody.push([`Comportamiento (${est.comportamientoDesc})`, est.comportamientoLetra, est.comportamientoNum]);
       }
 
-      const colStyles = esTrimestral ? {
-        0: { cellWidth: 58, halign: 'left' },
-        1: { cellWidth: 15, halign: 'center' },
-        2: { cellWidth: 15, halign: 'center' },
-        3: { cellWidth: 18, halign: 'center' },
-        4: { cellWidth: 20, halign: 'center' },
-        5: { cellWidth: 17, halign: 'center' },
-        6: { cellWidth: 17, halign: 'center' },
-        7: { cellWidth: 16, halign: 'center', fontStyle: 'bold', fillColor: [241, 245, 249] },
-        8: { cellWidth: 18, halign: 'center', fontStyle: 'bold' }
-      } : {
-        0: { cellWidth: 136, halign: 'left' },
-        1: { cellWidth: 25, halign: 'center', fontStyle: 'bold' },
-        2: { cellWidth: 25, halign: 'center', fontStyle: 'bold' }
-      };
+      const colStyles = esTrimestral ? { 0: { cellWidth: 58, halign: 'left' }, 1: { cellWidth: 15, halign: 'center' }, 2: { cellWidth: 15, halign: 'center' }, 3: { cellWidth: 18, halign: 'center' }, 4: { cellWidth: 20, halign: 'center' }, 5: { cellWidth: 17, halign: 'center' }, 6: { cellWidth: 17, halign: 'center' }, 7: { cellWidth: 16, halign: 'center', fontStyle: 'bold', fillColor: [241, 245, 249] }, 8: { cellWidth: 18, halign: 'center', fontStyle: 'bold' } } : { 0: { cellWidth: 136, halign: 'left' }, 1: { cellWidth: 25, halign: 'center', fontStyle: 'bold' }, 2: { cellWidth: 25, halign: 'center', fontStyle: 'bold' } };
 
-      doc.autoTable({
-        startY: 37,
-        head: tableHead,
-        body: tableBody,
-        margin: { left: 12, right: 12 },
-        theme: 'grid',
-        styles: { fontSize: 7, cellPadding: 1.2, lineColor: [148, 163, 184], lineWidth: 0.1, valign: 'middle' },
-        headStyles: { fillColor: [226, 232, 240], textColor: [15, 23, 42], fontStyle: 'bold', halign: 'center' },
-        columnStyles: colStyles
-      });
+      doc.autoTable({ startY: 37, head: tableHead, body: tableBody, margin: { left: 12, right: 12 }, theme: 'grid', styles: { fontSize: 7, cellPadding: 1.2, lineColor: [148, 163, 184], lineWidth: 0.1, valign: 'middle' }, headStyles: { fillColor: [226, 232, 240], textColor: [15, 23, 42], fontStyle: 'bold', halign: 'center' }, columnStyles: colStyles });
 
       const asistY = doc.lastAutoTable.finalY + 2.5;
-      const headAsist = esTrimestral
-        ? [['Faltas Justificadas', 'Faltas Injustificadas', 'Días Asistidos', 'Total de Días Trimestre']]
-        : [['Faltas Justificadas', 'Faltas Injustificadas', 'Días Asistidos', 'Total de Días Parcial']];
-
-      doc.autoTable({
-        startY: asistY,
-        head: headAsist,
-        body: [[
-          est.asistencia.faltasJust,
-          est.asistencia.faltasInjust,
-          est.asistencia.asistidos,
-          est.asistencia.totalDias
-        ]],
-        margin: { left: 12, right: 12 },
-        theme: 'grid',
-        styles: { fontSize: 7.2, cellPadding: 1.2, halign: 'center' },
-        headStyles: { fillColor: [203, 213, 225], textColor: [15, 23, 42], fontStyle: 'bold' }
-      });
+      const headAsist = esTrimestral ? [['Faltas Justificadas', 'Faltas Injustificadas', 'Días Asistidos', 'Total de Días Trimestre']] : [['Faltas Justificadas', 'Faltas Injustificadas', 'Días Asistidos', 'Total de Días Parcial']];
+      doc.autoTable({ startY: asistY, head: headAsist, body: [[est.asistencia.faltasJust, est.asistencia.faltasInjust, est.asistencia.asistidos, est.asistencia.totalDias]], margin: { left: 12, right: 12 }, theme: 'grid', styles: { fontSize: 7.2, cellPadding: 1.2, halign: 'center' }, headStyles: { fillColor: [203, 213, 225], textColor: [15, 23, 42], fontStyle: 'bold' } });
 
       const escalasY = doc.lastAutoTable.finalY + 2.5;
       doc.autoTable({
         startY: escalasY,
-        head: [['Eval. Comportamiento', 'Escala Cualitativa y Cuantitativa', 'PROMEDIO GENERAL']],
+        head: [['Eval. Comportamiento', 'Escala Cualitativa y Cuantitativa', 'PROMEDIO']],
         body: [
           ['A: Muy Satisfactorio', 'A+ = (10)       C+ = (6-6.99)       E+ = (2-2.99)', { content: '', rowSpan: 5, styles: { fillColor: [248, 250, 252] } }],
           ['B: Satisfactorio', 'A- = (9-9.99)   C- = (5-5.99)       E- = (1-1.99)', ''],
@@ -1403,166 +738,63 @@
           ['D: Mejorable', 'B- = (7-7.99)   D- = (3-3.99)', ''],
           ['E: Insatisfactorio', frase1, '']
         ],
-        margin: { left: 12, right: 12 },
-        theme: 'grid',
-        styles: { fontSize: 6.8, cellPadding: 1.1 },
-        headStyles: { fillColor: [187, 247, 208], textColor: [15, 23, 42], fontStyle: 'bold', halign: 'center' },
-        columnStyles: { 0: { cellWidth: 45 }, 1: { cellWidth: 100 }, 2: { cellWidth: 41 } },
+        margin: { left: 12, right: 12 }, theme: 'grid', styles: { fontSize: 6.8, cellPadding: 1.1 }, headStyles: { fillColor: [187, 247, 208], textColor: [15, 23, 42], fontStyle: 'bold', halign: 'center' }, columnStyles: { 0: { cellWidth: 45 }, 1: { cellWidth: 100 }, 2: { cellWidth: 41 } },
         didDrawCell: function (data) {
           if (data.column.index === 2 && data.row.index === 0 && data.section === 'body') {
-            const x = data.cell.x, y = data.cell.y, w = data.cell.width, h = data.cell.height;
-            const midY = y + (h / 2);
-
-            doc.setFont('helvetica', 'bold');
-            doc.setFontSize(16);
-            doc.setTextColor(15, 23, 42);
-            doc.text(`${est.promedioGeneral}`, x + (w / 2), y + (h * 0.38), { align: 'center' });
-
-            doc.setDrawColor(203, 213, 225);
-            doc.setLineWidth(0.4);
-            doc.line(x + 5, midY, x + w - 5, midY);
-
-            doc.setFontSize(14);
-            doc.setTextColor(13, 110, 253);
-            doc.text(`${est.promedioCualitativo}`, x + (w / 2), y + (h * 0.82), { align: 'center' });
+            const x = data.cell.x, y = data.cell.y, w = data.cell.width, h = data.cell.height, midY = y + (h / 2);
+            doc.setFont('helvetica', 'bold'); doc.setFontSize(16); doc.setTextColor(15, 23, 42); doc.text(`${est.promedioGeneral}`, x + (w / 2), y + (h * 0.38), { align: 'center' });
+            doc.setDrawColor(203, 213, 225); doc.setLineWidth(0.4); doc.line(x + 5, midY, x + w - 5, midY);
+            doc.setFontSize(14); doc.setTextColor(13, 110, 253); doc.text(`${est.promedioCualitativo}`, x + (w / 2), y + (h * 0.82), { align: 'center' });
           }
         }
       });
 
-      const firmasY = 264;
-      doc.setLineWidth(0.2);
-      doc.setDrawColor(100, 116, 139);
-
-      doc.line(14, firmasY, 68, firmasY);
-      doc.line(78, firmasY, 132, firmasY);
-      doc.line(142, firmasY, 196, firmasY);
-
-      doc.setFontSize(7.2);
-      doc.setTextColor(30, 41, 59);
-
-      doc.setFont('helvetica', 'bold');
-      doc.text('Ing. Dídimo A. Saltos S.', 41, firmasY + 4, { align: 'center' });
-      doc.setFont('helvetica', 'normal');
-      doc.text('RECTOR / DIRECTOR', 41, firmasY + 7.5, { align: 'center' });
-
-      doc.setFont('helvetica', 'bold');
-      doc.text('C.P.A. Mercedes A. Salamea M.', 105, firmasY + 4, { align: 'center' });
-      doc.setFont('helvetica', 'normal');
-      doc.text('SECRETARIO/A GENERAL', 105, firmasY + 7.5, { align: 'center' });
-
-      doc.setFont('helvetica', 'bold');
-      doc.text(est.representanteNombre, 169, firmasY + 4, { align: 'center', maxWidth: 54 });
-      doc.setFont('helvetica', 'normal');
-      doc.text('REPRESENTANTE LEGAL', 169, firmasY + 7.5, { align: 'center' });
-      if (est.representanteCedula) {
-        doc.text(est.representanteCedula, 169, firmasY + 11, { align: 'center' });
-      }
+      const firmasY = 264; doc.setLineWidth(0.2); doc.setDrawColor(100, 116, 139); doc.line(14, firmasY, 68, firmasY); doc.line(78, firmasY, 132, firmasY); doc.line(142, firmasY, 196, firmasY);
+      doc.setFontSize(7.2); doc.setTextColor(30, 41, 59);
+      doc.setFont('helvetica', 'bold'); doc.text('Ing. Dídimo A. Saltos S.', 41, firmasY + 4, { align: 'center' }); doc.setFont('helvetica', 'normal'); doc.text('RECTOR / DIRECTOR', 41, firmasY + 7.5, { align: 'center' });
+      doc.setFont('helvetica', 'bold'); doc.text('C.P.A. Mercedes A. Salamea M.', 105, firmasY + 4, { align: 'center' }); doc.setFont('helvetica', 'normal'); doc.text('SECRETARIO/A GENERAL', 105, firmasY + 7.5, { align: 'center' });
+      doc.setFont('helvetica', 'bold'); doc.text(est.representanteNombre, 169, firmasY + 4, { align: 'center', maxWidth: 54 }); doc.setFont('helvetica', 'normal'); doc.text('REPRESENTANTE LEGAL', 169, firmasY + 7.5, { align: 'center' });
+      if (est.representanteCedula) doc.text(est.representanteCedula, 169, firmasY + 11, { align: 'center' });
     }
 
     async function generarLibretasLotePDF() {
       if (!datosConsolidadoTutoria || datosConsolidadoTutoria.length === 0) return alert('No hay datos para generar libretas.');
-
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-
-      const cursoId = document.getElementById('selectCurso').value;
-      const trimestre = parseInt(document.getElementById('selectTrimestre').value);
-      const reporteTipo = document.getElementById('selectParcialTutoria').value;
-
-      const cursoInfo = todosCursos.find(c => c.id == cursoId);
-      const nombreCursoLargo = (cursoInfo?.nombre_largo_mayuscula || cursoInfo?.nombre || '').toUpperCase();
-      const nombreRector = 'ING. DÍDIMO A. SALTOS S.';
-
-      const imgLogoIzq = await obtenerBase64DesdeUrl(infoInstitucion?.logo_izquierdo || infoInstitucion?.logo_institucion);
-      const imgLogoDer = await obtenerBase64DesdeUrl(infoInstitucion?.logo_derecho || infoInstitucion?.escudo_nacional);
-
-      datosConsolidadoTutoria.forEach((est, idx) => {
-        if (idx > 0) doc.addPage();
-        construirPaginaLibreta(doc, est, nombreCursoLargo, trimestre, reporteTipo, nombreRector, imgLogoIzq, imgLogoDer);
-      });
-
-      const nombreLimpioCurso = nombreCursoLargo.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
-      const sufijo = (reporteTipo === 'trimestre') ? `TRIMESTRE_${trimestre}` : `TRIMESTRE_${trimestre}_PARCIAL_${reporteTipo}`;
-      doc.save(`CONSOLIDADO_${nombreLimpioCurso}_${sufijo}.pdf`);
+      const { jsPDF } = window.jspdf; const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const cursoId = document.getElementById('selectCurso').value, trimestre = parseInt(document.getElementById('selectTrimestre').value), reporteTipo = document.getElementById('selectParcialTutoria').value;
+      const cursoInfo = todosCursos.find(c => String(c.id) === String(cursoId)), nombreCursoLargo = (cursoInfo?.nombre_largo_mayuscula || cursoInfo?.nombre || '').toUpperCase(), nombreRector = 'ING. DÍDIMO A. SALTOS S.';
+      const imgLogoIzq = await obtenerBase64DesdeUrl(infoInstitucion?.logo_izquierdo || infoInstitucion?.logo_institucion), imgLogoDer = await obtenerBase64DesdeUrl(infoInstitucion?.logo_derecho || infoInstitucion?.escudo_nacional);
+      datosConsolidadoTutoria.forEach((est, idx) => { if (idx > 0) doc.addPage(); construirPaginaLibreta(doc, est, nombreCursoLargo, trimestre, reporteTipo, nombreRector, imgLogoIzq, imgLogoDer); });
+      doc.save(`CONSOLIDADO_${nombreCursoLargo.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '')}_${(reporteTipo === 'trimestre') ? `TRIMESTRE_${trimestre}` : `TRIMESTRE_${trimestre}_PARCIAL_${reporteTipo}`}.pdf`);
     }
 
     async function generarBoletaIndividualPDF(indice) {
-      const est = datosConsolidadoTutoria[indice];
-      if (!est) return;
-
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-
-      const cursoId = document.getElementById('selectCurso').value;
-      const trimestre = parseInt(document.getElementById('selectTrimestre').value);
-      const reporteTipo = document.getElementById('selectParcialTutoria').value;
-
-      const cursoInfo = todosCursos.find(c => c.id == cursoId);
-      const nombreCursoLargo = (cursoInfo?.nombre_largo_mayuscula || cursoInfo?.nombre || '').toUpperCase();
-      const nombreRector = 'ING. DÍDIMO A. SALTOS S.';
-
-      const imgLogoIzq = await obtenerBase64DesdeUrl(infoInstitucion?.logo_izquierdo || infoInstitucion?.logo_institucion);
-      const imgLogoDer = await obtenerBase64DesdeUrl(infoInstitucion?.logo_derecho || infoInstitucion?.escudo_nacional);
-
+      const est = datosConsolidadoTutoria[indice]; if (!est) return;
+      const { jsPDF } = window.jspdf; const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const cursoId = document.getElementById('selectCurso').value, trimestre = parseInt(document.getElementById('selectTrimestre').value), reporteTipo = document.getElementById('selectParcialTutoria').value;
+      const cursoInfo = todosCursos.find(c => String(c.id) === String(cursoId)), nombreCursoLargo = (cursoInfo?.nombre_largo_mayuscula || cursoInfo?.nombre || '').toUpperCase(), nombreRector = 'ING. DÍDIMO A. SALTOS S.';
+      const imgLogoIzq = await obtenerBase64DesdeUrl(infoInstitucion?.logo_izquierdo || infoInstitucion?.logo_institucion), imgLogoDer = await obtenerBase64DesdeUrl(infoInstitucion?.logo_derecho || infoInstitucion?.escudo_nacional);
       construirPaginaLibreta(doc, est, nombreCursoLargo, trimestre, reporteTipo, nombreRector, imgLogoIzq, imgLogoDer);
-
-      const nombreCursoFormat = (cursoInfo?.nombre || nombreCursoLargo).replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
-      const nombreEstFormat = est.nombres.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
-      const sufijo = (reporteTipo === 'trimestre') ? `TRIMESTRE_${trimestre}` : `TRIMESTRE_${trimestre}_PARCIAL_${reporteTipo}`;
-
-      doc.save(`${nombreCursoFormat}_${nombreEstFormat}_${sufijo}.pdf`);
+      doc.save(`${(cursoInfo?.nombre || nombreCursoLargo).replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '')}_${est.nombres.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '')}_${(reporteTipo === 'trimestre') ? `TRIMESTRE_${trimestre}` : `TRIMESTRE_${trimestre}_PARCIAL_${reporteTipo}`}.pdf`);
     }
 
     async function descargarTodasBoletasEnZip() {
       if (!datosConsolidadoTutoria || datosConsolidadoTutoria.length === 0) return alert('No hay datos para exportar.');
-
-      const btn = document.getElementById('btnDescargarZipIndividuales');
-      btn.disabled = true;
-      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Generando ZIP...';
-
+      const btn = document.getElementById('btnDescargarZipIndividuales'); btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> ZIP...';
       try {
-        const { jsPDF } = window.jspdf;
-        const zip = new JSZip();
-
-        const cursoId = document.getElementById('selectCurso').value;
-        const trimestre = parseInt(document.getElementById('selectTrimestre').value);
-        const reporteTipo = document.getElementById('selectParcialTutoria').value;
-
-        const cursoInfo = todosCursos.find(c => c.id == cursoId);
-        const nombreCursoLargo = (cursoInfo?.nombre_largo_mayuscula || cursoInfo?.nombre || '').toUpperCase();
-        const nombreCursoFormat = (cursoInfo?.nombre || nombreCursoLargo).replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
-        const nombreRector = 'ING. DÍDIMO A. SALTOS S.';
-
-        const imgLogoIzq = await obtenerBase64DesdeUrl(infoInstitucion?.logo_izquierdo || infoInstitucion?.logo_institucion);
-        const imgLogoDer = await obtenerBase64DesdeUrl(infoInstitucion?.logo_derecho || infoInstitucion?.escudo_nacional);
-
+        const { jsPDF } = window.jspdf; const zip = new JSZip();
+        const cursoId = document.getElementById('selectCurso').value, trimestre = parseInt(document.getElementById('selectTrimestre').value), reporteTipo = document.getElementById('selectParcialTutoria').value;
+        const cursoInfo = todosCursos.find(c => String(c.id) === String(cursoId)), nombreCursoLargo = (cursoInfo?.nombre_largo_mayuscula || cursoInfo?.nombre || '').toUpperCase(), nombreCursoFormat = (cursoInfo?.nombre || nombreCursoLargo).replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, ''), nombreRector = 'ING. DÍDIMO A. SALTOS S.';
+        const imgLogoIzq = await obtenerBase64DesdeUrl(infoInstitucion?.logo_izquierdo || infoInstitucion?.logo_institucion), imgLogoDer = await obtenerBase64DesdeUrl(infoInstitucion?.logo_derecho || infoInstitucion?.escudo_nacional);
         for (let i = 0; i < datosConsolidadoTutoria.length; i++) {
-          const est = datosConsolidadoTutoria[i];
-          const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+          const est = datosConsolidadoTutoria[i], doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
           construirPaginaLibreta(doc, est, nombreCursoLargo, trimestre, reporteTipo, nombreRector, imgLogoIzq, imgLogoDer);
-
-          const nombreEstFormat = est.nombres.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
-          const sufijo = (reporteTipo === 'trimestre') ? `TRIMESTRE_${trimestre}` : `TRIMESTRE_${trimestre}_PARCIAL_${reporteTipo}`;
-          const nombreArchivo = `${nombreCursoFormat}_${nombreEstFormat}_${sufijo}.pdf`;
-
-          const pdfBlob = doc.output('blob');
-          zip.file(nombreArchivo, pdfBlob);
+          zip.file(`${nombreCursoFormat}_${est.nombres.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '')}_${(reporteTipo === 'trimestre') ? `TRIMESTRE_${trimestre}` : `TRIMESTRE_${trimestre}_PARCIAL_${reporteTipo}`}.pdf`, doc.output('blob'));
         }
-
         const zipBlob = await zip.generateAsync({ type: 'blob' });
-        const sufijoZip = (reporteTipo === 'trimestre') ? `TRIMESTRE_${trimestre}` : `TRIMESTRE_${trimestre}_PARCIAL_${reporteTipo}`;
-        saveAs(zipBlob, `BOLETAS_${nombreCursoFormat}_${sufijoZip}.zip`);
-      } catch (err) {
-        alert('Error al generar ZIP: ' + err.message);
-      } finally {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="bi bi-file-earmark-zip-fill me-1"></i>Individuales (ZIP)';
-      }
+        saveAs(zipBlob, `BOLETAS_${nombreCursoFormat}_${(reporteTipo === 'trimestre') ? `TRIMESTRE_${trimestre}` : `TRIMESTRE_${trimestre}_PARCIAL_${reporteTipo}`}.zip`);
+      } catch (err) { alert('Error: ' + err.message); } finally { btn.disabled = false; btn.innerHTML = '<i class="bi bi-file-earmark-zip-fill me-1"></i>ZIP'; }
     }
 
-    // ==========================================
-    // PARCIAL ACADÉMICO / ASISTENCIA / COMPORTAMIENTO
-    // ==========================================
     function capturarNotasDeLaTabla() {
       const filas = document.querySelectorAll('#tablaCuerpo tr');
       filas.forEach(tr => {
@@ -1573,6 +805,450 @@
           notasActualesMemoria[estId] = { i1: notas1, i2: notas2 };
         }
       });
+    }
+
+    function agregarActividad(insumo) {
+      capturarNotasDeLaTabla();
+      if (insumo === 1) {
+        configActividades.insumo1.push(catalogo[0] || 'Actuación en clases');
+        Object.keys(notasActualesMemoria).forEach(k => { if (!notasActualesMemoria[k].i1) notasActualesMemoria[k].i1 = []; notasActualesMemoria[k].i1.push(''); });
+      } else {
+        configActividades.insumo2.push(catalogo[0] || 'Trabajo Grupal');
+        Object.keys(notasActualesMemoria).forEach(k => { if (!notasActualesMemoria[k].i2) notasActualesMemoria[k].i2 = []; notasActualesMemoria[k].i2.push(''); });
+      }
+      renderizarTablaParcial();
+    }
+
+    function eliminarActividad(insumo, index) {
+      capturarNotasDeLaTabla();
+      if (insumo === 1) {
+        configActividades.insumo1.splice(index, 1);
+        Object.keys(notasActualesMemoria).forEach(k => { if (notasActualesMemoria[k] && notasActualesMemoria[k].i1) notasActualesMemoria[k].i1.splice(index, 1); });
+      } else {
+        configActividades.insumo2.splice(index, 1);
+        Object.keys(notasActualesMemoria).forEach(k => { if (notasActualesMemoria[k] && notasActualesMemoria[k].i2) notasActualesMemoria[k].i2.splice(index, 1); });
+      }
+      renderizarTablaParcial();
+    }
+
+    function autoLlenarColumnaActividad(insumo, colIndex) {
+      const selectorClase = insumo === 1 ? `.col-act-i1-${colIndex}` : `.col-act-i2-${colIndex}`;
+      document.querySelectorAll(selectorClase).forEach(input => { input.value = '10'; input.className = `form-control form-control-sm input-nota-app ${insumo === 1 ? 'nota-i1' : 'nota-i2'} col-act-i${insumo}-${colIndex} ${obtenerClaseColor('10', false)}`; });
+      document.querySelectorAll('#tablaCuerpo tr').forEach(fila => calcularFilaParcial(fila));
+    }
+
+    function limpiarColumnaActividad(insumo, colIndex) {
+      const selectorClase = insumo === 1 ? `.col-act-i1-${colIndex}` : `.col-act-i2-${colIndex}`;
+      document.querySelectorAll(selectorClase).forEach(input => { input.value = ''; input.className = `form-control form-control-sm input-nota-app ${insumo === 1 ? 'nota-i1' : 'nota-i2'} col-act-i${insumo}-${colIndex}`; });
+      document.querySelectorAll('#tablaCuerpo tr').forEach(fila => calcularFilaParcial(fila));
+    }
+
+    function autoLlenarTodoCon10() {
+      if (!confirm('¿Desea rellenar con 10 todas las calificaciones vacías?')) return;
+      document.querySelectorAll('#tablaCuerpo input[type="number"]').forEach(input => { if (!input.value) input.value = '10'; });
+      document.querySelectorAll('#tablaCuerpo tr').forEach(fila => calcularFilaParcial(fila));
+    }
+
+    function limpiarTodasNotasParcial() {
+      if (!confirm('¿Desea limpiar TODAS las calificaciones de la tabla actual?')) return;
+      document.querySelectorAll('#tablaCuerpo input[type="number"]').forEach(input => { input.value = ''; });
+      document.querySelectorAll('#tablaCuerpo tr').forEach(fila => calcularFilaParcial(fila));
+    }
+
+    async function cargarVistaParcial(parcialNum) {
+      const reqId = ++currentViewRequestId;
+      const asigId = document.getElementById('selectMateria').value.trim();
+      const trimestre = parseInt(document.getElementById('selectTrimestre').value);
+      const contenedor = document.getElementById('contenedorTabla');
+      contenedor.innerHTML = '<div class="py-4 text-center"><div class="spinner-border text-primary me-2"></div>Cargando parcial...</div>';
+
+      const asig = todasAsignaciones.find(a => String(a.id) === asigId);
+      if (!asig) { if (reqId === currentViewRequestId) contenedor.innerHTML = '<div class="py-4 text-muted text-center">Seleccione un Curso y una Materia.</div>'; return; }
+
+      try {
+        const { data: confData } = await supabaseClient.from('config_parcial_cabeceras').select('*').eq('asignacion_id', parseInt(asigId)).eq('trimestre', trimestre).eq('parcial', parcialNum).maybeSingle();
+        if (reqId !== currentViewRequestId) return;
+        configActividades.insumo1 = confData?.actividades_insumo1 || ['Actuación en clases', 'Participación en Clases', 'Actuación en clases', 'Lección en clases'];
+        configActividades.insumo2 = confData?.actividades_insumo2 || ['Colaboración en el Aula'];
+
+        const { data: estData } = await supabaseClient.from('estudiantes').select('*').eq('curso_id', parseInt(asig.curso_id)).order('nombres');
+        if (reqId !== currentViewRequestId) return;
+        estudiantes = estData || [];
+
+        const { data: notasData } = await supabaseClient.from('notas_parcial_actividades').select('*').eq('asignacion_id', parseInt(asigId)).eq('trimestre', trimestre).eq('parcial', parcialNum);
+        if (reqId !== currentViewRequestId) return;
+
+        notasActualesMemoria = {};
+        (notasData || []).forEach(n => { notasActualesMemoria[n.estudiante_id] = { i1: n.insumo1_notas || [], i2: n.insumo2_notas || [] }; });
+        renderizarTablaParcial();
+      } catch (err) {
+        if (reqId === currentViewRequestId) contenedor.innerHTML = `<div class="py-4 text-danger text-center fw-bold">Error: ${err.message}</div>`;
+      }
+    }
+
+    function renderizarTablaParcial() {
+      const contenedor = document.getElementById('contenedorTabla');
+      const colIns1 = Math.max(configActividades.insumo1.length, 1);
+      const colIns2 = Math.max(configActividades.insumo2.length, 1);
+
+      let thIns1 = configActividades.insumo1.length === 0 ? '<th class="text-muted fst-italic py-2" style="font-size:0.75rem;">Sin actividades</th>' 
+        : configActividades.insumo1.map((act, i) => `<th class="th-actividad"><div class="d-flex justify-content-between align-items-center mb-1"><span class="badge bg-primary">${i+1}</span><div class="d-flex gap-1 align-items-center"><button type="button" class="btn btn-xs btn-outline-success btn-act-header" title="Llenar 10" onclick="autoLlenarColumnaActividad(1, ${i})">10</button><button type="button" class="btn btn-xs btn-outline-secondary btn-act-header" title="Limpiar" onclick="limpiarColumnaActividad(1, ${i})"><i class="bi bi-eraser-fill"></i></button><button type="button" class="btn-del-col" title="Quitar actividad" onclick="eliminarActividad(1, ${i})"><i class="bi bi-x-lg"></i></button></div></div><select class="select-act-custom" onchange="configActividades.insumo1[${i}]=this.value">${catalogo.map(c => `<option value="${c}" ${c === act ? 'selected' : ''}>${c}</option>`).join('')}</select></th>`).join('');
+
+      let thIns2 = configActividades.insumo2.length === 0 ? '<th class="text-muted fst-italic py-2" style="font-size:0.75rem;">Sin actividades</th>' 
+        : configActividades.insumo2.map((act, i) => `<th class="th-actividad"><div class="d-flex justify-content-between align-items-center mb-1"><span class="badge bg-info text-dark">${i+1}</span><div class="d-flex gap-1 align-items-center"><button type="button" class="btn btn-xs btn-outline-success btn-act-header" title="Llenar 10" onclick="autoLlenarColumnaActividad(2, ${i})">10</button><button type="button" class="btn btn-xs btn-outline-secondary btn-act-header" title="Limpiar" onclick="limpiarColumnaActividad(2, ${i})"><i class="bi bi-eraser-fill"></i></button><button type="button" class="btn-del-col" title="Quitar actividad" onclick="eliminarActividad(2, ${i})"><i class="bi bi-x-lg"></i></button></div></div><select class="select-act-custom" onchange="configActividades.insumo2[${i}]=this.value">${catalogo.map(c => `<option value="${c}" ${c === act ? 'selected' : ''}>${c}</option>`).join('')}</select></th>`).join('');
+
+      let html = `
+        <table class="table table-bordered table-sm mb-0 align-middle">
+          <thead>
+            <tr>
+              <th rowspan="2" class="sticky-col-num">No.</th>
+              <th rowspan="2" class="sticky-col-nombre text-center">Nómina del Estudiante</th>
+              <th colspan="${colIns1}" class="bg-insumo1">INSUMO 1 (Actividades Individuales)</th>
+              <th rowspan="2" class="bg-prom-ins" style="width: 75px;">Promedio Insumo 1</th>
+              <th colspan="${colIns2}" class="bg-insumo2">INSUMO 2 (Actividades Grupales)</th>
+              <th rowspan="2" class="bg-prom-ins" style="width: 75px;">Promedio Insumo 2</th>
+              <th rowspan="2" class="bg-nota-final" style="width: 80px;">Nota Parcial</th>
+            </tr>
+            <tr>${thIns1}${thIns2}</tr>
+          </thead>
+          <tbody id="tablaCuerpo">
+            ${estudiantes.map((est, idx) => {
+              const memData = notasActualesMemoria[est.id] || { i1: [], i2: [] }, i1Notas = memData.i1 || [], i2Notas = memData.i2 || [];
+              const inp1 = configActividades.insumo1.length === 0 ? '<td class="text-muted">-</td>' : configActividades.insumo1.map((_, i) => `<td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app nota-i1 col-act-i1-${i}" value="${i1Notas[i] !== undefined && i1Notas[i] !== null ? i1Notas[i] : ''}" oninput="validarYCalcularParcial(this)"></td>`).join('');
+              const inp2 = configActividades.insumo2.length === 0 ? '<td class="text-muted">-</td>' : configActividades.insumo2.map((_, i) => `<td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app nota-i2 col-act-i2-${i}" value="${i2Notas[i] !== undefined && i2Notas[i] !== null ? i2Notas[i] : ''}" oninput="validarYCalcularParcial(this)"></td>`).join('');
+              return `<tr data-estudiante-id="${est.id}"><td class="sticky-col-num fw-bold text-muted">${idx + 1}</td><td class="sticky-col-nombre" title="${est.nombres}">${formatearNombreVisual(est.nombres)}</td>${inp1}<td class="prom-i1">0.00</td>${inp2}<td class="prom-i2">0.00</td><td class="nota-parcial">0.00</td></tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      `;
+      contenedor.innerHTML = html;
+      document.querySelectorAll('#tablaCuerpo tr').forEach(fila => calcularFilaParcial(fila));
+    }
+
+    function validarYCalcularParcial(input) {
+      if (parseFloat(input.value) > 10) input.value = 10;
+      if (parseFloat(input.value) < 0) input.value = 0;
+      calcularFilaParcial(input.closest('tr'));
+    }
+
+    function calcularFilaParcial(tr) {
+      const inputs1 = Array.from(tr.querySelectorAll('.nota-i1')), inputs2 = Array.from(tr.querySelectorAll('.nota-i2'));
+      inputs1.forEach(i => { const colClase = Array.from(i.classList).find(c => c.startsWith('col-act-')) || ''; i.className = `form-control form-control-sm input-nota-app nota-i1 ${colClase} ${obtenerClaseColor(i.value, false)}`; });
+      inputs2.forEach(i => { const colClase = Array.from(i.classList).find(c => c.startsWith('col-act-')) || ''; i.className = `form-control form-control-sm input-nota-app nota-i2 ${colClase} ${obtenerClaseColor(i.value, false)}`; });
+
+      const cantAct1 = configActividades.insumo1.length, cantAct2 = configActividades.insumo2.length;
+      const suma1 = inputs1.reduce((acc, inp) => acc + (parseFloat(inp.value) || 0), 0), suma2 = inputs2.reduce((acc, inp) => acc + (parseFloat(inp.value) || 0), 0);
+      const prom1 = cantAct1 > 0 ? (suma1 / cantAct1) : 0, prom2 = cantAct2 > 0 ? (suma2 / cantAct2) : 0, total = (prom1 + prom2) / 2;
+
+      const cProm1 = tr.querySelector('.prom-i1'), cProm2 = tr.querySelector('.prom-i2'), cTotal = tr.querySelector('.nota-parcial');
+      if (cProm1) { cProm1.innerText = prom1.toFixed(2); cProm1.className = `prom-i1 fw-bold ${obtenerClaseColor(prom1, true)}`; }
+      if (cProm2) { cProm2.innerText = prom2.toFixed(2); cProm2.className = `prom-i2 fw-bold ${obtenerClaseColor(prom2, true)}`; }
+      if (cTotal) { cTotal.innerText = total.toFixed(2); cTotal.className = `nota-parcial fw-bold ${obtenerClaseColor(total, true)}`; }
+    }
+
+    async function cargarVistaComportamiento(parcialNum) {
+      const reqId = ++currentViewRequestId;
+      const asigId = document.getElementById('selectMateria').value.trim();
+      const trimestre = parseInt(document.getElementById('selectTrimestre').value);
+      const contenedor = document.getElementById('contenedorTabla');
+      contenedor.innerHTML = `<div class="py-4 text-center"><div class="spinner-border text-primary me-2"></div>Cargando comportamiento...</div>`;
+
+      const asig = todasAsignaciones.find(a => String(a.id) === asigId);
+      if (!asig) { if (reqId === currentViewRequestId) contenedor.innerHTML = '<div class="py-4 text-muted text-center">Seleccione un Curso y una Materia.</div>'; return; }
+
+      try {
+        const { data: estData } = await supabaseClient.from('estudiantes').select('*').eq('curso_id', parseInt(asig.curso_id)).order('nombres');
+        if (reqId !== currentViewRequestId) return;
+        estudiantes = estData || [];
+
+        const { data: compData } = await supabaseClient.from('comportamiento_parcial').select('*').eq('asignacion_id', parseInt(asigId)).eq('trimestre', trimestre).eq('parcial', parcialNum);
+        if (reqId !== currentViewRequestId) return;
+        const compMap = {}; (compData || []).forEach(c => { compMap[c.estudiante_id] = c; });
+
+        let html = `
+          <table class="table table-bordered table-sm mb-0 align-middle">
+            <thead>
+              <tr>
+                <th rowspan="2" class="sticky-col-num">N°</th>
+                <th rowspan="2" class="sticky-col-nombre text-center">NÓMINA / INDICADORES</th>
+                <th>Puntualidad</th><th colspan="3">Limpieza</th><th colspan="2">Respeto y Consideración</th><th colspan="2">Valoración Diversidad</th><th>Patrimonio</th><th>Propiedad</th>
+                <th rowspan="2" class="bg-prom-ins" style="width: 75px;">TOTAL CUANT.</th><th rowspan="2" class="bg-nota-final" style="width: 75px;">TOTAL CUALIT.</th>
+              </tr>
+              <tr class="bg-light">
+                <th class="th-comp-ind">1. Asiste puntual</th><th class="th-comp-ind">2. Aseo personal</th><th class="th-comp-ind">3. Aseo lugar trab.</th><th class="th-comp-ind">4. Aseo del aula</th><th class="th-comp-ind">5. Saludo cordial</th><th class="th-comp-ind">6. Evita leng. soez</th><th class="th-comp-ind">7. Leng. no agresivo</th><th class="th-comp-ind">8. Tolerancia div.</th><th class="th-comp-ind">9. Cuida infraest.</th><th class="th-comp-ind">10. Respeta objeto</th>
+              </tr>
+            </thead>
+            <tbody id="tablaCuerpoComp">
+              ${estudiantes.map((est, idx) => {
+                const c = compMap[est.id] || {}, v = (val) => val !== undefined && val !== null ? val : '10';
+                return `<tr data-estudiante-id="${est.id}"><td class="sticky-col-num fw-bold text-muted">${idx + 1}</td><td class="sticky-col-nombre" title="${est.nombres}">${formatearNombreVisual(est.nombres)}</td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind1" value="${v(c.ind1)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind2" value="${v(c.ind2)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind3" value="${v(c.ind3)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind4" value="${v(c.ind4)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind5" value="${v(c.ind5)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind6" value="${v(c.ind6)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind7" value="${v(c.ind7)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind8" value="${v(c.ind8)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind9" value="${v(c.ind9)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind10" value="${v(c.ind10)}" oninput="validarYCalcularComp(this)"></td><td class="total-cuant fw-bold">10.00</td><td class="total-cualit fw-bold">A</td></tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        `;
+        if (reqId === currentViewRequestId) { contenedor.innerHTML = html; document.querySelectorAll('#tablaCuerpoComp tr').forEach(fila => calcularFilaComp(fila)); }
+      } catch (err) {
+        if (reqId === currentViewRequestId) contenedor.innerHTML = `<div class="py-4 text-danger text-center fw-bold">Error: ${err.message}</div>`;
+      }
+    }
+
+    function validarYCalcularComp(input) {
+      if (parseFloat(input.value) > 10) input.value = 10;
+      if (parseFloat(input.value) < 0) input.value = 0;
+      calcularFilaComp(input.closest('tr'));
+    }
+
+    function calcularFilaComp(tr) {
+      const inputs = Array.from(tr.querySelectorAll('.comp-ind'));
+      const valores = inputs.map(i => parseFloat(i.value)).filter(n => !isNaN(n));
+      const promedio = valores.length > 0 ? (valores.reduce((a, b) => a + b, 0) / valores.length) : 0;
+      const cualitativo = convertirCualitativo(promedio);
+
+      const celdaCuant = tr.querySelector('.total-cuant'), celdaCualit = tr.querySelector('.total-cualit');
+      if (celdaCuant) { celdaCuant.innerText = promedio.toFixed(2); celdaCuant.className = `total-cuant fw-bold ${obtenerClaseColor(promedio, true)}`; }
+      if (celdaCualit) { celdaCualit.innerText = cualitativo; celdaCualit.className = `total-cualit fw-bold ${obtenerClaseColor(promedio, true)}`; }
+    }
+
+    function llenarTodoCon10Comportamiento() {
+      document.querySelectorAll('#tablaCuerpoComp .comp-ind').forEach(inp => { inp.value = '10'; });
+      document.querySelectorAll('#tablaCuerpoComp tr').forEach(fila => calcularFilaComp(fila));
+    }
+
+    async function cargarVistaResumenTrimestre() {
+      const reqId = ++currentViewRequestId;
+      const asigId = document.getElementById('selectMateria').value.trim();
+      const trimestre = parseInt(document.getElementById('selectTrimestre').value);
+      const contenedor = document.getElementById('contenedorTabla');
+      contenedor.innerHTML = '<div class="py-4 text-center"><div class="spinner-border text-primary me-2"></div>Cargando consolidado del trimestre...</div>';
+
+      const asig = todasAsignaciones.find(a => String(a.id) === asigId);
+      if (!asig) { if (reqId === currentViewRequestId) contenedor.innerHTML = '<div class="py-4 text-muted text-center">Seleccione un Curso y una Materia.</div>'; return; }
+
+      try {
+        const { data: estData } = await supabaseClient.from('estudiantes').select('*').eq('curso_id', parseInt(asig.curso_id)).order('nombres');
+        if (reqId !== currentViewRequestId) return;
+        estudiantes = estData || [];
+
+        const { data: pData } = await supabaseClient.from('notas_parcial_actividades').select('*').eq('asignacion_id', parseInt(asigId)).eq('trimestre', trimestre);
+        if (reqId !== currentViewRequestId) return;
+        const notasP1 = {}, notasP2 = {};
+        (pData || []).forEach(n => {
+          if (n.parcial === 1) notasP1[n.estudiante_id] = n.nota_parcial || 0;
+          if (n.parcial === 2) notasP2[n.estudiante_id] = n.nota_parcial || 0;
+        });
+
+        const { data: compData } = await supabaseClient.from('comportamiento_parcial').select('*').eq('asignacion_id', parseInt(asigId)).eq('trimestre', trimestre);
+        if (reqId !== currentViewRequestId) return;
+        const compP1 = {}, compP2 = {};
+        (compData || []).forEach(c => {
+          if (c.parcial === 1) compP1[c.estudiante_id] = parseFloat(c.total_cuantitativo) || 0;
+          if (c.parcial === 2) compP2[c.estudiante_id] = parseFloat(c.total_cuantitativo) || 0;
+        });
+
+        const { data: tData } = await supabaseClient.from('notas_trimestre').select('*').eq('asignacion_id', parseInt(asigId)).eq('trimestre', trimestre);
+        if (reqId !== currentViewRequestId) return;
+        const trimMap = {};
+        (tData || []).forEach(t => { trimMap[t.estudiante_id] = t; });
+
+        let html = `
+          <table class="table table-bordered table-sm mb-0 align-middle">
+            <thead class="table-dark">
+              <tr>
+                <th class="sticky-col-num">No.</th>
+                <th class="sticky-col-nombre text-center">Nómina del Estudiante</th>
+                <th style="width: 90px;">Parcial 1 (35%)</th>
+                <th style="width: 90px;">Parcial 2 (35%)</th>
+                <th class="bg-examen" style="width: 100px;">Examen (30%)</th>
+                <th style="width: 110px;">Total Trimestre</th>
+                <th style="width: 110px;">Comp. Trimestral</th>
+              </tr>
+            </thead>
+            <tbody id="tablaCuerpoTrimestre">
+              ${estudiantes.map((est, idx) => {
+                const p1 = parseFloat(notasP1[est.id] || 0), p2 = parseFloat(notasP2[est.id] || 0), tInfo = trimMap[est.id] || {};
+                const ex = tInfo.examen !== undefined && tInfo.examen !== null ? tInfo.examen : '';
+                const cp1 = compP1[est.id] !== undefined ? compP1[est.id] : 10, cp2 = compP2[est.id] !== undefined ? compP2[est.id] : 10;
+                const compPromNum = (cp1 + cp2) / 2, compCualit = convertirCualitativo(compPromNum);
+
+                return `
+                  <tr data-estudiante-id="${est.id}" data-comp-num="${compPromNum.toFixed(2)}" data-comp-letra="${compCualit}">
+                    <td class="sticky-col-num fw-bold text-muted">${idx + 1}</td>
+                    <td class="sticky-col-nombre" title="${est.nombres}">${formatearNombreVisual(est.nombres)}</td>
+                    <td class="p1-val">${p1.toFixed(2)}</td>
+                    <td class="p2-val">${p2.toFixed(2)}</td>
+                    <td><input type="number" step="0.5" min="0" max="10" class="form-control form-control-sm input-nota-app nota-examen" value="${ex}" oninput="validarYCalcularTrimestre(this)"></td>
+                    <td class="total-trimestre">0.00</td>
+                    <td class="comp-trimestral-badge fw-bold">${compPromNum.toFixed(2)} (${compCualit})</td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+        `;
+        if (reqId === currentViewRequestId) { contenedor.innerHTML = html; document.querySelectorAll('#tablaCuerpoTrimestre tr').forEach(fila => calcularFilaTrimestre(fila)); }
+      } catch (err) {
+        if (reqId === currentViewRequestId) contenedor.innerHTML = `<div class="py-4 text-danger text-center fw-bold">Error: ${err.message}</div>`;
+      }
+    }
+
+    function validarYCalcularTrimestre(input) {
+      if (parseFloat(input.value) > 10) input.value = 10;
+      if (parseFloat(input.value) < 0) input.value = 0;
+      calcularFilaTrimestre(input.closest('tr'));
+    }
+
+    function calcularFilaTrimestre(tr) {
+      const p1 = parseFloat(tr.querySelector('.p1-val').innerText) || 0, p2 = parseFloat(tr.querySelector('.p2-val').innerText) || 0;
+      const inputEx = tr.querySelector('.nota-examen'), ex = parseFloat(inputEx.value) || 0;
+      inputEx.className = `form-control form-control-sm input-nota-app nota-examen ${obtenerClaseColor(inputEx.value, false)}`;
+      const total = (p1 * 0.35) + (p2 * 0.35) + (ex * 0.30);
+      const celdaTotal = tr.querySelector('.total-trimestre');
+      if (celdaTotal) { celdaTotal.innerText = total.toFixed(2); celdaTotal.className = `total-trimestre fw-bold ${obtenerClaseColor(total, true)}`; }
+    }
+
+    async function cargarVistaResumenAnual() {
+      const reqId = ++currentViewRequestId;
+      const asigId = document.getElementById('selectMateria').value.trim();
+      const contenedor = document.getElementById('contenedorTabla');
+      contenedor.innerHTML = '<div class="py-4 text-center"><div class="spinner-border text-primary me-2"></div>Cargando sábana anual...</div>';
+
+      const asig = todasAsignaciones.find(a => String(a.id) === asigId);
+      if (!asig) { if (reqId === currentViewRequestId) contenedor.innerHTML = '<div class="py-4 text-muted text-center">Seleccione un Curso y una Materia.</div>'; return; }
+
+      try {
+        const { data: estData } = await supabaseClient.from('estudiantes').select('*').eq('curso_id', parseInt(asig.curso_id)).order('nombres');
+        if (reqId !== currentViewRequestId) return;
+        estudiantes = estData || [];
+
+        const { data: pData } = await supabaseClient.from('notas_parcial_actividades').select('*').eq('asignacion_id', parseInt(asigId));
+        const { data: tData } = await supabaseClient.from('notas_trimestre').select('*').eq('asignacion_id', parseInt(asigId));
+        const { data: cData } = await supabaseClient.from('comportamiento_parcial').select('*').eq('asignacion_id', parseInt(asigId));
+        if (reqId !== currentViewRequestId) return;
+
+        const notasMatriz = {}, compMatriz = {};
+        estudiantes.forEach(e => {
+          notasMatriz[e.id] = { 1: { p1: 0, p2: 0, ex: 0 }, 2: { p1: 0, p2: 0, ex: 0 }, 3: { p1: 0, p2: 0, ex: 0 } };
+          compMatriz[e.id] = { 1: { p1: 10, p2: 10 }, 2: { p1: 10, p2: 10 }, 3: { p1: 10, p2: 10 } };
+        });
+
+        (pData || []).forEach(n => {
+          if (notasMatriz[n.estudiante_id] && notasMatriz[n.estudiante_id][n.trimestre]) {
+            if (n.parcial === 1) notasMatriz[n.estudiante_id][n.trimestre].p1 = n.nota_parcial || 0;
+            if (n.parcial === 2) notasMatriz[n.estudiante_id][n.trimestre].p2 = n.nota_parcial || 0;
+          }
+        });
+
+        (tData || []).forEach(t => { if (notasMatriz[t.estudiante_id] && notasMatriz[t.estudiante_id][t.trimestre]) { notasMatriz[t.estudiante_id][t.trimestre].ex = t.examen || 0; } });
+
+        (cData || []).forEach(c => {
+          if (compMatriz[c.estudiante_id] && compMatriz[c.estudiante_id][c.trimestre]) {
+            if (c.parcial === 1) compMatriz[c.estudiante_id][c.trimestre].p1 = parseFloat(c.total_cuantitativo) || 0;
+            if (c.parcial === 2) compMatriz[c.estudiante_id][c.trimestre].p2 = parseFloat(c.total_cuantitativo) || 0;
+          }
+        });
+
+        datosResumenAnualActual = [];
+
+        let html = `
+          <table class="table table-bordered table-sm mb-0 align-middle">
+            <thead class="table-dark">
+              <tr>
+                <th rowspan="2" class="sticky-col-num">No.</th>
+                <th rowspan="2" class="sticky-col-nombre text-center">Apellidos y Nombres</th>
+                <th colspan="3" class="bg-dark text-white">CALIFICACIONES ACADÉMICAS</th>
+                <th rowspan="2" class="bg-dark text-white" style="width: 95px;">Promedio Anual</th>
+                <th colspan="3" class="bg-dark text-white">COMPORTAMIENTO</th>
+                <th rowspan="2" class="bg-dark text-white" style="width: 100px;">Comp. Anual</th>
+                <th rowspan="2" class="bg-dark text-white" style="width: 110px;">Estado</th>
+              </tr>
+              <tr class="bg-secondary text-white">
+                <th style="width: 75px;">1er Trim.</th><th style="width: 75px;">2do Trim.</th><th style="width: 75px;">3er Trim.</th><th style="width: 70px;">1er T.</th><th style="width: 70px;">2do T.</th><th style="width: 70px;">3er T.</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${estudiantes.map((est, idx) => {
+                const reg = notasMatriz[est.id] || {}, cReg = compMatriz[est.id] || {};
+                const t1 = (reg[1].p1 * 0.35) + (reg[1].p2 * 0.35) + (reg[1].ex * 0.30);
+                const t2 = (reg[2].p1 * 0.35) + (reg[2].p2 * 0.35) + (reg[2].ex * 0.30);
+                const t3 = (reg[3].p1 * 0.35) + (reg[3].p2 * 0.35) + (reg[3].ex * 0.30);
+                const promAnual = (t1 + t2 + t3) / 3;
+
+                const ct1 = (cReg[1].p1 + cReg[1].p2) / 2, ct2 = (cReg[2].p1 + cReg[2].p2) / 2, ct3 = (cReg[3].p1 + cReg[3].p2) / 2;
+                const promCompAnual = (ct1 + ct2 + ct3) / 3, letraCompAnual = convertirCualitativo(promCompAnual);
+
+                const obsBadge = promAnual >= 7 ? '<span class="badge bg-success">APROBADO</span>' : (promAnual >= 4 ? '<span class="badge bg-warning text-dark">SUPLETORIO</span>' : '<span class="badge bg-danger">REPROBADO</span>');
+                const estadoTexto = promAnual >= 7 ? 'APROBADO' : (promAnual >= 4 ? 'SUPLETORIO' : 'REPROBADO');
+
+                datosResumenAnualActual.push({
+                  num: idx + 1, nombres: est.nombres, t1: t1.toFixed(2), t2: t2.toFixed(2), t3: t3.toFixed(2), promAnual: promAnual.toFixed(2), ct1: `${ct1.toFixed(2)} (${convertirCualitativo(ct1)})`, ct2: `${ct2.toFixed(2)} (${convertirCualitativo(ct2)})`, ct3: `${ct3.toFixed(2)} (${convertirCualitativo(ct3)})`, compAnual: `${promCompAnual.toFixed(2)} (${letraCompAnual})`, estado: estadoTexto
+                });
+
+                return `
+                  <tr>
+                    <td class="sticky-col-num fw-bold text-muted">${idx + 1}</td>
+                    <td class="sticky-col-nombre" title="${est.nombres}">${formatearNombreVisual(est.nombres)}</td>
+                    <td class="${obtenerClaseColor(t1, false)}">${t1.toFixed(2)}</td>
+                    <td class="${obtenerClaseColor(t2, false)}">${t2.toFixed(2)}</td>
+                    <td class="${obtenerClaseColor(t3, false)}">${t3.toFixed(2)}</td>
+                    <td class="${obtenerClaseColor(promAnual, true)}">${promAnual.toFixed(2)}</td>
+                    <td>${ct1.toFixed(2)} (${convertirCualitativo(ct1)})</td>
+                    <td>${ct2.toFixed(2)} (${convertirCualitativo(ct2)})</td>
+                    <td>${ct3.toFixed(2)} (${convertirCualitativo(ct3)})</td>
+                    <td class="fw-bold">${promCompAnual.toFixed(2)} (${letraCompAnual})</td>
+                    <td>${obsBadge}</td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+        `;
+        if (reqId === currentViewRequestId) contenedor.innerHTML = html;
+      } catch (err) {
+        if (reqId === currentViewRequestId) contenedor.innerHTML = `<div class="py-4 text-danger text-center fw-bold">Error: ${err.message}</div>`;
+      }
+    }
+
+    async function exportarResumenAnualPDF() {
+      if (!datosResumenAnualActual || datosResumenAnualActual.length === 0) return alert('No hay calificaciones cargadas para exportar.');
+      const asigId = document.getElementById('selectMateria').value;
+      const asig = todasAsignaciones.find(a => String(a.id) === String(asigId));
+      if (!asig) return alert('Seleccione una materia.');
+
+      const btn = document.getElementById('btnDescargarPDF'); btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Generando PDF...';
+
+      try {
+        const { jsPDF } = window.jspdf; const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+        const nomArriba = (infoInstitucion?.nombre_arriba || 'Unidad Educativa Particular').toUpperCase(), nomAbajo = (infoInstitucion?.nombre_abajo || '"Vicente Rocafuerte"').toUpperCase(), periodo = infoInstitucion?.periodo_lectivo || '2026-2027', amie = infoInstitucion?.amie || '13H03021', distrito = infoInstitucion?.distrito || '13D08', circuito = infoInstitucion?.circuito || '13D08C0_b', dir1 = infoInstitucion?.direccion_1 || 'Pichincha - Manabí - Ecuador', frase1 = infoInstitucion?.frase_1 ? `"${infoInstitucion.frase_1}"` : '';
+        const cursoEncontrado = (todosCursos && todosCursos.length > 0) ? todosCursos.find(c => c.id === asig.curso_id) : asig.cursos, nombreCursoLargo = (cursoEncontrado?.nombre_largo_mayuscula || cursoEncontrado?.nombre || asig.cursos?.nombre || '').toUpperCase(), nombreMateria = (asig.materias?.nombre || '').toUpperCase();
+        const nombreDocenteActual = usuarioActualPerfil ? `${usuarioActualPerfil.titulo ? usuarioActualPerfil.titulo + ' ' : ''}${usuarioActualPerfil.nombres} ${usuarioActualPerfil.apellidos || ''}`.trim().toUpperCase() : 'DOCENTE RESPONSABLE', nombreSecretaria = 'C.P.A. MERCEDES A. SALAMEA M.', nombreRector = 'ING. DÍDIMO A. SALTOS S.';
+        const imgLogoIzq = await obtenerBase64DesdeUrl(infoInstitucion?.logo_izquierdo || infoInstitucion?.logo_institucion), imgLogoDer = await obtenerBase64DesdeUrl(infoInstitucion?.logo_derecho || infoInstitucion?.escudo_nacional);
+
+        const headers = [[{ content: 'N°', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } }, { content: 'NÓMINA DE ESTUDIANTES', rowSpan: 2, styles: { valign: 'middle', halign: 'left' } }, { content: 'CALIFICACIONES ACADÉMICAS', colSpan: 3, styles: { halign: 'center' } }, { content: 'PROM. ANUAL', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } }, { content: 'EVALUACIÓN DEL COMPORTAMIENTO', colSpan: 3, styles: { halign: 'center' } }, { content: 'COMP. ANUAL', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } }, { content: 'ESTADO', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } }], ['1er Trim.', '2do Trim.', '3er Trim.', '1er T.', '2do T.', '3er T.']];
+        const bodyData = datosResumenAnualActual.map(d => [d.num, d.nombres, d.t1, d.t2, d.t3, d.promAnual, d.ct1, d.ct2, d.ct3, d.compAnual, d.estado]);
+
+        doc.autoTable({
+          head: headers, body: bodyData, margin: { top: 48, bottom: 32, left: 12, right: 12 }, theme: 'grid', styles: { fontSize: 7.5, cellPadding: 1.5, lineColor: [200, 200, 200], lineWidth: 0.1, valign: 'middle' }, headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255], fontStyle: 'bold' },
+          columnStyles: { 0: { cellWidth: 10, halign: 'center' }, 1: { cellWidth: 68, halign: 'left' }, 2: { cellWidth: 17, halign: 'center' }, 3: { cellWidth: 17, halign: 'center' }, 4: { cellWidth: 17, halign: 'center' }, 5: { cellWidth: 22, halign: 'center', fontStyle: 'bold', fillColor: [241, 245, 249] }, 6: { cellWidth: 24, halign: 'center' }, 7: { cellWidth: 24, halign: 'center' }, 8: { cellWidth: 24, halign: 'center' }, 9: { cellWidth: 24, halign: 'center', fontStyle: 'bold' }, 10: { cellWidth: 26, halign: 'center', fontStyle: 'bold' } },
+          didDrawPage: function () {
+            const pageNumber = doc.internal.getNumberOfPages();
+            if (imgLogoIzq) { try { doc.addImage(imgLogoIzq, 'PNG', 12, 7, 22, 22); } catch(e){} }
+            if (imgLogoDer) { try { doc.addImage(imgLogoDer, 'PNG', 263, 7, 22, 22); } catch(e){} }
+            doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(30, 41, 59); doc.text(nomArriba, 148.5, 11, { align: 'center' });
+            doc.setFontSize(13); doc.text(nomAbajo, 148.5, 16, { align: 'center' });
+            doc.setFontSize(9.5); doc.text('CUADRO CONSOLIDADO GENERAL DE CALIFICACIONES ANUALES', 148.5, 21, { align: 'center' });
+            doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(71, 85, 105); doc.text(`AMIE: ${amie} | DISTRITO: ${distrito} | CIRCUITO: ${circuito} | ${dir1} | AÑO LECTIVO: ${periodo}`, 148.5, 25.5, { align: 'center' });
+            if (frase1) { doc.setFont('helvetica', 'italic'); doc.text(frase1, 148.5, 29, { align: 'center' }); }
+            doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(15, 23, 42); doc.setDrawColor(203, 213, 225); doc.setLineWidth(0.3); doc.line(12, 33, 285, 33);
+            doc.text(`CURSO: ${nombreCursoLargo}`, 12, 38); doc.text(`ASIGNATURA: ${nombreMateria}`, 12, 43); doc.text(`DOCENTE: ${nombreDocenteActual}`, 180, 43); doc.line(12, 45, 285, 45);
+            const footerY = 188; doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(30, 41, 59); doc.setLineWidth(0.2); doc.line(25, footerY, 85, footerY); doc.line(118, footerY, 178, footerY); doc.line(212, footerY, 272, footerY);
+            doc.setFont('helvetica', 'bold'); doc.text('DOCENTE RESPONSABLE', 55, footerY + 4, { align: 'center' }); doc.setFont('helvetica', 'normal'); doc.text(nombreDocenteActual, 55, footerY + 8, { align: 'center' });
+            doc.setFont('helvetica', 'bold'); doc.text('SECRETARIO/A GENERAL', 148.5, footerY + 4, { align: 'center' }); doc.setFont('helvetica', 'normal'); doc.text(nombreSecretaria, 148.5, footerY + 8, { align: 'center' });
+            doc.setFont('helvetica', 'bold'); doc.text('RECTOR / DIRECTOR', 242, footerY + 4, { align: 'center' }); doc.setFont('helvetica', 'normal'); doc.text(nombreRector, 242, footerY + 8, { align: 'center' });
+            doc.setFontSize(7); doc.setTextColor(148, 163, 184); doc.text(`Página ${pageNumber}`, 285, 202, { align: 'right' });
+          }
+        });
+        doc.save(`Sabana_Anual_${nombreCursoLargo.replace(/\s+/g, '_')}_${nombreMateria.replace(/\s+/g, '_')}.pdf`);
+      } catch (err) { alert('Error al exportar PDF: ' + err.message); } finally { btn.disabled = false; btn.innerHTML = '📄 Descargar PDF'; }
     }
 
     async function guardarDatos() {
@@ -1594,22 +1270,9 @@
             const estId = tr.getAttribute('data-estudiante-id');
             if (estId) {
               payload.push({
-                asignacion_id: parseInt(asigId),
-                estudiante_id: parseInt(estId),
-                trimestre: trimestre,
-                parcial: parcialNum,
-                ind1: parseFloat(tr.querySelector('.c-ind1').value) || 0,
-                ind2: parseFloat(tr.querySelector('.c-ind2').value) || 0,
-                ind3: parseFloat(tr.querySelector('.c-ind3').value) || 0,
-                ind4: parseFloat(tr.querySelector('.c-ind4').value) || 0,
-                ind5: parseFloat(tr.querySelector('.c-ind5').value) || 0,
-                ind6: parseFloat(tr.querySelector('.c-ind6').value) || 0,
-                ind7: parseFloat(tr.querySelector('.c-ind7').value) || 0,
-                ind8: parseFloat(tr.querySelector('.c-ind8').value) || 0,
-                ind9: parseFloat(tr.querySelector('.c-ind9').value) || 0,
-                ind10: parseFloat(tr.querySelector('.c-ind10').value) || 0,
-                total_cuantitativo: parseFloat(tr.querySelector('.total-cuant').innerText) || 0,
-                total_cualitativo: tr.querySelector('.total-cualit').innerText
+                asignacion_id: parseInt(asigId), estudiante_id: parseInt(estId), trimestre: trimestre, parcial: parcialNum,
+                ind1: parseFloat(tr.querySelector('.c-ind1').value) || 0, ind2: parseFloat(tr.querySelector('.c-ind2').value) || 0, ind3: parseFloat(tr.querySelector('.c-ind3').value) || 0, ind4: parseFloat(tr.querySelector('.c-ind4').value) || 0, ind5: parseFloat(tr.querySelector('.c-ind5').value) || 0, ind6: parseFloat(tr.querySelector('.c-ind6').value) || 0, ind7: parseFloat(tr.querySelector('.c-ind7').value) || 0, ind8: parseFloat(tr.querySelector('.c-ind8').value) || 0, ind9: parseFloat(tr.querySelector('.c-ind9').value) || 0, ind10: parseFloat(tr.querySelector('.c-ind10').value) || 0,
+                total_cuantitativo: parseFloat(tr.querySelector('.total-cuant').innerText) || 0, total_cualitativo: tr.querySelector('.total-cualit').innerText
               });
             }
           });
@@ -1617,11 +1280,7 @@
           const { error } = await supabaseClient.from('comportamiento_parcial').upsert(payload, { onConflict: 'asignacion_id,estudiante_id,trimestre,parcial' });
           if (error) throw error;
           alert('¡Comportamiento guardado con éxito!');
-        } catch (err) {
-          alert('Error: ' + err.message);
-        } finally {
-          btn.disabled = false;
-        }
+        } catch (err) { alert('Error: ' + err.message); } finally { btn.disabled = false; }
 
       } else if (trimestreVal !== 'anual' && (vistaVal === 'p1' || vistaVal === 'p2')) {
         const parcialNum = vistaVal === 'p1' ? 1 : 2;
@@ -1631,11 +1290,7 @@
 
         try {
           await supabaseClient.from('config_parcial_cabeceras').upsert({
-            asignacion_id: parseInt(asigId),
-            trimestre: trimestre,
-            parcial: parcialNum,
-            actividades_insumo1: configActividades.insumo1,
-            actividades_insumo2: configActividades.insumo2
+            asignacion_id: parseInt(asigId), trimestre: trimestre, parcial: parcialNum, actividades_insumo1: configActividades.insumo1, actividades_insumo2: configActividades.insumo2
           }, { onConflict: 'asignacion_id,trimestre,parcial' });
 
           const filas = document.querySelectorAll('#tablaCuerpo tr');
@@ -1651,28 +1306,15 @@
               const total = parseFloat(tr.querySelector('.nota-parcial').innerText) || 0;
 
               payload.push({
-                asignacion_id: parseInt(asigId),
-                estudiante_id: parseInt(estId),
-                trimestre: trimestre,
-                parcial: parcialNum,
-                insumo1_notas: notas1,
-                insumo2_notas: notas2,
-                promedio_insumo1: prom1,
-                promedio_insumo2: prom2,
-                nota_parcial: total
+                asignacion_id: parseInt(asigId), estudiante_id: parseInt(estId), trimestre: trimestre, parcial: parcialNum, insumo1_notas: notas1, insumo2_notas: notas2, promedio_insumo1: prom1, promedio_insumo2: prom2, nota_parcial: total
               });
             }
           });
 
           const { error: errNotas } = await supabaseClient.from('notas_parcial_actividades').upsert(payload, { onConflict: 'asignacion_id,estudiante_id,trimestre,parcial' });
           if (errNotas) throw errNotas;
-
           alert('¡Notas del parcial guardadas con éxito!');
-        } catch (err) {
-          alert('Error al guardar: ' + err.message);
-        } finally {
-          btn.disabled = false;
-        }
+        } catch (err) { alert('Error al guardar: ' + err.message); } finally { btn.disabled = false; }
 
       } else if (trimestreVal !== 'anual' && vistaVal === 'resumen_trimestre') {
         const trimestre = parseInt(trimestreVal);
@@ -1692,15 +1334,7 @@
               const p2 = parseFloat(tr.querySelector('.p2-val').innerText) || 0;
 
               payload.push({
-                asignacion_id: parseInt(asigId),
-                estudiante_id: parseInt(estId),
-                trimestre: trimestre,
-                p1_insumo1: p1,
-                p1_insumo2: p1,
-                p2_insumo1: p2,
-                p2_insumo2: p2,
-                examen: ex,
-                comportamiento: comp
+                asignacion_id: parseInt(asigId), estudiante_id: parseInt(estId), trimestre: trimestre, p1_insumo1: p1, p1_insumo2: p1, p2_insumo1: p2, p2_insumo2: p2, examen: ex, comportamiento: comp
               });
             }
           });
@@ -1708,11 +1342,7 @@
           const { error } = await supabaseClient.from('notas_trimestre').upsert(payload, { onConflict: 'asignacion_id,estudiante_id,trimestre' });
           if (error) throw error;
           alert('¡Examen trimestral guardado con éxito!');
-        } catch (err) {
-          alert('Error al guardar: ' + err.message);
-        } finally {
-          btn.disabled = false;
-        }
+        } catch (err) { alert('Error al guardar: ' + err.message); } finally { btn.disabled = false; }
       }
     }
 
@@ -1725,261 +1355,6 @@
         }
       });
     });
-
-    // =========================================================================
-    // VISTA: ASISTENCIA Y MATRICULACIÓN CORREGIDA
-    // =========================================================================
-    async function cargarVistaAsistencia() {
-      const reqId = ++currentViewRequestId;
-      const cursoId = document.getElementById('selectCurso').value.trim();
-      const trimestre = parseInt(document.getElementById('selectTrimestre').value) || 1;
-      const parcial = parseInt(document.getElementById('selectParcialAsistencia').value) || 1;
-      const contenedor = document.getElementById('contenedorTabla');
-
-      if (!cursoId) {
-        if (reqId === currentViewRequestId) {
-          contenedor.innerHTML = '<div class="py-4 text-muted text-center">Seleccione un Curso para gestionar la Asistencia.</div>';
-        }
-        return;
-      }
-
-      contenedor.innerHTML = '<div class="py-4 text-center"><div class="spinner-border text-primary me-2"></div>Cargando sábana de control diario de asistencia...</div>';
-
-      try {
-        let per = periodosAsistencia.find(p => p.trimestre === trimestre && p.parcial === parcial);
-        if (!per || !per.fecha_inicio || !per.fecha_fin) {
-          const fallbacks = {
-            '1-1': { fecha_inicio: '2026-05-04', fecha_fin: '2026-06-19', total_dias_laborados: 34, dias_no_laborados: 1 },
-            '1-2': { fecha_inicio: '2026-06-22', fecha_fin: '2026-08-07', total_dias_laborados: 35, dias_no_laborados: 0 },
-            '2-1': { fecha_inicio: '2026-08-10', fecha_fin: '2026-09-18', total_dias_laborados: 29, dias_no_laborados: 1 },
-            '2-2': { fecha_inicio: '2026-09-21', fecha_fin: '2026-11-13', total_dias_laborados: 37, dias_no_laborados: 3 },
-            '3-1': { fecha_inicio: '2026-11-16', fecha_fin: '2026-12-18', total_dias_laborados: 25, dias_no_laborados: 0 },
-            '3-2': { fecha_inicio: '2026-12-21', fecha_fin: '2027-02-19', total_dias_laborados: 40, dias_no_laborados: 5 }
-          };
-          per = fallbacks[`${trimestre}-${parcial}`] || { fecha_inicio: '2026-05-04', fecha_fin: '2026-06-19', total_dias_laborados: 34, dias_no_laborados: 1 };
-        }
-
-        diasHabilesParcialActual = generarDiasHabilesRango(per.fecha_inicio, per.fecha_fin);
-
-        const { data: estData, error: estErr } = await supabaseClient
-          .from('estudiantes')
-          .select('*')
-          .eq('curso_id', parseInt(cursoId))
-          .order('nombres');
-
-        if (reqId !== currentViewRequestId) return;
-        if (estErr) throw estErr;
-        estudiantes = estData || [];
-
-        if (estudiantes.length === 0) {
-          contenedor.innerHTML = '<div class="py-4 text-warning text-center fw-bold">Este curso aún no tiene estudiantes registrados.</div>';
-          return;
-        }
-
-        const { data: asistData } = await supabaseClient
-          .from('asistencia_estudiantes')
-          .select('*')
-          .eq('curso_id', parseInt(cursoId))
-          .eq('trimestre', trimestre)
-          .eq('parcial', parcial);
-
-        if (reqId !== currentViewRequestId) return;
-
-        const asistMap = {};
-        (asistData || []).forEach(a => { asistMap[a.estudiante_id] = a.registro_diario || {}; });
-
-        const mesesColspan = {};
-        diasHabilesParcialActual.forEach(d => { mesesColspan[d.nombreMes] = (mesesColspan[d.nombreMes] || 0) + 1; });
-
-        let thMeses = '';
-        for (const [mes, span] of Object.entries(mesesColspan)) { 
-          thMeses += `<th colspan="${span}" class="bg-light text-uppercase fw-bold border-bottom">${mes}</th>`; 
-        }
-
-        let thDiasNum = diasHabilesParcialActual.map(d => `
-          <th class="th-dia-asig bg-white p-1">
-            <span class="d-block fw-bold">${d.diaNum}</span>
-            <div class="d-flex justify-content-center gap-1 mt-1">
-              <button type="button" class="btn btn-xs btn-outline-success btn-dia-auto" title="Llenar 'A'" onclick="llenarDiaColumna('${d.iso}', 'A')">A</button>
-              <button type="button" class="btn btn-xs btn-outline-danger btn-dia-auto" title="Llenar 'F'" onclick="llenarDiaColumna('${d.iso}', 'F')">F</button>
-              <button type="button" class="btn btn-xs btn-outline-secondary btn-dia-auto" title="Limpiar" onclick="llenarDiaColumna('${d.iso}', '')"><i class="bi bi-eraser-fill"></i></button>
-            </div>
-          </th>`).join('');
-
-        let thDiasNom = diasHabilesParcialActual.map(d => `<th class="th-dia-asig bg-light text-muted" style="font-size:0.58rem;">${d.nombreDia.substring(0,2)}</th>`).join('');
-
-        let html = `
-          <div class="p-2 bg-light border-bottom d-flex justify-content-between align-items-center">
-            <div>
-              <span class="badge bg-primary me-2">Trimestre ${trimestre} - Parcial ${parcial}</span>
-              <small class="fw-bold text-dark">Inicio: ${per.fecha_inicio} | Término: ${per.fecha_fin} | Días Hábiles: ${diasHabilesParcialActual.length} | Festivos/No Lab: ${per.dias_no_laborados || 0} | <b>Total Días: ${per.total_dias_laborados}</b></small>
-            </div>
-            <small class="text-muted"><i class="bi bi-hand-index-thumb me-1"></i>Haga clic en una casilla para alternar: <b>(Vacío) → A → F → J → (Vacío)</b></small>
-          </div>
-
-          <table class="table table-bordered table-sm mb-0 align-middle">
-            <thead>
-              <tr>
-                <th rowspan="3" class="sticky-col-num">N°</th>
-                <th rowspan="3" class="sticky-col-nombre text-center">NÓMINA DE ESTUDIANTES</th>
-                ${thMeses}
-                <th colspan="3" class="bg-primary text-white">SUMAN</th>
-                <th rowspan="3" class="bg-success text-white" style="width: 50px;">TOTAL</th>
-                <th rowspan="3" class="bg-secondary text-white" style="width: 60px;">DÍAS FALTANTES</th>
-              </tr>
-              <tr>
-                ${thDiasNum}
-                <th rowspan="2" class="bg-light text-success fw-bold" style="width: 35px;">A</th>
-                <th rowspan="2" class="bg-light text-danger fw-bold" style="width: 35px;">F</th>
-                <th rowspan="2" class="bg-light text-primary fw-bold" style="width: 35px;">J</th>
-              </tr>
-              <tr>${thDiasNom}</tr>
-            </thead>
-            <tbody id="tablaCuerpoAsistencia">
-              ${estudiantes.map((est, idx) => {
-                const regEst = asistMap[est.id] || {};
-                const celdasDias = diasHabilesParcialActual.map(d => {
-                  const val = (regEst[d.iso] || '').toUpperCase();
-                  let claseColor = val === 'A' ? 'asig-a' : (val === 'F' ? 'asig-f' : (val === 'J' ? 'asig-j' : ''));
-                  return `<td class="p-0"><input type="text" readonly class="cell-asig-input ${claseColor}" data-iso="${d.iso}" value="${val}" onclick="alternarEstadoAsistencia(this)"></td>`;
-                }).join('');
-
-                return `
-                  <tr data-est-id="${est.id}">
-                    <td class="sticky-col-num fw-bold text-muted">${idx + 1}</td>
-                    <td class="sticky-col-nombre" title="${est.nombres}">${formatearNombreVisual(est.nombres)}</td>
-                    ${celdasDias}
-                    <td class="sum-a fw-bold text-success">0</td>
-                    <td class="sum-f fw-bold text-danger">0</td>
-                    <td class="sum-j fw-bold text-primary">0</td>
-                    <td class="total-asist fw-bold bg-light">0</td>
-                    <td class="dias-faltantes fw-bold text-muted">${per.total_dias_laborados}</td>
-                  </tr>
-                `;
-              }).join('')}
-            </tbody>
-          </table>
-        `;
-
-        if (reqId === currentViewRequestId) {
-          contenedor.innerHTML = html;
-          document.querySelectorAll('#tablaCuerpoAsistencia tr').forEach(fila => calcularFilaAsistencia(fila));
-        }
-      } catch (err) {
-        if (reqId === currentViewRequestId) {
-          contenedor.innerHTML = `<div class="py-4 text-danger text-center fw-bold">Error al cargar asistencia: ${err.message}</div>`;
-        }
-      }
-    }
-
-    function alternarEstadoAsistencia(input) {
-      const actual = input.value.toUpperCase();
-      let siguiente = actual === '' ? 'A' : (actual === 'A' ? 'F' : (actual === 'F' ? 'J' : ''));
-      input.value = siguiente;
-      input.className = 'cell-asig-input';
-      if (siguiente === 'A') input.classList.add('asig-a');
-      else if (siguiente === 'F') input.classList.add('asig-f');
-      else if (siguiente === 'J') input.classList.add('asig-j');
-      calcularFilaAsistencia(input.closest('tr'));
-    }
-
-    function calcularFilaAsistencia(tr) {
-      const inputs = Array.from(tr.querySelectorAll('.cell-asig-input'));
-      let a = 0, f = 0, j = 0;
-      inputs.forEach(inp => {
-        const v = inp.value.toUpperCase();
-        if (v === 'A') a++; else if (v === 'F') f++; else if (v === 'J') j++;
-      });
-
-      const trimestre = parseInt(document.getElementById('selectTrimestre').value);
-      const parcial = parseInt(document.getElementById('selectParcialAsistencia').value);
-      const per = periodosAsistencia.find(p => p.trimestre === trimestre && p.parcial === parcial);
-      const metaDias = per ? per.total_dias_laborados : diasHabilesParcialActual.length;
-      
-      const faltasRealesF = Math.max(metaDias - a - j, 0);
-
-      tr.querySelector('.sum-a').innerText = a;
-      tr.querySelector('.sum-f').innerText = faltasRealesF;
-      tr.querySelector('.sum-j').innerText = j;
-      tr.querySelector('.total-asist').innerText = a;
-      tr.querySelector('.dias-faltantes').innerText = faltasRealesF;
-    }
-
-    function llenarDiaColumna(fechaIso, tipo) {
-      document.querySelectorAll(`#tablaCuerpoAsistencia .cell-asig-input[data-iso="${fechaIso}"]`).forEach(inp => {
-        inp.value = tipo;
-        inp.className = 'cell-asig-input';
-        if (tipo === 'A') inp.classList.add('asig-a');
-        else if (tipo === 'F') inp.classList.add('asig-f');
-        else if (tipo === 'J') inp.classList.add('asig-j');
-      });
-      document.querySelectorAll('#tablaCuerpoAsistencia tr').forEach(fila => calcularFilaAsistencia(fila));
-    }
-
-    function llenarTodoConAsistencia() {
-      document.querySelectorAll('#tablaCuerpoAsistencia .cell-asig-input').forEach(inp => {
-        inp.value = 'A';
-        inp.className = 'cell-asig-input asig-a';
-      });
-      document.querySelectorAll('#tablaCuerpoAsistencia tr').forEach(fila => calcularFilaAsistencia(fila));
-    }
-
-    function limpiarTodaAsistencia() {
-      if (!confirm('¿Desea poner en blanco todas las casillas de este parcial?')) return;
-      document.querySelectorAll('#tablaCuerpoAsistencia .cell-asig-input').forEach(inp => {
-        inp.value = '';
-        inp.className = 'cell-asig-input';
-      });
-      document.querySelectorAll('#tablaCuerpoAsistencia tr').forEach(fila => calcularFilaAsistencia(fila));
-    }
-
-    async function guardarAsistencia() {
-      const cursoId = parseInt(document.getElementById('selectCurso').value);
-      const trimestre = parseInt(document.getElementById('selectTrimestre').value);
-      const parcial = parseInt(document.getElementById('selectParcialAsistencia').value);
-      const btn = document.getElementById('btnGuardarAsist');
-
-      btn.disabled = true;
-      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Guardando...';
-
-      try {
-        const filas = document.querySelectorAll('#tablaCuerpoAsistencia tr');
-        const payload = [];
-
-        filas.forEach(tr => {
-          const estId = parseInt(tr.getAttribute('data-est-id'));
-          if (estId) {
-            const regDiario = {};
-            tr.querySelectorAll('.cell-asig-input').forEach(inp => {
-              const iso = inp.getAttribute('data-iso');
-              if (inp.value) regDiario[iso] = inp.value.toUpperCase();
-            });
-
-            payload.push({
-              curso_id: cursoId,
-              estudiante_id: estId,
-              trimestre: trimestre,
-              parcial: parcial,
-              registro_diario: regDiario,
-              total_asistencias: parseInt(tr.querySelector('.sum-a').innerText) || 0,
-              total_faltas: parseInt(tr.querySelector('.sum-f').innerText) || 0,
-              total_justificadas: parseInt(tr.querySelector('.sum-j').innerText) || 0,
-              total_dias: parseInt(tr.querySelector('.total-asist').innerText) || 0,
-              dias_faltantes: parseInt(tr.querySelector('.dias-faltantes').innerText) || 0
-            });
-          }
-        });
-
-        const { error } = await supabaseClient.from('asistencia_estudiantes').upsert(payload, { onConflict: 'curso_id,estudiante_id,trimestre,parcial' });
-        if (error) throw error;
-        alert('¡Control de Asistencia guardado con éxito!');
-      } catch (err) {
-        alert('Error al guardar asistencia: ' + err.message);
-      } finally {
-        btn.disabled = false;
-        btn.innerText = '💾 Guardar';
-      }
-    }
   </script>
 </body>
 </html>
