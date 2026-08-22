@@ -1403,7 +1403,25 @@
         const nombreDocenteActual = usuarioActualPerfil ? `${usuarioActualPerfil.titulo ? usuarioActualPerfil.titulo + ' ' : ''}${usuarioActualPerfil.nombres} ${usuarioActualPerfil.apellidos || ''}`.trim().toUpperCase() : 'DOCENTE RESPONSABLE', nombreSecretaria = 'C.P.A. MERCEDES A. SALAMEA M.', nombreRector = 'ING. DÍDIMO A. SALTOS S.';
         const imgLogoIzq = await obtenerBase64DesdeUrl(infoInstitucion?.logo_izquierdo || infoInstitucion?.logo_institucion), imgLogoDer = await obtenerBase64DesdeUrl(infoInstitucion?.logo_derecho || infoInstitucion?.escudo_nacional);
 
-        const headers = [[{ content: 'N°', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } }, { content: 'NÓMINA DE ESTUDIANTES', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } }, { content: 'CALIFICACIONES ACADÉMICAS', colSpan: 3, styles: { halign: 'center' } }, { content: 'PROM. ANUAL', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } }, { content: 'EVALUACIÓN DEL COMPORTAMIENTO', colSpan: 3, styles: { halign: 'center' } }, { content: 'COMP. ANUAL', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } }, { content: 'ESTADO', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } }], ['1er Trim.', '2do Trim.', '3er Trim.', '1er T.', '2do T.', '3er T.']];
+        const headers = [
+          [
+            { content: 'N°', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } },
+            { content: 'NÓMINA DE ESTUDIANTES', rowSpan: 2, styles: { valign: 'middle', halign: 'left' } },
+            { content: 'CALIFICACIONES ACADÉMICAS', colSpan: 3, styles: { halign: 'center', valign: 'middle' } },
+            { content: 'PROM. ANUAL', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } },
+            { content: 'EVALUACIÓN DEL COMPORTAMIENTO', colSpan: 3, styles: { halign: 'center', valign: 'middle' } },
+            { content: 'COMP. ANUAL', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } },
+            { content: 'ESTADO', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } }
+          ],
+          [
+            { content: '1er Trim.', styles: { halign: 'center', valign: 'middle' } }, 
+            { content: '2do Trim.', styles: { halign: 'center', valign: 'middle' } }, 
+            { content: '3er Trim.', styles: { halign: 'center', valign: 'middle' } }, 
+            { content: '1er T.', styles: { halign: 'center', valign: 'middle' } }, 
+            { content: '2do T.', styles: { halign: 'center', valign: 'middle' } }, 
+            { content: '3er T.', styles: { halign: 'center', valign: 'middle' } }
+          ]
+        ];
         const bodyData = datosResumenAnualActual.map(d => [d.num, d.nombres, d.t1, d.t2, d.t3, d.promAnual, d.ct1, d.ct2, d.ct3, d.compAnual, d.estado]);
 
         doc.autoTable({
