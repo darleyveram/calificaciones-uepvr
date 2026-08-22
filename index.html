@@ -182,8 +182,8 @@
           <div class="col-12 col-md-3 text-end pt-2 pt-md-3 d-none" id="accionesComportamiento">
             <button class="btn btn-outline-secondary btn-sm me-1 btn-control" onclick="llenarTodoCon10Comportamiento()" disabled><i class="bi bi-lightning-charge-fill"></i> Auto 10</button>
             <button class="btn btn-success btn-sm px-3 fw-bold btn-control" id="btnGuardarComp" onclick="guardarDatos()" disabled>💾 Guardar</button>
-            <!-- Nuevo botón PDF para comportamiento -->
-            <button class="btn btn-danger btn-sm px-2 fw-bold btn-control ms-1" id="btnDescargarCompPDF" onclick="exportarComportamientoPDF()" disabled title="Descargar Reporte en PDF"><i class="bi bi-file-pdf"></i></button>
+            <!-- NUEVO BOTÓN CON TEXTO "PDF" -->
+            <button class="btn btn-danger btn-sm px-2 px-md-3 fw-bold btn-control ms-1" id="btnDescargarCompPDF" onclick="exportarComportamientoPDF()" disabled title="Descargar Reporte en PDF"><i class="bi bi-file-pdf me-1"></i>PDF</button>
           </div>
 
           <div class="col-12 col-md-3 text-end pt-2 pt-md-3 d-none" id="accionesResumen">
@@ -1390,6 +1390,9 @@
       }
     }
 
+    // =========================================================================
+    // EXPORTAR COMPORTAMIENTO A PDF (CON MARCA DE AGUA)
+    // =========================================================================
     async function exportarComportamientoPDF() {
       const asigId = document.getElementById('selectMateria').value.trim();
       const asig = todasAsignaciones.find(a => String(a.id) === String(asigId));
@@ -1421,7 +1424,7 @@
         const nombreParcial = selectVista.options[selectVista.selectedIndex].text.toUpperCase();
         const trimestreVal = document.getElementById('selectTrimestre').value;
 
-        // CONSULTAR DOCENTE TITULAR DE LA MATERIA DESDE LA BD
+        // CONSULTAR DOCENTE TITULAR DE LA MATERIA
         let nombreDocenteMateria = 'DOCENTE RESPONSABLE';
         if (asig.docente_id) {
           try {
@@ -1442,7 +1445,6 @@
         const usuarioDescarga = usuarioActualPerfil ? `${usuarioActualPerfil.nombres} ${usuarioActualPerfil.apellidos || ''}`.trim().toUpperCase() : 'USUARIO DESCONOCIDO';
         const fechaActual = new Date().toLocaleString('es-EC');
 
-        // EXTRACCIÓN DE DATOS DE LA TABLA COMPORTAMIENTO
         const bodyData = [];
         document.querySelectorAll('#tablaCuerpoComp tr').forEach(tr => {
             const num = tr.querySelector('.sticky-col-num').innerText;
@@ -1466,16 +1468,27 @@
           [
             { content: 'N°', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } },
             { content: 'NÓMINA DE ESTUDIANTES', rowSpan: 2, styles: { valign: 'middle', halign: 'left' } },
-            { content: 'Punt.', colSpan: 1, styles: { halign: 'center' } },
-            { content: 'Limpieza', colSpan: 3, styles: { halign: 'center' } },
-            { content: 'Respeto y Consideración', colSpan: 2, styles: { halign: 'center' } },
-            { content: 'Valoración Div.', colSpan: 2, styles: { halign: 'center' } },
-            { content: 'Patri.', colSpan: 1, styles: { halign: 'center' } },
-            { content: 'Propi.', colSpan: 1, styles: { halign: 'center' } },
+            { content: 'Puntualidad', colSpan: 1, styles: { halign: 'center', valign: 'middle' } },
+            { content: 'Limpieza', colSpan: 3, styles: { halign: 'center', valign: 'middle' } },
+            { content: 'Respeto y Consideración', colSpan: 2, styles: { halign: 'center', valign: 'middle' } },
+            { content: 'Valoración Diversidad', colSpan: 2, styles: { halign: 'center', valign: 'middle' } },
+            { content: 'Patrimonio', colSpan: 1, styles: { halign: 'center', valign: 'middle' } },
+            { content: 'Propiedad', colSpan: 1, styles: { halign: 'center', valign: 'middle' } },
             { content: 'TOTAL\nCUANT.', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } },
             { content: 'TOTAL\nCUALIT.', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } }
           ],
-          ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']
+          [
+            { content: '1. Asiste puntual', styles: { halign: 'center', valign: 'middle' } },
+            { content: '2. Aseo personal', styles: { halign: 'center', valign: 'middle' } },
+            { content: '3. Aseo lugar trab.', styles: { halign: 'center', valign: 'middle' } },
+            { content: '4. Aseo del aula', styles: { halign: 'center', valign: 'middle' } },
+            { content: '5. Saludo cordial', styles: { halign: 'center', valign: 'middle' } },
+            { content: '6. Evita leng. soez', styles: { halign: 'center', valign: 'middle' } },
+            { content: '7. Leng. no agresivo', styles: { halign: 'center', valign: 'middle' } },
+            { content: '8. Tolerancia div.', styles: { halign: 'center', valign: 'middle' } },
+            { content: '9. Cuida infraest.', styles: { halign: 'center', valign: 'middle' } },
+            { content: '10. Respeta objeto', styles: { halign: 'center', valign: 'middle' } }
+          ]
         ];
 
         doc.autoTable({
@@ -1483,37 +1496,37 @@
           body: bodyData,
           margin: { top: 48, bottom: 32, left: 12, right: 12 },
           theme: 'grid',
-          styles: { fontSize: 7.2, cellPadding: 1.5, lineColor: [200, 200, 200], lineWidth: 0.1, valign: 'middle' },
-          headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255], fontStyle: 'bold' },
+          styles: { fontSize: 7, cellPadding: 1, lineColor: [200, 200, 200], lineWidth: 0.1, valign: 'middle' },
+          headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 6.5 },
           columnStyles: {
-            0: { cellWidth: 10, halign: 'center' },
-            1: { cellWidth: 65, halign: 'left' },
-            2: { cellWidth: 12, halign: 'center' },
-            3: { cellWidth: 12, halign: 'center' },
-            4: { cellWidth: 12, halign: 'center' },
-            5: { cellWidth: 12, halign: 'center' },
-            6: { cellWidth: 12, halign: 'center' },
-            7: { cellWidth: 12, halign: 'center' },
-            8: { cellWidth: 12, halign: 'center' },
-            9: { cellWidth: 12, halign: 'center' },
-            10: { cellWidth: 12, halign: 'center' },
-            11: { cellWidth: 12, halign: 'center' },
-            12: { cellWidth: 18, halign: 'center', fontStyle: 'bold', fillColor: [241, 245, 249] },
-            13: { cellWidth: 18, halign: 'center', fontStyle: 'bold', fillColor: [220, 252, 231], textColor: [21, 128, 61] } 
+            0: { cellWidth: 9, halign: 'center' },
+            1: { cellWidth: 56, halign: 'left' },
+            2: { cellWidth: 16, halign: 'center' },
+            3: { cellWidth: 16, halign: 'center' },
+            4: { cellWidth: 16, halign: 'center' },
+            5: { cellWidth: 16, halign: 'center' },
+            6: { cellWidth: 16, halign: 'center' },
+            7: { cellWidth: 16, halign: 'center' },
+            8: { cellWidth: 16, halign: 'center' },
+            9: { cellWidth: 16, halign: 'center' },
+            10: { cellWidth: 16, halign: 'center' },
+            11: { cellWidth: 16, halign: 'center' },
+            12: { cellWidth: 22, halign: 'center', fontStyle: 'bold', fillColor: [241, 245, 249] },
+            13: { cellWidth: 26, halign: 'center', fontStyle: 'bold', fillColor: [220, 252, 231], textColor: [21, 128, 61] } 
           },
           didDrawPage: function (data) {
             const pageNumber = doc.internal.getNumberOfPages();
-            
-            // DIBUJAR MARCA DE AGUA
-            doc.saveGraphicsState();
-            doc.setTextColor(225, 230, 235); // Gris muy claro para no estorbar
-            doc.setFontSize(30);
-            doc.setFont('helvetica', 'bold');
             const pageWidth = doc.internal.pageSize.getWidth();
             const pageHeight = doc.internal.pageSize.getHeight();
-            // Texto en diagonal en el centro de la página
-            doc.text(`DESCARGADO POR: ${usuarioDescarga}`, pageWidth / 2, pageHeight / 2 - 10, { align: 'center', angle: 35 });
-            doc.text(`EL: ${fechaActual}`, pageWidth / 2, pageHeight / 2 + 10, { align: 'center', angle: 35 });
+
+            // DIBUJAR MARCA DE AGUA (TRANSPARENTE)
+            doc.saveGraphicsState();
+            doc.setGState(new doc.GState({ opacity: 0.08 })); // Nivel de opacidad sutil
+            doc.setTextColor(50, 50, 50);
+            doc.setFontSize(45);
+            doc.setFont('helvetica', 'bold');
+            doc.text(`DESCARGADO POR: ${usuarioDescarga}`, pageWidth / 2, pageHeight / 2 - 15, { align: 'center', angle: 30 });
+            doc.text(`EL: ${fechaActual}`, pageWidth / 2, pageHeight / 2 + 15, { align: 'center', angle: 30 });
             doc.restoreGraphicsState();
 
             // HEADER
@@ -1534,10 +1547,12 @@
             doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(15, 23, 42); doc.setDrawColor(203, 213, 225); doc.setLineWidth(0.3); doc.line(12, 33, 285, 33);
             doc.text(`CURSO: ${nombreCursoLargo}`, 12, 38); 
             doc.text(`ASIGNATURA: ${nombreMateria}`, 12, 43); 
-            doc.text(`DOCENTE RESPONSABLE: ${nombreDocenteMateria}`, 180, 43); 
+            
+            // Ajustado a la derecha
+            doc.text(`DOCENTE RESPONSABLE: ${nombreDocenteMateria}`, 285, 43, { align: 'right' }); 
             doc.line(12, 45, 285, 45);
 
-            // FOOTER CON FIRMAS Y CARGOS DEBAJO
+            // FOOTER CON FIRMAS
             const footerY = 188; 
             doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(30, 41, 59); doc.setLineWidth(0.2); 
             doc.line(25, footerY, 85, footerY); doc.line(118, footerY, 178, footerY); doc.line(212, footerY, 272, footerY);
