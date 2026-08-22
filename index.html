@@ -347,6 +347,15 @@
       return '';
     }
 
+    function convertirCualitativo(nota) {
+      const n = parseFloat(nota) || 0;
+      if (n >= 9.00) return 'A';
+      if (n >= 7.00) return 'B';
+      if (n >= 5.00) return 'C';
+      if (n >= 4.00) return 'D';
+      return 'E';
+    }
+
     async function verificarSesion() {
       await cargarInformacionInstitucionalDinamica();
       const { data: { session } } = await supabaseClient.auth.getSession();
