@@ -1420,13 +1420,39 @@
             if (frase1) { doc.setFont('helvetica', 'italic'); doc.text(frase1, 148.5, 29, { align: 'center' }); }
             doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(15, 23, 42); doc.setDrawColor(203, 213, 225); doc.setLineWidth(0.3); doc.line(12, 33, 285, 33);
             doc.text(`CURSO: ${nombreCursoLargo}`, 12, 38); doc.text(`ASIGNATURA: ${nombreMateria}`, 12, 43); doc.text(`DOCENTE: ${nombreDocenteActual}`, 180, 43); doc.line(12, 45, 285, 45);
-            const footerY = 188; doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(30, 41, 59); doc.setLineWidth(0.2); doc.line(25, footerY, 85, footerY); doc.line(118, footerY, 178, footerY); doc.line(212, footerY, 272, footerY);
-            doc.setFont('helvetica', 'bold'); doc.text('DOCENTE RESPONSABLE', 55, footerY + 4, { align: 'center' }); doc.setFont('helvetica', 'normal'); doc.text(nombreDocenteActual, 55, footerY + 8, { align: 'center' });
-            doc.setFont('helvetica', 'bold'); doc.text('SECRETARIO/A GENERAL', 148.5, footerY + 4, { align: 'center' }); doc.setFont('helvetica', 'normal'); doc.text(nombreSecretaria, 148.5, footerY + 8, { align: 'center' });
-            doc.setFont('helvetica', 'bold'); doc.text('RECTOR / DIRECTOR', 242, footerY + 4, { align: 'center' }); doc.setFont('helvetica', 'normal'); doc.text(nombreRector, 242, footerY + 8, { align: 'center' });
-            doc.setFontSize(7); doc.setTextColor(148, 163, 184); doc.text(`Página ${pageNumber}`, 285, 202, { align: 'right' });
+            const footerY = 188;
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(7.5);
+            doc.setTextColor(30, 41, 59);
+            doc.setLineWidth(0.2);
+            doc.line(25, footerY, 85, footerY);
+            doc.line(118, footerY, 178, footerY);
+            doc.line(212, footerY, 272, footerY);
+
+            // Docente
+            doc.setFont('helvetica', 'bold');
+            doc.text(nombreDocenteActual, 55, footerY + 4, { align: 'center' });
+            doc.setFont('helvetica', 'normal');
+            doc.text('DOCENTE RESPONSABLE', 55, footerY + 7.5, { align: 'center' });
+
+            // Secretaria
+            doc.setFont('helvetica', 'bold');
+            doc.text(nombreSecretaria, 148.5, footerY + 4, { align: 'center' });
+            doc.setFont('helvetica', 'normal');
+            doc.text('SECRETARIO/A GENERAL', 148.5, footerY + 7.5, { align: 'center' });
+
+            // Rector
+            doc.setFont('helvetica', 'bold');
+            doc.text(nombreRector, 242, footerY + 4, { align: 'center' });
+            doc.setFont('helvetica', 'normal');
+            doc.text('RECTOR / DIRECTOR', 242, footerY + 7.5, { align: 'center' });
+
+            doc.setFontSize(7);
+            doc.setTextColor(148, 163, 184);
+            doc.text(`Página ${pageNumber}`, 285, 202, { align: 'right' });
           }
         });
+
         doc.save(`Sabana_Anual_${nombreCursoLargo.replace(/\s+/g, '_')}_${nombreMateria.replace(/\s+/g, '_')}.pdf`);
       } catch (err) { alert('Error al exportar PDF: ' + err.message); } finally { btn.disabled = false; btn.innerHTML = '📄 Descargar PDF'; }
     }
