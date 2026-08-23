@@ -200,6 +200,8 @@
             <button class="btn btn-outline-success btn-sm me-1 btn-control" onclick="llenarTodoConAsistencia()" disabled><i class="bi bi-lightning-charge-fill"></i> Todo 'A'</button>
             <button class="btn btn-outline-secondary btn-sm me-1 btn-control" onclick="limpiarTodaAsistencia()" disabled title="Limpiar todas las casillas"><i class="bi bi-eraser-fill"></i></button>
             <button class="btn btn-success btn-sm px-3 fw-bold btn-control" id="btnGuardarAsist" onclick="guardarAsistencia()" disabled>💾 Guardar</button>
+            <!-- NUEVO BOTÓN PDF PARA ASISTENCIA -->
+            <button class="btn btn-danger btn-sm px-2 px-md-3 fw-bold btn-control ms-1" id="btnDescargarAsistenciaPDF" onclick="exportarAsistenciaPDF()" disabled title="Descargar Registro de Asistencia en PDF"><i class="bi bi-file-pdf me-1"></i> PDF</button>
           </div>
 
           <div class="col-12 col-md-3 text-end pt-2 pt-md-3 d-none" id="accionesTutoria">
@@ -2267,6 +2269,199 @@
         });
 
         doc.save(`Sabana_Tutoria_${nombreCursoLargo.replace(/\s+/g, '_')}_${tituloPeriodo.replace(/\s+/g, '_')}.pdf`);
+      } catch (err) {
+        alert('Error al exportar PDF: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalHtml;
+      }
+    }
+    // =========================================================================
+    // EXPORTAR ASISTENCIA A PDF (CON MARCA DE AGUA Y FIRMAS)
+    // =========================================================================
+    async function exportarAsistenciaPDF() {
+      const cursoId = document.getElementById('selectCurso').value.trim();
+      const cursoInfo = todosCursos.find(c => String(c.id) === String(cursoId));
+      if (!cursoInfo) return alert('Seleccione un curso.');
+
+      if (!diasHabilesParcialActual || diasHabilesParcialActual.length === 0) {
+        return alert('No hay datos de asistencia cargados en pantalla.');
+      }
+
+      const btn = document.getElementById('btnDescargarAsistenciaPDF');
+      const originalHtml = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+
+      try {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+
+        const nomArriba = (infoInstitucion?.nombre_arriba || 'Unidad Educativa Particular').toUpperCase();
+        const nomAbajo = (infoInstitucion?.nombre_abajo || '"Vicente Rocafuerte"').toUpperCase();
+        const periodo = infoInstitucion?.periodo_lectivo || '2026-2027';
+        const amie = infoInstitucion?.amie || '13H03021';
+        const distrito = infoInstitucion?.distrito || '13D08';
+        const circuito = infoInstitucion?.circuito || '13D08C0_b';
+        const dir1 = infoInstitucion?.direccion_1 || 'Pichincha - Manabí - Ecuador';
+        const frase1 = infoInstitucion?.frase_1 ? `"${infoInstitucion.frase_1}"` : '';
+
+        const nombreCursoLargo = (cursoInfo?.nombre_largo_mayuscula || cursoInfo?.nombre || '').toUpperCase();
+        const trimestreVal = document.getElementById('selectTrimestre').value;
+        const selectParcial = document.getElementById('selectParcialAsistencia');
+        const nombreParcial = selectParcial.options[selectParcial.selectedIndex].text.toUpperCase();
+
+        // OBTENER NOMBRE DEL TUTOR REAL
+        let nombreDocenteTutor = 'DOCENTE TUTOR';
+        if (cursoInfo && cursoInfo.tutor_id) {
+          try {
+            const { data: prof } = await supabaseClient.from('perfiles').select('titulo, nombres, apellidos').eq('id', cursoInfo.tutor_id).maybeSingle();
+            if (prof) {
+               nombreDocenteTutor = `${prof.titulo ? prof.titulo + ' ' : ''}${prof.nombres} ${prof.apellidos || ''}`.trim().toUpperCase();
+            }
+          } catch(e) {}
+        }
+
+        const nombreSecretaria = 'C.P.A. MERCEDES A. SALAMEA M.';
+        const nombreRector = 'ING. DÍDIMO A. SALTOS S.';
+
+        const imgLogoIzq = await obtenerBase64DesdeUrl(infoInstitucion?.logo_izquierdo || infoInstitucion?.logo_institucion);
+        const imgLogoDer = await obtenerBase64DesdeUrl(infoInstitucion?.logo_derecho || infoInstitucion?.escudo_nacional);
+
+        const usuarioDescarga = usuarioActualPerfil ? `${usuarioActualPerfil.nombres} ${usuarioActualPerfil.apellidos || ''}`.trim().toUpperCase() : 'USUARIO DESCONOCIDO';
+        const fechaActual = new Date().toLocaleString('es-EC');
+
+        // EXTRACCIÓN DE DATOS DE LA TABLA
+        const bodyData = [];
+        document.querySelectorAll('#tablaCuerpoAsistencia tr').forEach(tr => {
+            const num = tr.querySelector('.sticky-col-num').innerText;
+            const nom = tr.querySelector('.sticky-col-nombre').getAttribute('title') || tr.querySelector('.sticky-col-nombre').innerText;
+            const rowData = [num, nom];
+            
+            // Asistencias Diarias
+            tr.querySelectorAll('.cell-asig-input').forEach(inp => rowData.push(inp.value || ''));
+            
+            // Resúmenes de Asistencia
+            rowData.push(tr.querySelector('.sum-a').innerText);
+            rowData.push(tr.querySelector('.sum-f').innerText);
+            rowData.push(tr.querySelector('.sum-j').innerText);
+            rowData.push(tr.querySelector('.total-asist').innerText);
+            rowData.push(tr.querySelector('.dias-faltantes').innerText);
+            
+            bodyData.push(rowData);
+        });
+
+        // AGRUPACIÓN DE MESES
+        const mesesColspan = {};
+        diasHabilesParcialActual.forEach(d => { mesesColspan[d.nombreMes] = (mesesColspan[d.nombreMes] || 0) + 1; });
+
+        // FILA DE CABECERA 1
+        const headerRow1 = [
+            { content: 'N°', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } },
+            { content: 'NÓMINA DE ESTUDIANTES', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } }
+        ];
+        
+        for (const [mes, span] of Object.entries(mesesColspan)) { 
+            headerRow1.push({ content: mes.toUpperCase(), colSpan: span, styles: { halign: 'center' } });
+        }
+        
+        headerRow1.push({ content: 'RESUMEN', colSpan: 3, styles: { halign: 'center', fillColor: [30, 41, 59] } });
+        headerRow1.push({ content: 'TOT.', rowSpan: 2, styles: { valign: 'middle', halign: 'center', fillColor: [25, 135, 84] } });
+        headerRow1.push({ content: 'FALT.', rowSpan: 2, styles: { valign: 'middle', halign: 'center', fillColor: [108, 117, 125] } });
+
+        // FILA DE CABECERA 2
+        const headerRow2 = [];
+        diasHabilesParcialActual.forEach(d => {
+            headerRow2.push({ content: `${d.diaNum}\n${d.nombreDia.substring(0,2)}`, styles: { halign: 'center', fontSize: 5, cellPadding: 0.5 } });
+        });
+        
+        headerRow2.push({ content: 'A', styles: { halign: 'center', fillColor: [220, 252, 231], textColor: [21, 128, 61] } });
+        headerRow2.push({ content: 'F', styles: { halign: 'center', fillColor: [254, 226, 226], textColor: [220, 38, 38] } });
+        headerRow2.push({ content: 'J', styles: { halign: 'center', fillColor: [219, 234, 254], textColor: [29, 78, 216] } });
+
+        doc.autoTable({
+          head: [headerRow1, headerRow2],
+          body: bodyData,
+          margin: { top: 46, bottom: 32, left: 10, right: 10 },
+          theme: 'grid',
+          rowPageBreak: 'avoid',
+          styles: { fontSize: 5.5, cellPadding: 0.8, lineColor: [200, 200, 200], lineWidth: 0.1, valign: 'middle', halign: 'center', overflow: 'linebreak' },
+          headStyles: { textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 6, halign: 'center', fillColor: [30, 41, 59] },
+          columnStyles: {
+            0: { cellWidth: 6, halign: 'center' },
+            1: { cellWidth: 42, halign: 'left' }
+          },
+          didParseCell: function(data) {
+            if (data.section === 'body') {
+              const startDaysIdx = 2;
+              const endDaysIdx = 2 + diasHabilesParcialActual.length;
+              
+              // Pintar letras A, F, J en las columnas de días (tal cual la web)
+              if (data.column.index >= startDaysIdx && data.column.index < endDaysIdx) {
+                const val = data.cell.raw;
+                if (val === 'A') { data.cell.styles.textColor = [21, 128, 61]; data.cell.styles.fontStyle = 'bold'; }
+                else if (val === 'F') { data.cell.styles.textColor = [220, 38, 38]; data.cell.styles.fontStyle = 'bold'; }
+                else if (val === 'J') { data.cell.styles.textColor = [29, 78, 216]; data.cell.styles.fontStyle = 'bold'; }
+              }
+            }
+          },
+          didDrawPage: function (data) {
+            const pageNumber = doc.internal.getNumberOfPages();
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const pageHeight = doc.internal.pageSize.getHeight();
+
+            // MARCA DE AGUA
+            doc.saveGraphicsState();
+            doc.setGState(new doc.GState({ opacity: 0.12 })); 
+            doc.setTextColor(150, 150, 150); 
+            doc.setFontSize(35); 
+            doc.setFont('helvetica', 'bold');
+            doc.text(`DESCARGADO POR: ${usuarioDescarga}`, pageWidth / 2, pageHeight / 2 - 15, { align: 'center', angle: 30 });
+            doc.text(`EL: ${fechaActual}`, pageWidth / 2, pageHeight / 2 + 15, { align: 'center', angle: 30 });
+            doc.restoreGraphicsState();
+
+            // HEADER
+            if (imgLogoIzq) { try { doc.addImage(imgLogoIzq, 'PNG', 12, 7, 22, 22); } catch(e){} }
+            if (imgLogoDer) { try { doc.addImage(imgLogoDer, 'PNG', 263, 7, 22, 22); } catch(e){} }
+
+            doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(30, 41, 59); 
+            doc.text(nomArriba, 148.5, 11, { align: 'center' });
+            doc.setFontSize(13); doc.text(nomAbajo, 148.5, 16, { align: 'center' });
+            
+            doc.setFontSize(9.5); 
+            doc.text(`CONTROL DIARIO DE ASISTENCIA - TRIMESTRE ${trimestreVal} - ${nombreParcial}`, 148.5, 21, { align: 'center' });
+
+            doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(71, 85, 105); 
+            doc.text(`AMIE: ${amie} | DISTRITO: ${distrito} | CIRCUITO: ${circuito} | ${dir1} | AÑO LECTIVO: ${periodo}`, 148.5, 25.5, { align: 'center' });
+            if (frase1) { doc.setFont('helvetica', 'italic'); doc.text(frase1, 148.5, 29, { align: 'center' }); }
+
+            doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(15, 23, 42); doc.setDrawColor(203, 213, 225); doc.setLineWidth(0.3); doc.line(12, 33, 285, 33);
+            doc.text(`CURSO: ${nombreCursoLargo}`, 12, 38); 
+            
+            doc.text(`TUTOR RESPONSABLE: ${nombreDocenteTutor}`, 285, 38, { align: 'right' }); 
+            doc.line(12, 40, 285, 40);
+
+            // FOOTER CON FIRMAS INVERSAS
+            const footerY = 188; 
+            doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(30, 41, 59); doc.setLineWidth(0.2); 
+            doc.line(25, footerY, 85, footerY); doc.line(118, footerY, 178, footerY); doc.line(212, footerY, 272, footerY);
+
+            doc.setFont('helvetica', 'normal');
+            doc.text(nombreDocenteTutor, 55, footerY + 4, { align: 'center' });
+            doc.text(nombreSecretaria, 148.5, footerY + 4, { align: 'center' });
+            doc.text(nombreRector, 242, footerY + 4, { align: 'center' });
+
+            doc.setFont('helvetica', 'bold');
+            doc.text('DOCENTE TUTOR', 55, footerY + 7.5, { align: 'center' });
+            doc.text('SECRETARIO/A GENERAL', 148.5, footerY + 7.5, { align: 'center' });
+            doc.text('RECTOR / DIRECTOR', 242, footerY + 7.5, { align: 'center' });
+
+            doc.setFontSize(7); doc.setTextColor(148, 163, 184); 
+            doc.text(`Página ${pageNumber}`, 285, 202, { align: 'right' });
+          }
+        });
+
+        doc.save(`Asistencia_${nombreCursoLargo.replace(/\s+/g, '_')}_T${trimestreVal}_${nombreParcial.replace(/\s+/g, '_')}.pdf`);
       } catch (err) {
         alert('Error al exportar PDF: ' + err.message);
       } finally {
