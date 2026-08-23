@@ -537,12 +537,12 @@
           return;
         }
 
-        // MOSTRAR U OCULTAR BOTONES SEGÚN EL ROL
+        // CONTROL DE PERMISOS: Ocultar o mostrar botones según rol
         const esAdmin = usuarioActualPerfil?.rol === 'admin';
         if (esAdmin) {
           document.getElementById('btnDescargarTodasLibretas').classList.remove('d-none');
           document.getElementById('btnDescargarZipIndividuales').classList.remove('d-none');
-          document.getElementById('btnDescargarSabanaTutoria').classList.add('d-none');
+          document.getElementById('btnDescargarSabanaTutoria').classList.remove('d-none');
         } else {
           document.getElementById('btnDescargarTodasLibretas').classList.add('d-none');
           document.getElementById('btnDescargarZipIndividuales').classList.add('d-none');
@@ -828,10 +828,9 @@
           return { num: idx + 1, estudianteId: est.id, nombres: est.nombres, cedula: est.cedula || 'S/N', representanteNombre: est.representante_nombres || `${est.rep_apellidos || ''} ${est.rep_nombres || ''}`.trim() || 'REPRESENTANTE LEGAL', representanteCedula: est.rep_cedula ? `C.I.: ${est.rep_cedula}` : '', materias: materiasDetalle, promedioGeneral: promGeneral.toFixed(2), promedioCualitativo: promCualit, comportamientoNum: compFinalNum.toFixed(2), comportamientoLetra: compObj.letra, comportamientoDesc: compObj.desc, asistencia: finalAsist };
         });
 
+        const esAdmin = usuarioActualPerfil?.rol === 'admin';
         let thMaterias = listaAsignaciones.map(a => `<th style="font-size:0.68rem; min-width: 85px;">${a.materias?.nombre}<br><span class="badge ${a.es_optativa ? 'bg-warning text-dark' : 'bg-secondary'}">${a.es_optativa ? 'Opt' : 'Obl'}</span></th>`).join('');
         const tituloPeriodo = reporteTipo === 'trimestre' ? `${trimestre}° TRIMESTRE (CONSOLIDADO)` : `${trimestre}° TRIMESTRE - PARCIAL ${reporteTipo}`;
-
-        const esAdmin = usuarioActualPerfil?.rol === 'admin';
 
         let html = `
           <table class="table table-bordered table-sm mb-0 align-middle">
@@ -845,33 +844,20 @@
                 <th rowspan="2" class="bg-secondary text-white" style="width: 70px;">ASIST.</th>
                 ${esAdmin ? '<th rowspan="2" style="width: 90px;">LIBRETA</th>' : ''}
               </tr>
-              <tr class="bg-secondary text-white">
-                ${thMaterias}
-              </tr>
+              <tr class="bg-secondary text-white">${thMaterias}</tr>
             </thead>
             <tbody>
               ${datosConsolidadoTutoria.map((d, idx) => {
-                let celdasNotas = d.materias.map(m => `
-                  <td class="${obtenerClaseColor(m.notaNum, false)}" style="white-space: nowrap;">
-                    <span class="fw-bold">${m.notaCualit}</span> <small class="text-muted">(${m.notaNum})</small>
-                  </td>
-                `).join('');
-
-                return `
-                  <tr>
-                    <td class="sticky-col-num fw-bold text-muted">${d.num}</td>
-                    <td class="sticky-col-nombre" title="${d.nombres}">${formatearNombreVisual(d.nombres)}</td>
-                    ${celdasNotas}
-                    <td class="fw-bold fs-6 ${obtenerClaseColor(d.promedioGeneral, true)}" style="white-space: nowrap;">
-                      ${d.promedioGeneral} <small>(${d.promedioCualitativo})</small>
-                    </td>
-                    <td class="fw-bold" style="white-space: nowrap;">
-                      ${d.comportamientoLetra} <small>(${d.comportamientoNum})</small>
-                    </td>
-                    <td><span class="badge bg-light text-dark border">${d.asistencia.asistidos}/${d.asistencia.totalDias}</span></td>
-                    ${esAdmin ? `<td><button class="btn btn-xs btn-outline-danger py-1 px-2 fw-bold" onclick="generarBoletaIndividualPDF(${idx})"><i class="bi bi-file-pdf"></i> Boleta</button></td>` : ''}
-                  </tr>
-                `;
+                let celdasNotas = d.materias.map(m => `<td class="${obtenerClaseColor(m.notaNum, false)}" style="white-space: nowrap;"><span class="fw-bold">${m.notaCualit}</span> <small class="text-muted">(${m.notaNum})</small></td>`).join('');
+                return `<tr>
+                  <td class="sticky-col-num fw-bold text-muted">${d.num}</td>
+                  <td class="sticky-col-nombre" title="${d.nombres}">${formatearNombreVisual(d.nombres)}</td>
+                  ${celdasNotas}
+                  <td class="fw-bold fs-6 ${obtenerClaseColor(d.promedioGeneral, true)}" style="white-space: nowrap;">${d.promedioGeneral} <small>(${d.promedioCualitativo})</small></td>
+                  <td class="fw-bold" style="white-space: nowrap;">${d.comportamientoLetra} <small>(${d.comportamientoNum})</small></td>
+                  <td><span class="badge bg-light text-dark border">${d.asistencia.asistidos}/${d.asistencia.totalDias}</span></td>
+                  ${esAdmin ? `<td><button class="btn btn-xs btn-outline-danger py-1 px-2 fw-bold" onclick="generarBoletaIndividualPDF(${idx})"><i class="bi bi-file-pdf"></i> Boleta</button></td>` : ''}
+                </tr>`;
               }).join('')}
             </tbody>
           </table>
@@ -2135,6 +2121,9 @@
     // =========================================================================
     // EXPORTAR SÁBANA GENERAL DE TUTORÍA EN PDF
     // =========================================================================
+    // =========================================================================
+    // EXPORTAR SÁBANA GENERAL DE TUTORÍA EN PDF
+    // =========================================================================
     async function exportarSabanaTutoriaPDF() {
       if (!datosConsolidadoTutoria || datosConsolidadoTutoria.length === 0) return alert('No hay datos para exportar.');
 
@@ -2186,11 +2175,11 @@
 
         const materiasInfo = datosConsolidadoTutoria[0]?.materias || [];
         
-        // ESTRUCTURACIÓN DE LOS DATOS
+        // ESTRUCTURACIÓN DE DATOS A 2 DECIMALES
         const bodyData = datosConsolidadoTutoria.map(d => {
             const row = [d.num, d.nombres];
-            d.materias.forEach(m => row.push(m.notaNum)); // En la sábana solo mostramos el numero para ahorrar espacio
-            row.push(d.promedioGeneral);
+            d.materias.forEach(m => row.push(parseFloat(m.notaNum).toFixed(2))); 
+            row.push(parseFloat(d.promedioGeneral).toFixed(2));
             row.push(d.comportamientoLetra);
             row.push(`${d.asistencia.asistidos}/${d.asistencia.totalDias}`);
             return row;
@@ -2198,39 +2187,40 @@
 
         const headerRow1 = [
             { content: 'N°', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } },
-            { content: 'NÓMINA DE ESTUDIANTES', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } },
+            { content: 'NÓMINA DE ESTUDIANTES', rowSpan: 2, styles: { valign: 'middle', halign: 'left' } },
             { content: `CALIFICACIONES POR ASIGNATURA (${tituloPeriodo})`, colSpan: materiasInfo.length, styles: { halign: 'center', fillColor: [30, 41, 59] } },
             { content: 'PROM.\nGEN.', rowSpan: 2, styles: { valign: 'middle', halign: 'center', fillColor: [13, 110, 253] } },
             { content: 'COMP.', rowSpan: 2, styles: { valign: 'middle', halign: 'center', fillColor: [25, 135, 84] } },
             { content: 'ASIST.', rowSpan: 2, styles: { valign: 'middle', halign: 'center', fillColor: [108, 117, 125] } }
         ];
 
-        const headerRow2 = materiasInfo.map(m => ({ content: m.materiaNombre, styles: { halign: 'center', fontSize: 6.5 } }));
+        const headerRow2 = materiasInfo.map(m => ({ content: m.materiaNombre, styles: { halign: 'center', fontSize: 5.5 } }));
 
         doc.autoTable({
           head: [headerRow1, headerRow2],
           body: bodyData,
           margin: { top: 46, bottom: 32, left: 10, right: 10 },
           theme: 'grid',
-          styles: { fontSize: 7, cellPadding: 1.5, lineColor: [200, 200, 200], lineWidth: 0.1, valign: 'middle', halign: 'center' },
-          headStyles: { textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 7, halign: 'center' },
+          rowPageBreak: 'avoid', // EVITA QUE UN ESTUDIANTE SE ROMPA A LA MITAD Y PASE A OTRA HOJA
+          styles: { fontSize: 6.5, cellPadding: 1, lineColor: [200, 200, 200], lineWidth: 0.1, valign: 'middle', halign: 'center', overflow: 'linebreak' }, // EVITA CORTES RAROS EN PALABRAS
+          headStyles: { textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 6.5, halign: 'center' },
           columnStyles: {
-            0: { cellWidth: 8, halign: 'center' },
-            1: { cellWidth: 50, halign: 'left' }
+            0: { cellWidth: 7, halign: 'center' },
+            1: { cellWidth: 42, halign: 'left' }
           },
           didDrawPage: function (data) {
             const pageNumber = doc.internal.getNumberOfPages();
             const pageWidth = doc.internal.pageSize.getWidth();
             const pageHeight = doc.internal.pageSize.getHeight();
 
-            // MARCA DE AGUA
+            // MARCA DE AGUA (Suave y Menos visible)
             doc.saveGraphicsState();
-            doc.setGState(new doc.GState({ opacity: 0.25 })); 
-            doc.setTextColor(240, 240, 240); 
-            doc.setFontSize(28); 
+            doc.setGState(new doc.GState({ opacity: 0.12 })); 
+            doc.setTextColor(150, 150, 150); 
+            doc.setFontSize(35); 
             doc.setFont('helvetica', 'bold');
-            doc.text(`DESCARGADO POR: ${usuarioDescarga}`, pageWidth / 2, pageHeight / 2 - 12, { align: 'center', angle: 30 });
-            doc.text(`EL: ${fechaActual}`, pageWidth / 2, pageHeight / 2 + 12, { align: 'center', angle: 30 });
+            doc.text(`DESCARGADO POR: ${usuarioDescarga}`, pageWidth / 2, pageHeight / 2 - 15, { align: 'center', angle: 30 });
+            doc.text(`EL: ${fechaActual}`, pageWidth / 2, pageHeight / 2 + 15, { align: 'center', angle: 30 });
             doc.restoreGraphicsState();
 
             // HEADER
@@ -2254,24 +2244,21 @@
             doc.text(`TUTOR RESPONSABLE: ${nombreDocenteTutor}`, 285, 38, { align: 'right' }); 
             doc.line(12, 40, 285, 40);
 
-            // FOOTER CON FIRMAS
+            // FOOTER CON FIRMAS: NOMBRES NORMALES Y CARGOS NEGRITA
             const footerY = 188; 
             doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(30, 41, 59); doc.setLineWidth(0.2); 
             doc.line(25, footerY, 85, footerY); doc.line(118, footerY, 178, footerY); doc.line(212, footerY, 272, footerY);
 
-            doc.setFont('helvetica', 'bold');
+            // NOMBRES NORMALES ARRIBA
+            doc.setFont('helvetica', 'normal');
             doc.text(nombreDocenteTutor, 55, footerY + 4, { align: 'center' });
-            doc.setFont('helvetica', 'normal');
-            doc.text('DOCENTE TUTOR', 55, footerY + 7.5, { align: 'center' });
-
-            doc.setFont('helvetica', 'bold');
             doc.text(nombreSecretaria, 148.5, footerY + 4, { align: 'center' });
-            doc.setFont('helvetica', 'normal');
-            doc.text('SECRETARIO/A GENERAL', 148.5, footerY + 7.5, { align: 'center' });
-
-            doc.setFont('helvetica', 'bold');
             doc.text(nombreRector, 242, footerY + 4, { align: 'center' });
-            doc.setFont('helvetica', 'normal');
+
+            // CARGOS NEGRITAS ABAJO
+            doc.setFont('helvetica', 'bold');
+            doc.text('DOCENTE TUTOR', 55, footerY + 7.5, { align: 'center' });
+            doc.text('SECRETARIO/A GENERAL', 148.5, footerY + 7.5, { align: 'center' });
             doc.text('RECTOR / DIRECTOR', 242, footerY + 7.5, { align: 'center' });
 
             doc.setFontSize(7); doc.setTextColor(148, 163, 184); 
