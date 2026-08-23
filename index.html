@@ -177,6 +177,8 @@
             <button class="btn btn-outline-success btn-sm me-1 btn-control" onclick="autoLlenarTodoCon10()" disabled title="Llenar vacíos con 10"><i class="bi bi-lightning-charge-fill"></i> 10</button>
             <button class="btn btn-outline-secondary btn-sm me-1 btn-control" onclick="limpiarTodasNotasParcial()" disabled title="Limpiar TODAS las notas"><i class="bi bi-eraser-fill"></i></button>
             <button class="btn btn-success btn-sm px-2 px-md-3 fw-bold btn-control" id="btnGuardarParcial" onclick="guardarDatos()" disabled>💾 Guardar</button>
+            <!-- NUEVO BOTÓN PDF PARA PARCIAL ACADÉMICO -->
+            <button class="btn btn-danger btn-sm px-2 px-md-3 fw-bold btn-control ms-1" id="btnDescargarParcialPDF" onclick="exportarParcialPDF()" disabled title="Descargar Reporte en PDF"><i class="bi bi-file-pdf me-1"></i>PDF</button>
           </div>
 
           <div class="col-12 col-md-3 text-end pt-2 pt-md-3 d-none" id="accionesComportamiento">
@@ -1387,6 +1389,195 @@
         if (reqId === currentViewRequestId) contenedor.innerHTML = html;
       } catch (err) {
         if (reqId === currentViewRequestId) contenedor.innerHTML = `<div class="py-4 text-danger text-center fw-bold">Error: ${err.message}</div>`;
+      }
+    }
+
+    // =========================================================================
+    // EXPORTAR PARCIAL ACADÉMICO A PDF (CON MARCA DE AGUA)
+    // =========================================================================
+    async function exportarParcialPDF() {
+      const asigId = document.getElementById('selectMateria').value.trim();
+      const asig = todasAsignaciones.find(a => String(a.id) === String(asigId));
+      if (!asig) return alert('Seleccione una materia.');
+
+      const btn = document.getElementById('btnDescargarParcialPDF');
+      const originalHtml = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+
+      try {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+
+        const nomArriba = (infoInstitucion?.nombre_arriba || 'Unidad Educativa Particular').toUpperCase();
+        const nomAbajo = (infoInstitucion?.nombre_abajo || '"Vicente Rocafuerte"').toUpperCase();
+        const periodo = infoInstitucion?.periodo_lectivo || '2026-2027';
+        const amie = infoInstitucion?.amie || '13H03021';
+        const distrito = infoInstitucion?.distrito || '13D08';
+        const circuito = infoInstitucion?.circuito || '13D08C0_b';
+        const dir1 = infoInstitucion?.direccion_1 || 'Pichincha - Manabí - Ecuador';
+        const frase1 = infoInstitucion?.frase_1 ? `"${infoInstitucion.frase_1}"` : '';
+
+        const cursoEncontrado = (todosCursos && todosCursos.length > 0) ? todosCursos.find(c => c.id === asig.curso_id) : asig.cursos;
+        const nombreCursoLargo = (cursoEncontrado?.nombre_largo_mayuscula || cursoEncontrado?.nombre || asig.cursos?.nombre || '').toUpperCase();
+        const nombreMateria = (asig.materias?.nombre || '').toUpperCase();
+
+        const selectVista = document.getElementById('selectVista');
+        const nombreParcial = selectVista.options[selectVista.selectedIndex].text.toUpperCase();
+        const trimestreVal = document.getElementById('selectTrimestre').value;
+
+        // CONSULTAR DOCENTE TITULAR DE LA MATERIA
+        let nombreDocenteMateria = 'DOCENTE RESPONSABLE';
+        if (asig.docente_id) {
+          try {
+            const { data: prof } = await supabaseClient.from('perfiles').select('titulo, nombres, apellidos').eq('id', asig.docente_id).maybeSingle();
+            if (prof) {
+               nombreDocenteMateria = `${prof.titulo ? prof.titulo + ' ' : ''}${prof.nombres} ${prof.apellidos || ''}`.trim().toUpperCase();
+            }
+          } catch(e) {}
+        }
+
+        const nombreSecretaria = 'C.P.A. MERCEDES A. SALAMEA M.';
+        const nombreRector = 'ING. DÍDIMO A. SALTOS S.';
+
+        const imgLogoIzq = await obtenerBase64DesdeUrl(infoInstitucion?.logo_izquierdo || infoInstitucion?.logo_institucion);
+        const imgLogoDer = await obtenerBase64DesdeUrl(infoInstitucion?.logo_derecho || infoInstitucion?.escudo_nacional);
+
+        // CONFIGURACIÓN DE MARCA DE AGUA
+        const usuarioDescarga = usuarioActualPerfil ? `${usuarioActualPerfil.nombres} ${usuarioActualPerfil.apellidos || ''}`.trim().toUpperCase() : 'USUARIO DESCONOCIDO';
+        const fechaActual = new Date().toLocaleString('es-EC');
+
+        // EXTRACCIÓN DINÁMICA DE DATOS DE LA TABLA
+        const colIns1 = Math.max(configActividades.insumo1.length, 1);
+        const colIns2 = Math.max(configActividades.insumo2.length, 1);
+
+        const bodyData = [];
+        document.querySelectorAll('#tablaCuerpo tr').forEach(tr => {
+            const num = tr.querySelector('.sticky-col-num').innerText;
+            const nom = tr.querySelector('.sticky-col-nombre').getAttribute('title') || tr.querySelector('.sticky-col-nombre').innerText;
+            
+            const rowData = [num, nom];
+            
+            // Insumo 1
+            const i1Inputs = tr.querySelectorAll('.nota-i1');
+            if (configActividades.insumo1.length === 0) rowData.push('-');
+            else i1Inputs.forEach(inp => rowData.push(inp.value || '0.00'));
+            rowData.push(tr.querySelector('.prom-i1').innerText);
+
+            // Insumo 2
+            const i2Inputs = tr.querySelectorAll('.nota-i2');
+            if (configActividades.insumo2.length === 0) rowData.push('-');
+            else i2Inputs.forEach(inp => rowData.push(inp.value || '0.00'));
+            rowData.push(tr.querySelector('.prom-i2').innerText);
+
+            // Nota Parcial
+            rowData.push(tr.querySelector('.nota-parcial').innerText);
+
+            bodyData.push(rowData);
+        });
+
+        const headerRow1 = [
+            { content: 'N°', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } },
+            { content: 'NÓMINA DE ESTUDIANTES', rowSpan: 2, styles: { valign: 'middle', halign: 'left' } },
+            { content: 'INSUMO 1 (Actividades Individuales)', colSpan: colIns1, styles: { halign: 'center', fillColor: [13, 110, 253] } },
+            { content: 'PROM.\nINS. 1', rowSpan: 2, styles: { valign: 'middle', halign: 'center', fillColor: [255, 235, 59], textColor: [0,0,0] } },
+            { content: 'INSUMO 2 (Actividades Grupales)', colSpan: colIns2, styles: { halign: 'center', fillColor: [13, 202, 240], textColor: [0,0,0] } },
+            { content: 'PROM.\nINS. 2', rowSpan: 2, styles: { valign: 'middle', halign: 'center', fillColor: [255, 235, 59], textColor: [0,0,0] } },
+            { content: 'NOTA\nPARCIAL', rowSpan: 2, styles: { valign: 'middle', halign: 'center', fillColor: [25, 135, 84] } }
+        ];
+
+        const headerRow2 = [];
+        for(let i=0; i<colIns1; i++) headerRow2.push({ content: `Act. ${i+1}`, styles: { halign: 'center', fontSize: 6.5 }});
+        for(let i=0; i<colIns2; i++) headerRow2.push({ content: `Act. ${i+1}`, styles: { halign: 'center', fontSize: 6.5 }});
+
+        doc.autoTable({
+          head: [headerRow1, headerRow2],
+          body: bodyData,
+          margin: { top: 48, bottom: 32, left: 12, right: 12 },
+          theme: 'grid',
+          styles: { fontSize: 7.2, cellPadding: 1.5, lineColor: [200, 200, 200], lineWidth: 0.1, valign: 'middle' },
+          headStyles: { textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 7 },
+          columnStyles: {
+            0: { cellWidth: 10, halign: 'center' },
+            1: { cellWidth: 70, halign: 'left' },
+            // La columna de nota parcial es la última, las de promedio se calculan dinámicamente
+          },
+          didParseCell: function(data) {
+            // Pintar la última columna (Nota Parcial)
+            if (data.section === 'body' && data.column.index === data.table.columns.length - 1) {
+              data.cell.styles.fontStyle = 'bold';
+              data.cell.styles.fillColor = [230, 244, 234];
+              data.cell.styles.textColor = [21, 128, 61];
+            }
+          },
+          didDrawPage: function (data) {
+            const pageNumber = doc.internal.getNumberOfPages();
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const pageHeight = doc.internal.pageSize.getHeight();
+
+            // DIBUJAR MARCA DE AGUA (TRANSPARENTE)
+            doc.saveGraphicsState();
+            doc.setGState(new doc.GState({ opacity: 0.08 })); // Nivel de opacidad sutil
+            doc.setTextColor(50, 50, 50);
+            doc.setFontSize(45);
+            doc.setFont('helvetica', 'bold');
+            doc.text(`DESCARGADO POR: ${usuarioDescarga}`, pageWidth / 2, pageHeight / 2 - 15, { align: 'center', angle: 30 });
+            doc.text(`EL: ${fechaActual}`, pageWidth / 2, pageHeight / 2 + 15, { align: 'center', angle: 30 });
+            doc.restoreGraphicsState();
+
+            // HEADER
+            if (imgLogoIzq) { try { doc.addImage(imgLogoIzq, 'PNG', 12, 7, 22, 22); } catch(e){} }
+            if (imgLogoDer) { try { doc.addImage(imgLogoDer, 'PNG', 263, 7, 22, 22); } catch(e){} }
+
+            doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(30, 41, 59); 
+            doc.text(nomArriba, 148.5, 11, { align: 'center' });
+            doc.setFontSize(13); doc.text(nomAbajo, 148.5, 16, { align: 'center' });
+            
+            doc.setFontSize(9.5); 
+            doc.text(`REPORTE DE CALIFICACIONES ACADÉMICAS - TRIMESTRE ${trimestreVal} - ${nombreParcial}`, 148.5, 21, { align: 'center' });
+
+            doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(71, 85, 105); 
+            doc.text(`AMIE: ${amie} | DISTRITO: ${distrito} | CIRCUITO: ${circuito} | ${dir1} | AÑO LECTIVO: ${periodo}`, 148.5, 25.5, { align: 'center' });
+            if (frase1) { doc.setFont('helvetica', 'italic'); doc.text(frase1, 148.5, 29, { align: 'center' }); }
+
+            doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(15, 23, 42); doc.setDrawColor(203, 213, 225); doc.setLineWidth(0.3); doc.line(12, 33, 285, 33);
+            doc.text(`CURSO: ${nombreCursoLargo}`, 12, 38); 
+            doc.text(`ASIGNATURA: ${nombreMateria}`, 12, 43); 
+            
+            doc.text(`DOCENTE RESPONSABLE: ${nombreDocenteMateria}`, 285, 43, { align: 'right' }); 
+            doc.line(12, 45, 285, 45);
+
+            // FOOTER CON FIRMAS
+            const footerY = 188; 
+            doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(30, 41, 59); doc.setLineWidth(0.2); 
+            doc.line(25, footerY, 85, footerY); doc.line(118, footerY, 178, footerY); doc.line(212, footerY, 272, footerY);
+
+            doc.setFont('helvetica', 'bold');
+            doc.text(nombreDocenteMateria, 55, footerY + 4, { align: 'center' });
+            doc.setFont('helvetica', 'normal');
+            doc.text('DOCENTE RESPONSABLE', 55, footerY + 7.5, { align: 'center' });
+
+            doc.setFont('helvetica', 'bold');
+            doc.text(nombreSecretaria, 148.5, footerY + 4, { align: 'center' });
+            doc.setFont('helvetica', 'normal');
+            doc.text('SECRETARIO/A GENERAL', 148.5, footerY + 7.5, { align: 'center' });
+
+            doc.setFont('helvetica', 'bold');
+            doc.text(nombreRector, 242, footerY + 4, { align: 'center' });
+            doc.setFont('helvetica', 'normal');
+            doc.text('RECTOR / DIRECTOR', 242, footerY + 7.5, { align: 'center' });
+
+            doc.setFontSize(7); doc.setTextColor(148, 163, 184); 
+            doc.text(`Página ${pageNumber}`, 285, 202, { align: 'right' });
+          }
+        });
+
+        doc.save(`Calificaciones_${nombreCursoLargo.replace(/\s+/g, '_')}_${nombreMateria.replace(/\s+/g, '_')}.pdf`);
+      } catch (err) {
+        alert('Error al exportar PDF: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalHtml;
       }
     }
 
