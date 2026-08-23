@@ -1395,6 +1395,10 @@
     // =========================================================================
     // EXPORTAR PARCIAL ACADÉMICO A PDF (CON MARCA DE AGUA)
     // =========================================================================
+
+// =========================================================================
+    // EXPORTAR PARCIAL ACADÉMICO A PDF (CON MARCA DE AGUA)
+    // =========================================================================
     async function exportarParcialPDF() {
       const asigId = document.getElementById('selectMateria').value.trim();
       const asig = todasAsignaciones.find(a => String(a.id) === String(asigId));
@@ -1447,7 +1451,7 @@
         const usuarioDescarga = usuarioActualPerfil ? `${usuarioActualPerfil.nombres} ${usuarioActualPerfil.apellidos || ''}`.trim().toUpperCase() : 'USUARIO DESCONOCIDO';
         const fechaActual = new Date().toLocaleString('es-EC');
 
-        // EXTRACCIÓN DINÁMICA DE DATOS DE LA TABLA
+        // EXTRACCIÓN DINÁMICA DE DATOS DE LA TABLA Y FORMATEO A 2 DECIMALES
         const colIns1 = Math.max(configActividades.insumo1.length, 1);
         const colIns2 = Math.max(configActividades.insumo2.length, 1);
 
@@ -1458,27 +1462,39 @@
             
             const rowData = [num, nom];
             
-            // Insumo 1
+            // Insumo 1 (Con 2 decimales y centrado)
             const i1Inputs = tr.querySelectorAll('.nota-i1');
-            if (configActividades.insumo1.length === 0) rowData.push('-');
-            else i1Inputs.forEach(inp => rowData.push(inp.value || '0.00'));
-            rowData.push(tr.querySelector('.prom-i1').innerText);
+            if (configActividades.insumo1.length === 0) {
+              rowData.push('-');
+            } else {
+              i1Inputs.forEach(inp => {
+                const valStr = inp.value.trim();
+                rowData.push(valStr !== '' ? parseFloat(valStr).toFixed(2) : ''); 
+              });
+            }
+            rowData.push(parseFloat(tr.querySelector('.prom-i1').innerText || 0).toFixed(2));
 
-            // Insumo 2
+            // Insumo 2 (Con 2 decimales y centrado)
             const i2Inputs = tr.querySelectorAll('.nota-i2');
-            if (configActividades.insumo2.length === 0) rowData.push('-');
-            else i2Inputs.forEach(inp => rowData.push(inp.value || '0.00'));
-            rowData.push(tr.querySelector('.prom-i2').innerText);
+            if (configActividades.insumo2.length === 0) {
+              rowData.push('-');
+            } else {
+              i2Inputs.forEach(inp => {
+                const valStr = inp.value.trim();
+                rowData.push(valStr !== '' ? parseFloat(valStr).toFixed(2) : '');
+              });
+            }
+            rowData.push(parseFloat(tr.querySelector('.prom-i2').innerText || 0).toFixed(2));
 
             // Nota Parcial
-            rowData.push(tr.querySelector('.nota-parcial').innerText);
+            rowData.push(parseFloat(tr.querySelector('.nota-parcial').innerText || 0).toFixed(2));
 
             bodyData.push(rowData);
         });
 
         const headerRow1 = [
             { content: 'N°', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } },
-            { content: 'NÓMINA DE ESTUDIANTES', rowSpan: 2, styles: { valign: 'middle', halign: 'left' } },
+            { content: 'NÓMINA DE ESTUDIANTES', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } },
             { content: 'INSUMO 1 (Actividades Individuales)', colSpan: colIns1, styles: { halign: 'center', fillColor: [13, 110, 253] } },
             { content: 'PROM.\nINS. 1', rowSpan: 2, styles: { valign: 'middle', halign: 'center', fillColor: [255, 235, 59], textColor: [0,0,0] } },
             { content: 'INSUMO 2 (Actividades Grupales)', colSpan: colIns2, styles: { halign: 'center', fillColor: [13, 202, 240], textColor: [0,0,0] } },
@@ -1495,12 +1511,12 @@
           body: bodyData,
           margin: { top: 48, bottom: 32, left: 12, right: 12 },
           theme: 'grid',
-          styles: { fontSize: 7.2, cellPadding: 1.5, lineColor: [200, 200, 200], lineWidth: 0.1, valign: 'middle' },
-          headStyles: { textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 7 },
+          // halign: 'center' APLICA CENTRADO A TODO EL CUERPO (Calificaciones)
+          styles: { fontSize: 7.2, cellPadding: 1.5, lineColor: [200, 200, 200], lineWidth: 0.1, valign: 'middle', halign: 'center' },
+          headStyles: { textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 7, halign: 'center' },
           columnStyles: {
             0: { cellWidth: 10, halign: 'center' },
-            1: { cellWidth: 70, halign: 'left' },
-            // La columna de nota parcial es la última, las de promedio se calculan dinámicamente
+            1: { cellWidth: 70, halign: 'left' }, // Excepción: Solo los nombres van a la izquierda
           },
           didParseCell: function(data) {
             // Pintar la última columna (Nota Parcial)
@@ -1515,14 +1531,14 @@
             const pageWidth = doc.internal.pageSize.getWidth();
             const pageHeight = doc.internal.pageSize.getHeight();
 
-            // DIBUJAR MARCA DE AGUA (TRANSPARENTE)
+            // DIBUJAR MARCA DE AGUA (TAMAÑO REDUCIDO DE LETRA)
             doc.saveGraphicsState();
-            doc.setGState(new doc.GState({ opacity: 0.08 })); // Nivel de opacidad sutil
+            doc.setGState(new doc.GState({ opacity: 0.08 })); 
             doc.setTextColor(50, 50, 50);
-            doc.setFontSize(45);
+            doc.setFontSize(28); // <-- TAMAÑO AJUSTADO AQUÍ
             doc.setFont('helvetica', 'bold');
-            doc.text(`DESCARGADO POR: ${usuarioDescarga}`, pageWidth / 2, pageHeight / 2 - 15, { align: 'center', angle: 30 });
-            doc.text(`EL: ${fechaActual}`, pageWidth / 2, pageHeight / 2 + 15, { align: 'center', angle: 30 });
+            doc.text(`DESCARGADO POR: ${usuarioDescarga}`, pageWidth / 2, pageHeight / 2 - 12, { align: 'center', angle: 30 });
+            doc.text(`EL: ${fechaActual}`, pageWidth / 2, pageHeight / 2 + 12, { align: 'center', angle: 30 });
             doc.restoreGraphicsState();
 
             // HEADER
@@ -1580,7 +1596,7 @@
         btn.innerHTML = originalHtml;
       }
     }
-
+    
     // =========================================================================
     // EXPORTAR COMPORTAMIENTO A PDF (CON MARCA DE AGUA)
     // =========================================================================
