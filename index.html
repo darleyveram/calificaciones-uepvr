@@ -1391,13 +1391,8 @@
         if (reqId === currentViewRequestId) contenedor.innerHTML = `<div class="py-4 text-danger text-center fw-bold">Error: ${err.message}</div>`;
       }
     }
-
-    // =========================================================================
-    // EXPORTAR PARCIAL ACADÉMICO A PDF (CON MARCA DE AGUA)
-    // =========================================================================
-
-// =========================================================================
-    // EXPORTAR PARCIAL ACADÉMICO A PDF (CON MARCA DE AGUA)
+    
+    // EXPORTAR PARCIAL ACADÉMICO A PDF (CON MARCA DE AGUA BLANCA Y PEQUEÑA)
     // =========================================================================
     async function exportarParcialPDF() {
       const asigId = document.getElementById('selectMateria').value.trim();
@@ -1531,14 +1526,14 @@
             const pageWidth = doc.internal.pageSize.getWidth();
             const pageHeight = doc.internal.pageSize.getHeight();
 
-            // DIBUJAR MARCA DE AGUA (TAMAÑO REDUCIDO DE LETRA)
+            // DIBUJAR MARCA DE AGUA (TAMAÑO MÁS PEQUEÑO Y COLOR BLANCO HUMO)
             doc.saveGraphicsState();
-            doc.setGState(new doc.GState({ opacity: 0.08 })); 
-            doc.setTextColor(50, 50, 50);
-            doc.setFontSize(28); // <-- TAMAÑO AJUSTADO AQUÍ
+            doc.setGState(new doc.GState({ opacity: 0.25 })); // Opacidad
+            doc.setTextColor(240, 240, 240); // Blanco tenue para que destaque sobre la tabla pero no desaparezca en el fondo
+            doc.setFontSize(20); // Tamaño de letra más pequeño (20 en vez de 45/28)
             doc.setFont('helvetica', 'bold');
-            doc.text(`DESCARGADO POR: ${usuarioDescarga}`, pageWidth / 2, pageHeight / 2 - 12, { align: 'center', angle: 30 });
-            doc.text(`EL: ${fechaActual}`, pageWidth / 2, pageHeight / 2 + 12, { align: 'center', angle: 30 });
+            doc.text(`DESCARGADO POR: ${usuarioDescarga}`, pageWidth / 2, pageHeight / 2 - 10, { align: 'center', angle: 30 });
+            doc.text(`EL: ${fechaActual}`, pageWidth / 2, pageHeight / 2 + 10, { align: 'center', angle: 30 });
             doc.restoreGraphicsState();
 
             // HEADER
