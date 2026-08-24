@@ -3039,11 +3039,16 @@
     // =========================================================================
     // CONSTRUCCIÓN DEL CERTIFICADO (MÁXIMO DETALLE Y CENTRADO)
     // =========================================================================
+    // =========================================================================
+    // CONSTRUCCIÓN DEL CERTIFICADO (MÁXIMO DETALLE Y CENTRADO)
+    // =========================================================================
     function construirPaginaCertificado(doc, est, cursoNombreLargo, fechaIso, imgLogoIzq, imgLogoDer) {
         // DATOS DESDE LA BASE DE DATOS O VALORES POR DEFECTO OFICIALES
         const periodo = infoInstitucion?.periodo_lectivo || '2026-2027';
         const amie = infoInstitucion?.amie || '13H03021';
-        const cantonProvincia = infoInstitucion?.direccion_1 || 'Cantón Pichincha – Manabí- Ecuador';
+        const cantonProvincia = infoInstitucion?.direccion_1 || 'Cantón Pichincha – Manabí - Ecuador';
+        const correoIns = infoInstitucion?.correo || '13h03021@educacion.gob.ec';
+        const telefonoIns = infoInstitucion?.telefono_1 || infoInstitucion?.telefono || '05 2323232';
         
         const nombreRector = (infoInstitucion?.rector_nombre || 'ING. DÍDIMO ABDÓN SALTOS SABANDO').toUpperCase();
         const cedulaRector = infoInstitucion?.rector_cedula || '1304144510';
@@ -3066,20 +3071,25 @@
         doc.setFont('helvetica', 'normal');
         doc.text(cantonProvincia, 105, 32, { align: 'center' });
         
-        doc.setFont('helvetica', 'bold');
-        doc.text('Correo:', 78, 37);
-        doc.setFont('helvetica', 'normal');
-        doc.text(` ${amie.toLowerCase()}@educacion.gob.ec`, 90, 37);
+        // --- FUNCIÓN INTERNA PARA CENTRAR TEXTOS COMBINADOS (Negrita + Normal) ---
+        function centrarTextoMixto(textoNegrita, textoNormal, yPos) {
+            doc.setFont('helvetica', 'bold');
+            const w1 = doc.getTextWidth(textoNegrita);
+            doc.setFont('helvetica', 'normal');
+            const w2 = doc.getTextWidth(textoNormal);
+            const totalWidth = w1 + w2;
+            const startX = 105 - (totalWidth / 2); // 105 es el centro exacto de la hoja A4 (210mm / 2)
 
-        doc.setFont('helvetica', 'bold');
-        doc.text('Código AMIE:', 78, 42);
-        doc.setFont('helvetica', 'normal');
-        doc.text(' ' + amie, 100, 42);
+            doc.setFont('helvetica', 'bold');
+            doc.text(textoNegrita, startX, yPos);
+            doc.setFont('helvetica', 'normal');
+            doc.text(textoNormal, startX + w1, yPos);
+        }
 
-        doc.setFont('helvetica', 'bold');
-        doc.text('Teléfono:', 78, 47);
-        doc.setFont('helvetica', 'normal');
-        doc.text(' 05 2323232', 93, 47);
+        // Aplicando la función de centrado mixto con los datos de la base de datos
+        centrarTextoMixto('Correo: ', correoIns, 37);
+        centrarTextoMixto('Código AMIE: ', amie, 42);
+        centrarTextoMixto('Teléfono: ', telefonoIns, 47);
 
         // TÍTULO DEL DOCUMENTO
         doc.setFont('helvetica', 'bold');
