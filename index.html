@@ -482,6 +482,7 @@
       const boxVista = document.getElementById('boxVista');
       const boxParcialAsist = document.getElementById('boxParcialAsistencia');
       const boxParcialTut = document.getElementById('boxParcialTutoria');
+      const boxTrimestre = document.getElementById('boxTrimestre'); // Nuevo: Controlamos el trimestre
       const optAnual = document.getElementById('optTrimAnual');
       const selectCurso = document.getElementById('selectCurso');
 
@@ -491,18 +492,21 @@
 
       if (modo === 'tutoria') {
         boxMateria.classList.add('d-none'); boxVista.classList.add('d-none'); boxParcialAsist.classList.add('d-none'); boxParcialTut.classList.remove('d-none'); optAnual.classList.add('d-none');
+        boxTrimestre.classList.remove('d-none'); // Mostrar trimestre
         if (document.getElementById('selectTrimestre').value === 'anual') document.getElementById('selectTrimestre').value = '1';
         const cursosDisponibles = esAdmin ? todosCursos : cursosTutor;
         selectCurso.innerHTML = '<option value="">Seleccione curso...</option>' + cursosDisponibles.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
       } 
       else if (modo === 'asistencia') {
         boxMateria.classList.add('d-none'); boxVista.classList.add('d-none'); boxParcialAsist.classList.remove('d-none'); boxParcialTut.classList.add('d-none'); optAnual.classList.add('d-none');
+        boxTrimestre.classList.remove('d-none'); // Mostrar trimestre
         if (document.getElementById('selectTrimestre').value === 'anual') document.getElementById('selectTrimestre').value = '1';
         const cursosDisponibles = puedeVerAsistencia ? todosCursos : Array.from(new Map(todasAsignaciones.map(a => [a.cursos.id, a.cursos])).values());
         selectCurso.innerHTML = '<option value="">Seleccione curso...</option>' + cursosDisponibles.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
       } 
       else if (modo === 'reporte_estudiante') {
         boxMateria.classList.add('d-none'); boxVista.classList.add('d-none'); boxParcialAsist.classList.add('d-none'); boxParcialTut.classList.add('d-none'); optAnual.classList.add('d-none');
+        boxTrimestre.classList.add('d-none'); // Ocultar trimestre
         let cursosDisponibles = [];
         if (esAdmin) {
             cursosDisponibles = todosCursos;
@@ -516,11 +520,13 @@
       }
       else if (modo === 'certificados') {
         boxMateria.classList.add('d-none'); boxVista.classList.add('d-none'); boxParcialAsist.classList.add('d-none'); boxParcialTut.classList.add('d-none'); optAnual.classList.add('d-none');
+        boxTrimestre.classList.add('d-none'); // Ocultar trimestre
         // Solo admins ven esto, cargamos todos los cursos
         selectCurso.innerHTML = '<option value="">Seleccione curso...</option>' + todosCursos.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
       }
       else {
         boxMateria.classList.remove('d-none'); boxVista.classList.remove('d-none'); boxParcialAsist.classList.add('d-none'); boxParcialTut.classList.add('d-none'); optAnual.classList.remove('d-none');
+        boxTrimestre.classList.remove('d-none'); // Mostrar trimestre
         const cursosMap = new Map();
         todasAsignaciones.forEach(a => { if (a.cursos) cursosMap.set(String(a.cursos.id), a.cursos.nombre); });
         selectCurso.innerHTML = '<option value="">Seleccione curso...</option>' + Array.from(cursosMap).map(([id, nombre]) => `<option value="${id}">${nombre}</option>`).join('');
