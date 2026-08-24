@@ -3110,10 +3110,14 @@
 
         doc.setFont('helvetica', 'normal');
         const parrafo2 = `Así consta en los registros de matrícula que reposan en esta institución.`;
-        doc.text(parrafo2, 20, 130);
+        
+        // AUMENTAMOS ESTA MEDIDA A 150 PARA DARLE EL ESPACIO NECESARIO
+        doc.text(parrafo2, 20, 150);
 
         const parrafo3 = `Dado y firmado en Pichincha, ${textoFecha}`;
-        doc.text(parrafo3, 20, 150);
+        
+        // AUMENTAMOS ESTA MEDIDA A 170 PARA BAJARLA TAMBIÉN
+        doc.text(parrafo3, 20, 170);
 
         // FIRMA DEL RECTOR (Centrada y adaptativa)
         const footerY = 220;
