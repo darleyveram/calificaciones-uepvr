@@ -2558,8 +2558,8 @@
         let totalFaltasInjustificadas = 0;
         let totalDiasAsistidos = 0;
         (resAsist.data || []).forEach(a => {
-            const faltas = Math.max((a.total_dias || 0) - (a.total_asistencias || 0) - (a.total_justificadas || 0), 0);
-            totalFaltasInjustificadas += faltas;
+            // Leer directamente de la base de datos las faltas y asistencias calculadas al guardar
+            totalFaltasInjustificadas += (a.total_faltas || 0);
             totalDiasAsistidos += (a.total_asistencias || 0);
         });
 
