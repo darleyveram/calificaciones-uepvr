@@ -117,8 +117,9 @@
               <option value="calificaciones">📘 Calificaciones Académicas</option>
               <option value="asistencia" id="optModoAsistencia" class="d-none">📅 Control Diario de Asistencia</option>
               <option value="tutoria" id="optModoTutoria" class="d-none">📊 Reportes y Libretas de Tutoría</option>
-              <!-- SE AGREGÓ ID Y CLASE D-NONE PARA OCULTARLO POR DEFECTO -->
               <option value="reporte_estudiante" id="optModoReporteEstudiante" class="d-none">🧑‍🎓 Reporte Total por Estudiante</option>
+              <!-- NUEVA OPCIÓN AÑADIDA -->
+              <option value="certificados" id="optModoCertificados" class="d-none">📜 Certificados de Matrícula</option>
             </select>
           </div>
 
@@ -219,6 +220,22 @@
             <button class="btn btn-danger btn-sm px-2 fw-bold d-none" id="btnDescargarSabanaTutoria" onclick="exportarSabanaTutoriaPDF()">
               <i class="bi bi-file-earmark-spreadsheet-fill me-1"></i>Sábana PDF
             </button>
+          </div>
+
+          <!-- BOTONES CERTIFICADOS DE MATRÍCULA -->
+          <div class="col-12 col-md-5 text-end pt-2 pt-md-3 d-none" id="accionesCertificados">
+            <div class="d-flex justify-content-end align-items-center gap-2">
+              <div class="input-group input-group-sm" style="max-width: 170px;">
+                <span class="input-group-text fw-bold bg-light">Fecha:</span>
+                <input type="date" id="fechaCertificado" class="form-control fw-bold text-primary">
+              </div>
+              <button class="btn btn-danger btn-sm px-2 fw-bold" onclick="generarCertificadosLotePDF()" title="Descargar todos en un solo PDF">
+                <i class="bi bi-file-earmark-pdf-fill me-1"></i>Lote
+              </button>
+              <button class="btn btn-outline-primary btn-sm px-2 fw-bold" onclick="descargarCertificadosZip()" title="Descargar individuales en carpeta ZIP">
+                <i class="bi bi-file-earmark-zip-fill me-1"></i>ZIP
+              </button>
+            </div>
           </div>
 
         </div>
@@ -394,6 +411,9 @@
         if (esAdmin) {
           const optRepEst = document.getElementById('optModoReporteEstudiante');
           if (optRepEst) optRepEst.classList.remove('d-none');
+          
+          const optCert = document.getElementById('optModoCertificados');
+          if (optCert) optCert.classList.remove('d-none');
         }
         // -----------------------------------------------
 
@@ -482,19 +502,22 @@
         selectCurso.innerHTML = '<option value="">Seleccione curso...</option>' + cursosDisponibles.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
       } 
       else if (modo === 'reporte_estudiante') {
-        // NUEVO MÓDULO: REPORTE POR ESTUDIANTE
         boxMateria.classList.add('d-none'); boxVista.classList.add('d-none'); boxParcialAsist.classList.add('d-none'); boxParcialTut.classList.add('d-none'); optAnual.classList.add('d-none');
         let cursosDisponibles = [];
         if (esAdmin) {
             cursosDisponibles = todosCursos;
         } else {
-            // Unimos cursos de tutoría y cursos donde da clases
             const mapCursos = new Map();
             cursosTutor.forEach(c => mapCursos.set(c.id, c));
             todasAsignaciones.forEach(a => { if (a.cursos) mapCursos.set(a.cursos.id, a.cursos); });
             cursosDisponibles = Array.from(mapCursos.values());
         }
         selectCurso.innerHTML = '<option value="">Seleccione curso...</option>' + cursosDisponibles.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
+      }
+      else if (modo === 'certificados') {
+        boxMateria.classList.add('d-none'); boxVista.classList.add('d-none'); boxParcialAsist.classList.add('d-none'); boxParcialTut.classList.add('d-none'); optAnual.classList.add('d-none');
+        // Solo admins ven esto, cargamos todos los cursos
+        selectCurso.innerHTML = '<option value="">Seleccione curso...</option>' + todosCursos.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
       }
       else {
         boxMateria.classList.remove('d-none'); boxVista.classList.remove('d-none'); boxParcialAsist.classList.add('d-none'); boxParcialTut.classList.add('d-none'); optAnual.classList.remove('d-none');
@@ -503,7 +526,6 @@
         selectCurso.innerHTML = '<option value="">Seleccione curso...</option>' + Array.from(cursosMap).map(([id, nombre]) => `<option value="${id}">${nombre}</option>`).join('');
       }
 
-      // Intentar mantener curso seleccionado
       const opcionesActuales = Array.from(selectCurso.options).map(opt => opt.value);
       if (cursoSeleccionadoPrevio && opcionesActuales.includes(cursoSeleccionadoPrevio)) {
         selectCurso.value = cursoSeleccionadoPrevio;
@@ -542,51 +564,36 @@
       const accAnual = document.getElementById('accionesAnual');
       const accAsist = document.getElementById('accionesAsistencia');
       const accTutoria = document.getElementById('accionesTutoria');
+      const accCertificados = document.getElementById('accionesCertificados');
 
-      // Ocultar todos los botones primero
       accParcial.classList.add('d-none');
       accComp.classList.add('d-none');
       accResumen.classList.add('d-none');
       accAnual.classList.add('d-none');
       accAsist.classList.add('d-none');
       accTutoria.classList.add('d-none');
+      if (accCertificados) accCertificados.classList.add('d-none');
 
-      // --- NUEVO CÓDIGO A AÑADIR AQUÍ ---
-      if (modo === 'reporte_estudiante') {
-        if (!cursoId) {
-          document.getElementById('contenedorTabla').innerHTML = '<div class="py-4 text-muted text-center">Seleccione un Curso para ver la lista de estudiantes.</div>';
-          return;
-        }
-        cargarVistaListaEstudiantesReporte();
-        return;
-      }
-      // ----------------------------------
-
-      // MÓDULO: TUTORÍA
       if (modo === 'tutoria') {
         accTutoria.classList.remove('d-none');
         if (!cursoId) {
           document.getElementById('contenedorTabla').innerHTML = '<div class="py-4 text-muted text-center">Seleccione un Curso de Tutoría para consultar el consolidado y emitir libretas.</div>';
           return;
         }
-
-        // CONTROL DE PERMISOS: Ocultar o mostrar botones según rol
         const esAdmin = usuarioActualPerfil?.rol === 'admin';
         if (esAdmin) {
           document.getElementById('btnDescargarTodasLibretas').classList.remove('d-none');
           document.getElementById('btnDescargarZipIndividuales').classList.remove('d-none');
-          document.getElementById('btnDescargarSabanaTutoria').classList.remove('d-none');
+          document.getElementById('btnDescargarSabanaTutoria').classList.add('d-none');
         } else {
           document.getElementById('btnDescargarTodasLibretas').classList.add('d-none');
           document.getElementById('btnDescargarZipIndividuales').classList.add('d-none');
           document.getElementById('btnDescargarSabanaTutoria').classList.remove('d-none');
         }
-
         cargarVistaConsolidadoTutoria();
         return;
       }
 
-      // MÓDULO: ASISTENCIA
       if (modo === 'asistencia') {
         accAsist.classList.remove('d-none');
         if (!cursoId) {
@@ -596,10 +603,28 @@
         }
         controles.forEach(b => b.disabled = false);
         cargarVistaAsistencia();
-        return; // IMPORTANTE: Evita que cargue otras tablas
+        return;
       }
 
-      // MÓDULO: CALIFICACIONES ACADÉMICAS
+      if (modo === 'reporte_estudiante') {
+        if (!cursoId) {
+          document.getElementById('contenedorTabla').innerHTML = '<div class="py-4 text-muted text-center">Seleccione un Curso para ver la lista de estudiantes.</div>';
+          return;
+        }
+        cargarVistaListaEstudiantesReporte();
+        return;
+      }
+
+      if (modo === 'certificados') {
+        if (accCertificados) accCertificados.classList.remove('d-none');
+        if (!cursoId) {
+          document.getElementById('contenedorTabla').innerHTML = '<div class="py-4 text-muted text-center">Seleccione un Curso para generar certificados de matrícula.</div>';
+          return;
+        }
+        cargarVistaCertificados();
+        return;
+      }
+
       if (trimestreVal === 'anual') {
         document.getElementById('boxVista').classList.add('d-none');
         accAnual.classList.remove('d-none');
@@ -2860,6 +2885,209 @@
       } finally {
         btn.disabled = false; btn.innerHTML = originalHtml;
       }
+    }
+    // =========================================================================
+    // NUEVO MÓDULO: CERTIFICADOS DE MATRÍCULA
+    // =========================================================================
+    function formatearFechaTexto(fechaIso) {
+      if (!fechaIso) return '';
+      const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+      const partes = fechaIso.split('-');
+      if (partes.length !== 3) return fechaIso;
+      return `${meses[parseInt(partes[1]) - 1]} ${parseInt(partes[2])} del ${partes[0]}`;
+    }
+
+    async function cargarVistaCertificados() {
+      const reqId = ++currentViewRequestId;
+      const cursoId = document.getElementById('selectCurso').value;
+      const contenedor = document.getElementById('contenedorTabla');
+      contenedor.innerHTML = '<div class="py-4 text-center"><div class="spinner-border text-primary me-2"></div>Cargando nómina de estudiantes...</div>';
+
+      try {
+        const { data: estData } = await supabaseClient.from('estudiantes').select('*').eq('curso_id', parseInt(cursoId)).order('nombres');
+        if (reqId !== currentViewRequestId) return;
+        
+        estudiantes = estData || [];
+
+        // Colocar fecha actual por defecto en el input
+        const inputFecha = document.getElementById('fechaCertificado');
+        if (inputFecha && !inputFecha.value) {
+            const hoy = new Date();
+            const mes = String(hoy.getMonth() + 1).padStart(2, '0');
+            const dia = String(hoy.getDate()).padStart(2, '0');
+            inputFecha.value = `${hoy.getFullYear()}-${mes}-${dia}`;
+        }
+
+        if (estudiantes.length === 0) {
+          contenedor.innerHTML = '<div class="py-4 text-warning text-center fw-bold">No hay estudiantes en este curso.</div>';
+          return;
+        }
+
+        let html = `
+          <table class="table table-bordered table-sm mb-0 align-middle">
+            <thead class="table-dark">
+              <tr>
+                <th class="sticky-col-num">N°</th>
+                <th class="sticky-col-nombre text-center">NÓMINA DE ESTUDIANTES</th>
+                <th>CÉDULA</th>
+                <th style="width: 140px;">ACCIÓN</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${estudiantes.map((est, idx) => `
+                <tr>
+                  <td class="sticky-col-num fw-bold text-muted">${idx + 1}</td>
+                  <td class="sticky-col-nombre text-start px-2">${est.nombres}</td>
+                  <td>${est.cedula || 'S/N'}</td>
+                  <td>
+                    <button class="btn btn-sm btn-outline-danger py-1 px-2 fw-bold" onclick="generarCertificadoIndividualPDF(${idx})">
+                      <i class="bi bi-file-pdf"></i> Certificado
+                    </button>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        `;
+        contenedor.innerHTML = html;
+      } catch (err) {
+        if (reqId === currentViewRequestId) contenedor.innerHTML = `<div class="py-4 text-danger text-center fw-bold">Error: ${err.message}</div>`;
+      }
+    }
+
+    function construirPaginaCertificado(doc, est, cursoNombreLargo, fechaIso, imgLogoIzq, imgLogoDer) {
+        const periodo = infoInstitucion?.periodo_lectivo || '2026-2027';
+        const amie = infoInstitucion?.amie || '13H03021';
+        const nombreRector = 'ING. DÍDIMO ABDÓN SALTOS SABANDO';
+        const cedulaRector = '1304144510';
+        
+        // Cabecera Institucional
+        if (imgLogoIzq) { try { doc.addImage(imgLogoIzq, 'PNG', 15, 12, 28, 28); } catch(e){} }
+        if (imgLogoDer) { try { doc.addImage(imgLogoDer, 'PNG', 167, 12, 28, 28); } catch(e){} }
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(14);
+        doc.setTextColor(220, 38, 38); 
+        doc.text('UNIDAD EDUCATIVA', 105, 18, { align: 'center' });
+        
+        doc.setFontSize(16);
+        doc.setTextColor(30, 64, 175);
+        doc.text(`“VICENTE ROCAFUERTE”`, 105, 25, { align: 'center' });
+
+        doc.setFontSize(8);
+        doc.setTextColor(0, 0, 0);
+        doc.setFont('helvetica', 'normal');
+        doc.text('Cantón Pichincha – Manabí- Ecuador', 105, 30, { align: 'center' });
+        
+        doc.setFont('helvetica', 'bold');
+        doc.text('Correo:', 74, 34);
+        doc.setFont('helvetica', 'normal');
+        doc.text(' 13H03021@educacion.gob.ec', 85, 34);
+
+        doc.setFont('helvetica', 'bold');
+        doc.text('Código AMIE:', 74, 38);
+        doc.setFont('helvetica', 'normal');
+        doc.text(' ' + amie, 96, 38);
+
+        doc.setFont('helvetica', 'bold');
+        doc.text('Teléfono:', 74, 42);
+        doc.setFont('helvetica', 'normal');
+        doc.text(' 05 2323232', 88, 42);
+
+        // Título del Documento
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(16);
+        doc.text('CERTIFICADO DE MATRÍCULA', 105, 65, { align: 'center' });
+
+        // Cuerpo del Certificado
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'normal');
+        
+        const nombreEstudiante = est.nombres.toUpperCase();
+        const cedulaEstudiante = est.cedula || 'S/N';
+        const nombreCurso = cursoNombreLargo.toUpperCase();
+
+        const parrafo1 = `Quien suscribe, ING. DÍDIMO ABDÓN SALTOS SABANDO, Rector de la Unidad Educativa Particular "Vicente Rocafuerte" portador de cédula de identidad, N° 1304144510, certifico que el/la estudiante ${nombreEstudiante}, con cédula de identidad, N° ${cedulaEstudiante}, previo el cumplimiento de los requisitos legales establecidos en el Reglamento General de la Ley Orgánica de Educación Intercultural vigente estuvo matriculado/a en ${nombreCurso}, sección vespertina en el año lectivo ${periodo}.`;
+
+        const linesP1 = doc.splitTextToSize(parrafo1, 160);
+        doc.text(linesP1, 25, 85, { align: 'justify', maxWidth: 160, lineHeightFactor: 1.6 });
+
+        const parrafo2 = `Así consta en los registros de matrícula que reposan en esta institución.`;
+        doc.text(parrafo2, 25, 135);
+
+        const fechaFormateada = formatearFechaTexto(fechaIso);
+        const parrafo3 = `Dado y firmado en Pichincha, ${fechaFormateada}`;
+        doc.text(parrafo3, 25, 155);
+
+        // Firmas
+        const footerY = 240;
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(10);
+        doc.text('Ing. Dídimo Abdón Saltos Sabando', 105, footerY, { align: 'center' });
+        doc.setFont('helvetica', 'bold');
+        doc.text('RECTOR U.E.P. VICENTE ROCAFUERTE', 105, footerY + 5, { align: 'center' });
+        doc.text(`C.I. ${cedulaRector}`, 105, footerY + 10, { align: 'center' });
+    }
+
+    async function generarCertificadoIndividualPDF(idx) {
+        const est = estudiantes[idx];
+        if (!est) return;
+        const fechaIso = document.getElementById('fechaCertificado').value;
+        const cursoId = document.getElementById('selectCurso').value;
+        const cursoInfo = todosCursos.find(c => String(c.id) === String(cursoId));
+        const nombreCursoLargo = (cursoInfo?.nombre_largo_mayuscula || cursoInfo?.nombre || '').toUpperCase();
+
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+        const imgLogoIzq = await obtenerBase64DesdeUrl(infoInstitucion?.logo_izquierdo || infoInstitucion?.logo_institucion);
+        const imgLogoDer = await obtenerBase64DesdeUrl(infoInstitucion?.logo_derecho || infoInstitucion?.escudo_nacional);
+
+        construirPaginaCertificado(doc, est, nombreCursoLargo, fechaIso, imgLogoIzq, imgLogoDer);
+        doc.save(`Certificado_Matricula_${est.nombres.replace(/\s+/g, '_')}.pdf`);
+    }
+
+    async function generarCertificadosLotePDF() {
+        if (!estudiantes || estudiantes.length === 0) return alert('No hay estudiantes.');
+        const fechaIso = document.getElementById('fechaCertificado').value;
+        const cursoId = document.getElementById('selectCurso').value;
+        const cursoInfo = todosCursos.find(c => String(c.id) === String(cursoId));
+        const nombreCursoLargo = (cursoInfo?.nombre_largo_mayuscula || cursoInfo?.nombre || '').toUpperCase();
+
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+        const imgLogoIzq = await obtenerBase64DesdeUrl(infoInstitucion?.logo_izquierdo || infoInstitucion?.logo_institucion);
+        const imgLogoDer = await obtenerBase64DesdeUrl(infoInstitucion?.logo_derecho || infoInstitucion?.escudo_nacional);
+
+        estudiantes.forEach((est, idx) => {
+            if (idx > 0) doc.addPage();
+            construirPaginaCertificado(doc, est, nombreCursoLargo, fechaIso, imgLogoIzq, imgLogoDer);
+        });
+        
+        doc.save(`Certificados_${nombreCursoLargo.replace(/\s+/g, '_')}.pdf`);
+    }
+
+    async function descargarCertificadosZip() {
+        if (!estudiantes || estudiantes.length === 0) return alert('No hay estudiantes.');
+        const fechaIso = document.getElementById('fechaCertificado').value;
+        const cursoId = document.getElementById('selectCurso').value;
+        const cursoInfo = todosCursos.find(c => String(c.id) === String(cursoId));
+        const nombreCursoLargo = (cursoInfo?.nombre_largo_mayuscula || cursoInfo?.nombre || '').toUpperCase();
+
+        const imgLogoIzq = await obtenerBase64DesdeUrl(infoInstitucion?.logo_izquierdo || infoInstitucion?.logo_institucion);
+        const imgLogoDer = await obtenerBase64DesdeUrl(infoInstitucion?.logo_derecho || infoInstitucion?.escudo_nacional);
+
+        const { jsPDF } = window.jspdf;
+        const zip = new JSZip();
+
+        for (let i = 0; i < estudiantes.length; i++) {
+            const est = estudiantes[i];
+            const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+            construirPaginaCertificado(doc, est, nombreCursoLargo, fechaIso, imgLogoIzq, imgLogoDer);
+            zip.file(`Certificado_${est.nombres.replace(/\s+/g, '_')}.pdf`, doc.output('blob'));
+        }
+
+        const zipBlob = await zip.generateAsync({ type: 'blob' });
+        saveAs(zipBlob, `Certificados_Matricula_${nombreCursoLargo.replace(/\s+/g, '_')}.zip`);
     }
   </script>
 </body>
