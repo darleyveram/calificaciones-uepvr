@@ -2555,14 +2555,29 @@
         ]);
         if (reqId !== currentViewRequestId) return;
 
-        // 3. Procesar Asistencia (Suma total de faltas injustificadas históricas)
+        // 3. Procesar Asistencia (Contar SOLO las 'F' leyendo el registro diario y agrupar por trimestre)
+        const faltasDetalle = { 1: [], 2: [], 3: [] };
         let totalFaltasInjustificadas = 0;
         let totalDiasAsistidos = 0;
+
         (resAsist.data || []).forEach(a => {
-            // Leer directamente de la base de datos las faltas y asistencias calculadas al guardar
-            totalFaltasInjustificadas += (a.total_faltas || 0);
+            const trim = a.trimestre || 1;
             totalDiasAsistidos += (a.total_asistencias || 0);
+
+            // Leer directamente de la base de datos el calendario diario
+            if (a.registro_diario && typeof a.registro_diario === 'object') {
+                for (const [fecha, estado] of Object.entries(a.registro_diario)) {
+                    if (String(estado).toUpperCase() === 'F') {
+                        if (!faltasDetalle[trim]) faltasDetalle[trim] = [];
+                        faltasDetalle[trim].push(fecha);
+                        totalFaltasInjustificadas++;
+                    }
+                }
+            }
         });
+
+        // Ordenar las fechas de las faltas
+        [1, 2, 3].forEach(t => { if (faltasDetalle[t]) faltasDetalle[t].sort(); });
 
         // 4. Estructurar Datos Académicos por Materia
         const matrizNotas = {};
@@ -2606,7 +2621,6 @@
           
           if (!m.es_optativa) { sumaPromediosGlobales += promAnual; materiasObligatorias++; }
 
-          // Guardar para el PDF
           materiasProcesadasParaPDF.push({
              nombre: m.nombre, optativa: m.es_optativa,
              t1_p1: m.t1.p1, t1_p2: m.t1.p2, t1_ex: m.t1.ex, t1_prom,
@@ -2649,7 +2663,10 @@
            materias: materiasProcesadasParaPDF
         };
 
-        // 8. DIBUJAR INTERFAZ (Dashboard)
+        // Función para renderizar el detalle de fechas
+        const renderFechas = (fechas) => fechas.length > 0 ? fechas.map(f => `<li class="list-group-item py-1 text-danger" style="font-size: 0.75rem;"><i class="bi bi-x-circle-fill me-2"></i>${f}</li>`).join('') : '<li class="list-group-item py-1 text-success" style="font-size: 0.75rem;"><i class="bi bi-check-circle-fill me-2"></i>Sin faltas</li>';
+
+        // 8. DIBUJAR INTERFAZ (Dashboard y Modal integrados)
         contenedor.innerHTML = `
           <div class="p-2 mb-2 d-flex justify-content-between align-items-center border-bottom bg-white sticky-top" style="z-index: 5;">
              <button class="btn btn-sm btn-outline-secondary" onclick="cargarVistaListaEstudiantesReporte()"><i class="bi bi-arrow-left"></i> Volver</button>
@@ -2675,9 +2692,14 @@
                  </div>
                </div>
                <div class="col-4">
-                 <div class="p-2 border rounded bg-white shadow-sm h-100">
-                   <div style="font-size:0.65rem;" class="text-muted fw-bold text-uppercase mb-1">Faltas (A la fecha)</div>
-                   <h4 class="mb-0 fw-bold ${totalFaltasInjustificadas > 0 ? 'text-danger' : 'text-success'} p-1">${totalFaltasInjustificadas}</h4>
+                 <div class="p-2 border rounded bg-white shadow-sm h-100" style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#modalFaltasEstudiante">
+                   <div style="font-size:0.65rem;" class="text-muted fw-bold text-uppercase mb-1">Faltas (F)</div>
+                   <div class="d-flex justify-content-around mt-1 border-bottom pb-1">
+                     <div><small class="text-muted d-block" style="font-size:0.55rem;">T1</small><span class="fw-bold ${faltasDetalle[1].length > 0 ? 'text-danger' : 'text-success'}">${faltasDetalle[1].length}</span></div>
+                     <div><small class="text-muted d-block" style="font-size:0.55rem;">T2</small><span class="fw-bold ${faltasDetalle[2].length > 0 ? 'text-danger' : 'text-success'}">${faltasDetalle[2].length}</span></div>
+                     <div><small class="text-muted d-block" style="font-size:0.55rem;">T3</small><span class="fw-bold ${faltasDetalle[3].length > 0 ? 'text-danger' : 'text-success'}">${faltasDetalle[3].length}</span></div>
+                   </div>
+                   <div class="mt-1 text-primary fw-bold" style="font-size: 0.60rem;"><i class="bi bi-hand-index-thumb"></i> Ver Fechas</div>
                  </div>
                </div>
              </div>
@@ -2686,6 +2708,30 @@
              <div class="accordion" id="acordeonMaterias">
                 ${htmlAcordeon}
              </div>
+          </div>
+
+          <!-- Modal Faltas Detalladas -->
+          <div class="modal fade" id="modalFaltasEstudiante" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-sm">
+              <div class="modal-content border-0 shadow">
+                <div class="modal-header bg-danger text-white py-2">
+                  <h6 class="modal-title fw-bold mb-0"><i class="bi bi-calendar-x"></i> Detalle de Faltas (F)</h6>
+                  <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-0">
+                  <ul class="list-group list-group-flush text-start">
+                    <li class="list-group-item bg-light fw-bold text-dark py-1" style="font-size: 0.75rem;">1er Trimestre <span class="badge bg-danger float-end">${faltasDetalle[1].length}</span></li>
+                    ${renderFechas(faltasDetalle[1])}
+                    
+                    <li class="list-group-item bg-light fw-bold text-dark py-1" style="font-size: 0.75rem;">2do Trimestre <span class="badge bg-danger float-end">${faltasDetalle[2].length}</span></li>
+                    ${renderFechas(faltasDetalle[2])}
+                    
+                    <li class="list-group-item bg-light fw-bold text-dark py-1" style="font-size: 0.75rem;">3er Trimestre <span class="badge bg-danger float-end">${faltasDetalle[3].length}</span></li>
+                    ${renderFechas(faltasDetalle[3])}
+                  </ul>
+                </div>
+              </div>
+            </div>
           </div>
         `;
 
