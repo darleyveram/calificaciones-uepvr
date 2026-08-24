@@ -625,15 +625,21 @@
                 <label class="form-label fw-bold">Correo</label>
                 <input type="email" id="personalEmail" class="form-control form-control-sm" required>
               </div>
+              <!-- NUEVO CAMPO DE CÉDULA -->
               <div class="col-md-6">
+                <label class="form-label fw-bold">Cédula</label>
+                <input type="text" id="personalCedula" class="form-control form-control-sm">
+              </div>
+              <!-- ==================== -->
+              <div class="col-md-4">
                 <label class="form-label fw-bold">Teléfono</label>
                 <input type="text" id="personalTelefono" class="form-control form-control-sm">
               </div>
-              <div class="col-md-6">
+              <div class="col-md-4">
                 <label class="form-label fw-bold">Cargo</label>
                 <input type="text" id="personalCargo" class="form-control form-control-sm" required>
               </div>
-              <div class="col-md-6">
+              <div class="col-md-4">
                 <label class="form-label fw-bold">Rol</label>
                 <select id="personalRol" class="form-select form-select-sm">
                   <option value="docente">Docente</option>
@@ -1562,6 +1568,7 @@
         document.getElementById('personalApellidos').value = p.apellidos || '';
         document.getElementById('personalEmail').value = p.email || '';
         document.getElementById('personalEmail').disabled = true;
+        document.getElementById('personalCedula').value = p.cedula || ''; // <-- NUEVO CÓDIGO
         document.getElementById('personalTelefono').value = p.telefono || '';
         document.getElementById('personalCargo').value = p.cargo || 'Docente';
         document.getElementById('personalRol').value = p.rol || 'docente';
@@ -1584,6 +1591,7 @@
       const nombres = document.getElementById('personalNombres').value.trim();
       const apellidos = document.getElementById('personalApellidos').value.trim();
       const email = document.getElementById('personalEmail').value.trim();
+      const cedula = document.getElementById('personalCedula').value.trim(); // <-- CAPTURA DE CÉDULA
       const telefono = document.getElementById('personalTelefono').value.trim();
       const cargo = document.getElementById('personalCargo').value.trim();
       const rol = document.getElementById('personalRol').value;
@@ -1596,11 +1604,13 @@
 
       try {
         if (id) {
+          // ACTUALIZAR DOCENTE EXISTENTE
           const { error } = await supabaseClient.from('perfiles').update({
-            titulo, nombres, apellidos, telefono, cargo, rol, puede_gestionar_asistencia
+            titulo, nombres, apellidos, cedula, telefono, cargo, rol, puede_gestionar_asistencia // <-- SE AGREGÓ CÉDULA
           }).eq('id', id);
           if (error) throw error;
         } else {
+          // CREAR NUEVO DOCENTE
           if (!password || password.length < 6) throw new Error('La contraseña debe tener al menos 6 caracteres.');
 
           const { data: authData, error: authErr } = await supabaseClient.auth.signUp({
@@ -1619,6 +1629,7 @@
               titulo: titulo,
               nombres: nombres,
               apellidos: apellidos,
+              cedula: cedula, // <-- SE AGREGÓ CÉDULA
               telefono: telefono,
               cargo: cargo,
               rol: rol,
