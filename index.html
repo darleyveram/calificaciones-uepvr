@@ -385,9 +385,18 @@
         const esAdmin = perfil?.rol === 'admin';
         const esTutor = cursosTutor.length > 0;
         const puedeVerAsistencia = (esAdmin || perfil?.puede_gestionar_asistencia === true);
+
         if (esTutor) document.getElementById('badgeTutorInfo').classList.remove('d-none');
         if (puedeVerAsistencia) document.getElementById('optModoAsistencia').classList.remove('d-none');
         if (esAdmin || esTutor) document.getElementById('optModoTutoria').classList.remove('d-none');
+        
+        // --- NUEVA RESTRICCIÓN PARA EL REPORTE TOTAL ---
+        if (esAdmin) {
+          const optRepEst = document.getElementById('optModoReporteEstudiante');
+          if (optRepEst) optRepEst.classList.remove('d-none');
+        }
+        // -----------------------------------------------
+
         await cargarCatalogo();
         await cargarPeriodosAsistenciaDB();
         await cargarCursosYMaterias(session.user.id, perfil?.rol, perfil?.puede_gestionar_asistencia);
