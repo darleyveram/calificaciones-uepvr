@@ -2955,78 +2955,169 @@
       }
     }
 
+    // =========================================================================
+    // FUNCIÓN AUXILIAR: Dibuja texto justificado con soporte para **negritas**
+    // =========================================================================
+    function dibujarTextoEnriquecidoJustificado(doc, text, startX, startY, maxWidth, lineHeight) {
+        const tokens = text.split(/(\*\*.*?\*\*)/g);
+        let words = [];
+        tokens.forEach(token => {
+            if (token.startsWith('**') && token.endsWith('**')) {
+                const boldText = token.slice(2, -2);
+                boldText.split(/(\s+)/).forEach(w => { if (w.length > 0) words.push({ text: w, font: 'bold' }); });
+            } else if (token.length > 0) {
+                token.split(/(\s+)/).forEach(w => { if (w.length > 0) words.push({ text: w, font: 'normal' }); });
+            }
+        });
+
+        let currentY = startY;
+        let lineWords = [];
+        let currentLineWidth = 0;
+
+        const flushLine = (line, y, isLast) => {
+            while(line.length > 0 && line[line.length-1].text.trim() === '') line.pop();
+            while(line.length > 0 && line[0].text.trim() === '') line.shift();
+            if (line.length === 0) return;
+
+            let textWidth = 0;
+            let spaceTokens = [];
+            line.forEach(w => {
+                if (w.text.trim() === '') spaceTokens.push(w);
+                else textWidth += w.w;
+            });
+
+            let extraSpacePerGap = 0;
+            if (!isLast && spaceTokens.length > 0) {
+                let totalMissing = maxWidth - textWidth;
+                if (totalMissing < maxWidth * 0.4) {
+                    extraSpacePerGap = totalMissing / spaceTokens.length;
+                } else {
+                    extraSpacePerGap = doc.setFont('helvetica', 'normal').getTextWidth(' ');
+                }
+            } else {
+                extraSpacePerGap = doc.setFont('helvetica', 'normal').getTextWidth(' ');
+            }
+
+            let lx = startX;
+            line.forEach(w => {
+                if (w.text.trim() === '') {
+                    lx += extraSpacePerGap;
+                } else {
+                    doc.setFont('helvetica', w.font);
+                    doc.text(w.text, lx, y);
+                    lx += w.w;
+                }
+            });
+        };
+
+        words.forEach(w => {
+            doc.setFont('helvetica', w.font);
+            w.w = doc.getTextWidth(w.text);
+        });
+
+        words.forEach(w => {
+            if (w.text.trim() === '') {
+                if (lineWords.length > 0) {
+                    lineWords.push(w);
+                    currentLineWidth += doc.setFont('helvetica', w.font).getTextWidth(' ');
+                }
+            } else {
+                if (currentLineWidth + w.w > maxWidth && lineWords.length > 0) {
+                    flushLine(lineWords, currentY, false);
+                    currentY += lineHeight;
+                    lineWords = [w];
+                    currentLineWidth = w.w;
+                } else {
+                    lineWords.push(w);
+                    currentLineWidth += w.w;
+                }
+            }
+        });
+        if (lineWords.length > 0) flushLine(lineWords, currentY, true);
+    }
+
+    // =========================================================================
+    // CONSTRUCCIÓN DEL CERTIFICADO (MÁXIMO DETALLE Y CENTRADO)
+    // =========================================================================
     function construirPaginaCertificado(doc, est, cursoNombreLargo, fechaIso, imgLogoIzq, imgLogoDer) {
+        // DATOS DESDE LA BASE DE DATOS O VALORES POR DEFECTO OFICIALES
         const periodo = infoInstitucion?.periodo_lectivo || '2026-2027';
         const amie = infoInstitucion?.amie || '13H03021';
-        const nombreRector = 'ING. DÍDIMO ABDÓN SALTOS SABANDO';
-        const cedulaRector = '1304144510';
+        const cantonProvincia = infoInstitucion?.direccion_1 || 'Cantón Pichincha – Manabí- Ecuador';
         
-        // Cabecera Institucional
-        if (imgLogoIzq) { try { doc.addImage(imgLogoIzq, 'PNG', 15, 12, 28, 28); } catch(e){} }
-        if (imgLogoDer) { try { doc.addImage(imgLogoDer, 'PNG', 167, 12, 28, 28); } catch(e){} }
+        const nombreRector = (infoInstitucion?.rector_nombre || 'ING. DÍDIMO ABDÓN SALTOS SABANDO').toUpperCase();
+        const cedulaRector = infoInstitucion?.rector_cedula || '1304144510';
+        
+        // CABECERA INSTITUCIONAL PERFECTAMENTE CENTRADA
+        if (imgLogoIzq) { try { doc.addImage(imgLogoIzq, 'PNG', 15, 12, 30, 30); } catch(e){} }
+        if (imgLogoDer) { try { doc.addImage(imgLogoDer, 'PNG', 165, 12, 30, 30); } catch(e){} }
 
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(14);
         doc.setTextColor(220, 38, 38); 
         doc.text('UNIDAD EDUCATIVA', 105, 18, { align: 'center' });
         
-        doc.setFontSize(16);
+        doc.setFontSize(18);
         doc.setTextColor(30, 64, 175);
-        doc.text(`“VICENTE ROCAFUERTE”`, 105, 25, { align: 'center' });
+        doc.text(`“VICENTE ROCAFUERTE”`, 105, 26, { align: 'center' });
 
-        doc.setFontSize(8);
+        doc.setFontSize(9);
         doc.setTextColor(0, 0, 0);
         doc.setFont('helvetica', 'normal');
-        doc.text('Cantón Pichincha – Manabí- Ecuador', 105, 30, { align: 'center' });
+        doc.text(cantonProvincia, 105, 32, { align: 'center' });
         
         doc.setFont('helvetica', 'bold');
-        doc.text('Correo:', 74, 34);
+        doc.text('Correo:', 78, 37);
         doc.setFont('helvetica', 'normal');
-        doc.text(' 13H03021@educacion.gob.ec', 85, 34);
+        doc.text(` ${amie.toLowerCase()}@educacion.gob.ec`, 90, 37);
 
         doc.setFont('helvetica', 'bold');
-        doc.text('Código AMIE:', 74, 38);
+        doc.text('Código AMIE:', 78, 42);
         doc.setFont('helvetica', 'normal');
-        doc.text(' ' + amie, 96, 38);
+        doc.text(' ' + amie, 100, 42);
 
         doc.setFont('helvetica', 'bold');
-        doc.text('Teléfono:', 74, 42);
+        doc.text('Teléfono:', 78, 47);
         doc.setFont('helvetica', 'normal');
-        doc.text(' 05 2323232', 88, 42);
+        doc.text(' 05 2323232', 93, 47);
 
-        // Título del Documento
+        // TÍTULO DEL DOCUMENTO
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(16);
-        doc.text('CERTIFICADO DE MATRÍCULA', 105, 65, { align: 'center' });
+        doc.text('CERTIFICADO DE MATRÍCULA', 105, 70, { align: 'center' });
 
-        // Cuerpo del Certificado
-        doc.setFontSize(11);
-        doc.setFont('helvetica', 'normal');
-        
+        // CUERPO DEL CERTIFICADO (TEXTO ENRIQUECIDO Y JUSTIFICADO)
         const nombreEstudiante = est.nombres.toUpperCase();
         const cedulaEstudiante = est.cedula || 'S/N';
         const nombreCurso = cursoNombreLargo.toUpperCase();
+        const textoFecha = formatearFechaTexto(fechaIso);
 
-        const parrafo1 = `Quien suscribe, ING. DÍDIMO ABDÓN SALTOS SABANDO, Rector de la Unidad Educativa Particular "Vicente Rocafuerte" portador de cédula de identidad, N° 1304144510, certifico que el/la estudiante ${nombreEstudiante}, con cédula de identidad, N° ${cedulaEstudiante}, previo el cumplimiento de los requisitos legales establecidos en el Reglamento General de la Ley Orgánica de Educación Intercultural vigente estuvo matriculado/a en ${nombreCurso}, sección vespertina en el año lectivo ${periodo}.`;
+        // Se usa **texto** para indicar a la función que esa parte va en NEGRITA
+        const parrafo1 = `Quien suscribe, **${nombreRector}**, Rector de la Unidad Educativa Particular “Vicente Rocafuerte” portador de cédula de identidad, N° **${cedulaRector}**, certifico que el/la estudiante **${nombreEstudiante}**, con cédula de identidad, N° **${cedulaEstudiante}**, previo el cumplimiento de los requisitos legales establecidos en el Reglamento General de la Ley Orgánica de Educación Intercultural vigente estuvo matriculado/a en **${nombreCurso}**, sección vespertina en el año lectivo ${periodo}.`;
 
-        const linesP1 = doc.splitTextToSize(parrafo1, 160);
-        doc.text(linesP1, 25, 85, { align: 'justify', maxWidth: 160, lineHeightFactor: 1.6 });
+        doc.setFontSize(11);
+        dibujarTextoEnriquecidoJustificado(doc, parrafo1, 20, 90, 170, 7);
 
-        const parrafo2 = `Así consta en los registros de matrícula que reposan en esta institución.`;
-        doc.text(parrafo2, 25, 135);
-
-        const fechaFormateada = formatearFechaTexto(fechaIso);
-        const parrafo3 = `Dado y firmado en Pichincha, ${fechaFormateada}`;
-        doc.text(parrafo3, 25, 155);
-
-        // Firmas
-        const footerY = 240;
         doc.setFont('helvetica', 'normal');
-        doc.setFontSize(10);
-        doc.text('Ing. Dídimo Abdón Saltos Sabando', 105, footerY, { align: 'center' });
+        const parrafo2 = `Así consta en los registros de matrícula que reposan en esta institución.`;
+        doc.text(parrafo2, 20, 130);
+
+        const parrafo3 = `Dado y firmado en Pichincha, ${textoFecha}`;
+        doc.text(parrafo3, 20, 150);
+
+        // FIRMA DEL RECTOR (Centrada y adaptativa)
+        const footerY = 220;
+        
+        // Convertir nombre a formato "Tipo Título" (Mayúscula inicial en cada palabra)
+        const nombreRectorFormat = nombreRector.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(11);
+        doc.text(nombreRectorFormat, 105, footerY, { align: 'center' });
+        
         doc.setFont('helvetica', 'bold');
-        doc.text('RECTOR U.E.P. VICENTE ROCAFUERTE', 105, footerY + 5, { align: 'center' });
-        doc.text(`C.I. ${cedulaRector}`, 105, footerY + 10, { align: 'center' });
+        doc.text('RECTOR U.E.P. VICENTE ROCAFUERTE', 105, footerY + 6, { align: 'center' });
+        doc.text(`C.I. ${cedulaRector}`, 105, footerY + 12, { align: 'center' });
     }
 
     async function generarCertificadoIndividualPDF(idx) {
