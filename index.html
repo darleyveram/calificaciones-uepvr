@@ -1159,6 +1159,12 @@
         notasActualesMemoria = {};
         (notasData || []).forEach(n => { notasActualesMemoria[n.estudiante_id] = { i1: n.insumo1_notas || [], i2: n.insumo2_notas || [] }; });
         renderizarTablaParcial();
+        
+        // --- NUEVO: BLOQUEO DE NOTAS ---
+        const estadoBloqueo = await verificarBloqueoCalificaciones(parseInt(asigId), trimestre, parcialNum);
+        aplicarCierreVisual(estadoBloqueo, 'btnGuardarParcial');
+        // -------------------------------
+
       } catch (err) {
         if (reqId === currentViewRequestId) contenedor.innerHTML = `<div class="py-4 text-danger text-center fw-bold">Error: ${err.message}</div>`;
       }
@@ -1264,7 +1270,15 @@
             </tbody>
           </table>
         `;
-        if (reqId === currentViewRequestId) { contenedor.innerHTML = html; document.querySelectorAll('#tablaCuerpoComp tr').forEach(fila => calcularFilaComp(fila)); }
+        if (reqId === currentViewRequestId) { 
+            contenedor.innerHTML = html; 
+            document.querySelectorAll('#tablaCuerpoComp tr').forEach(fila => calcularFilaComp(fila)); 
+            
+            // --- NUEVO: BLOQUEO DE NOTAS ---
+            const estadoBloqueo = await verificarBloqueoCalificaciones(parseInt(asigId), trimestre, parcialNum);
+            aplicarCierreVisual(estadoBloqueo, 'btnGuardarComp');
+            // -------------------------------
+        }
       } catch (err) {
         if (reqId === currentViewRequestId) contenedor.innerHTML = `<div class="py-4 text-danger text-center fw-bold">Error: ${err.message}</div>`;
       }
@@ -1363,7 +1377,15 @@
             </tbody>
           </table>
         `;
-        if (reqId === currentViewRequestId) { contenedor.innerHTML = html; document.querySelectorAll('#tablaCuerpoTrimestre tr').forEach(fila => calcularFilaTrimestre(fila)); }
+        if (reqId === currentViewRequestId) { 
+            contenedor.innerHTML = html; 
+            document.querySelectorAll('#tablaCuerpoTrimestre tr').forEach(fila => calcularFilaTrimestre(fila)); 
+            
+            // --- NUEVO: BLOQUEO DE NOTAS (Se envía el 3 por ser Examen) ---
+            const estadoBloqueo = await verificarBloqueoCalificaciones(parseInt(asigId), trimestre, 3);
+            aplicarCierreVisual(estadoBloqueo, 'btnGuardarResumen');
+            // -------------------------------------------------------------
+        }
       } catch (err) {
         if (reqId === currentViewRequestId) contenedor.innerHTML = `<div class="py-4 text-danger text-center fw-bold">Error: ${err.message}</div>`;
       }
@@ -1484,6 +1506,73 @@
       } catch (err) {
         if (reqId === currentViewRequestId) contenedor.innerHTML = `<div class="py-4 text-danger text-center fw-bold">Error: ${err.message}</div>`;
       }
+    }
+
+    // =========================================================================
+    // MOTOR DE BLOQUEO DE CALIFICACIONES
+    // =========================================================================
+    async function verificarBloqueoCalificaciones(asignacionId, trimestre, parcialNum) {
+        const esAdmin = usuarioActualPerfil?.rol === 'admin';
+        // Los admins NUNCA se bloquean
+        if (esAdmin) return { bloqueado: false, mensaje: '' };
+
+        const hoy = new Date().toISOString().split('T')[0]; // Fecha actual "AAAA-MM-DD"
+
+        // 1. Revisar si hay una prórroga/excepción activa para este docente/materia
+        const { data: exc } = await supabaseClient.from('excepciones_notas').select('*')
+            .eq('asignacion_id', asignacionId).eq('trimestre', trimestre).eq('parcial', parcialNum)
+            .gte('fecha_cierre', hoy).maybeSingle();
+        
+        if (exc) return { bloqueado: false, mensaje: `Tiene una prórroga especial hasta el ${exc.fecha_cierre}` };
+
+        // 2. Revisar la fecha global
+        const { data: global } = await supabaseClient.from('periodos_calificaciones').select('*')
+            .eq('trimestre', trimestre).eq('parcial', parcialNum).maybeSingle();
+        
+        if (!global || !global.fecha_apertura || !global.fecha_cierre) {
+            return { bloqueado: true, mensaje: 'El administrador aún no ha habilitado fechas para este periodo.' };
+        }
+
+        if (hoy >= global.fecha_apertura && hoy <= global.fecha_cierre) {
+            return { bloqueado: false, mensaje: '' }; // Está dentro de la fecha permitida
+        } else if (hoy < global.fecha_apertura) {
+            return { bloqueado: true, mensaje: `El sistema se abrirá el ${global.fecha_apertura}` };
+        } else {
+            return { bloqueado: true, mensaje: `El periodo finalizó el ${global.fecha_cierre}` };
+        }
+    }
+
+    function aplicarCierreVisual(bloqueoObj, btnGuardarId) {
+        const btn = document.getElementById(btnGuardarId);
+        
+        // Removemos cualquier alerta previa
+        const oldAlert = document.getElementById('alertaBloqueoNotas');
+        if (oldAlert) oldAlert.remove();
+
+        if (bloqueoObj.bloqueado) {
+            // Deshabilitar todos los inputs de notas
+            document.querySelectorAll('.input-nota-app, .select-act-custom, .btn-del-col, .btn-act-header').forEach(el => el.disabled = true);
+            // Deshabilitar botón de guardar
+            if(btn) btn.disabled = true;
+
+            // Mostrar Banner Rojo
+            const banner = document.createElement('div');
+            banner.id = 'alertaBloqueoNotas';
+            banner.className = 'alert alert-danger p-2 mb-3 fw-bold text-center border-danger';
+            banner.innerHTML = `<i class="bi bi-lock-fill me-2"></i> SISTEMA BLOQUEADO: ${bloqueoObj.mensaje}. 
+                                <span class="fw-normal ms-2 d-block d-md-inline">(Solo puede visualizar y descargar PDF)</span>`;
+            
+            const contenedor = document.getElementById('contenedorTabla');
+            contenedor.parentNode.insertBefore(banner, contenedor);
+        } else if (bloqueoObj.mensaje !== '') {
+            // Es una prórroga, mostramos banner amarillo
+            const banner = document.createElement('div');
+            banner.id = 'alertaBloqueoNotas';
+            banner.className = 'alert alert-warning p-2 mb-3 fw-bold text-center border-warning';
+            banner.innerHTML = `<i class="bi bi-unlock-fill me-2"></i> ATENCIÓN: ${bloqueoObj.mensaje}.`;
+            const contenedor = document.getElementById('contenedorTabla');
+            contenedor.parentNode.insertBefore(banner, contenedor);
+        }
     }
     
     // EXPORTAR PARCIAL ACADÉMICO A PDF (CON MARCA DE AGUA BLANCA Y PEQUEÑA)
