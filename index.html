@@ -851,15 +851,14 @@
           (tData || []).forEach(t => { if (!examenesMap[t.estudiante_id]) examenesMap[t.estudiante_id] = {}; examenesMap[t.estudiante_id][t.asignacion_id] = parseFloat(t.examen) || 0; });
         }
 
+        // AHORA BUSCAMOS EL COMPORTAMIENTO POR CURSO (NO POR MATERIA)
+        const { data: cData } = await supabaseClient.from('comportamiento_parcial').select('estudiante_id, parcial, total_cuantitativo').eq('curso_id', parseInt(cursoId)).eq('trimestre', trimestre);
+        if (reqId !== currentViewRequestId) return;
         let compMapP1 = {}, compMapP2 = {};
-        if (asigIds.length > 0) {
-          const { data: cData } = await supabaseClient.from('comportamiento_parcial').select('estudiante_id, parcial, total_cuantitativo').in('asignacion_id', asigIds).eq('trimestre', trimestre);
-          if (reqId !== currentViewRequestId) return;
-          (cData || []).forEach(c => {
-            if (c.parcial === 1) { if (!compMapP1[c.estudiante_id]) compMapP1[c.estudiante_id] = []; compMapP1[c.estudiante_id].push(parseFloat(c.total_cuantitativo) || 10); }
-            else if (c.parcial === 2) { if (!compMapP2[c.estudiante_id]) compMapP2[c.estudiante_id] = []; compMapP2[c.estudiante_id].push(parseFloat(c.total_cuantitativo) || 10); }
-          });
-        }
+        (cData || []).forEach(c => {
+          if (c.parcial === 1) compMapP1[c.estudiante_id] = parseFloat(c.total_cuantitativo) || 0;
+          if (c.parcial === 2) compMapP2[c.estudiante_id] = parseFloat(c.total_cuantitativo) || 0;
+        });
 
         const { data: asistData } = await supabaseClient.from('asistencia_estudiantes').select('*').eq('curso_id', parseInt(cursoId)).eq('trimestre', trimestre);
         if (reqId !== currentViewRequestId) return;
@@ -886,9 +885,9 @@
 
           const promGeneral = cantObligatorias > 0 ? (sumaNotasObligatorias / cantObligatorias) : 0;
           const promCualit = obtenerEscalaCualitativa(promGeneral);
-          const arrP1 = compMapP1[est.id] || [10], promP1Comp = arrP1.reduce((a, b) => a + b, 0) / arrP1.length;
-          const arrP2 = compMapP2[est.id] || [10], promP2Comp = arrP2.reduce((a, b) => a + b, 0) / arrP2.length;
-          let compFinalNum = (reporteTipo === '1') ? promP1Comp : (reporteTipo === '2') ? promP2Comp : (promP1Comp + promP2Comp) / 2;
+          const cp1 = compMapP1[est.id] !== undefined ? compMapP1[est.id] : 10;
+          const cp2 = compMapP2[est.id] !== undefined ? compMapP2[est.id] : 10;
+          let compFinalNum = (reporteTipo === '1') ? cp1 : (reporteTipo === '2') ? cp2 : (cp1 + cp2) / 2;
           const compObj = obtenerEscalaComportamiento(compFinalNum);
 
           const r1 = asistMapP1[est.id] || {}, r2 = asistMapP2[est.id] || {};
@@ -1342,7 +1341,7 @@
           if (n.parcial === 2) notasP2[n.estudiante_id] = n.nota_parcial || 0;
         });
 
-        const { data: compData } = await supabaseClient.from('comportamiento_parcial').select('*').eq('asignacion_id', parseInt(asigId)).eq('trimestre', trimestre);
+        const { data: compData } = await supabaseClient.from('comportamiento_parcial').select('*').eq('curso_id', parseInt(asig.curso_id)).eq('trimestre', trimestre);
         if (reqId !== currentViewRequestId) return;
         const compP1 = {}, compP2 = {};
         (compData || []).forEach(c => {
@@ -1435,7 +1434,7 @@
 
         const { data: pData } = await supabaseClient.from('notas_parcial_actividades').select('*').eq('asignacion_id', parseInt(asigId));
         const { data: tData } = await supabaseClient.from('notas_trimestre').select('*').eq('asignacion_id', parseInt(asigId));
-        const { data: cData } = await supabaseClient.from('comportamiento_parcial').select('*').eq('asignacion_id', parseInt(asigId));
+        const { data: cData } = await supabaseClient.from('comportamiento_parcial').select('*').eq('curso_id', parseInt(asig.curso_id));
         if (reqId !== currentViewRequestId) return;
 
         const notasMatriz = {}, compMatriz = {};
@@ -2884,7 +2883,7 @@
         const [resNotas, resTrim, resComp, resAsist] = await Promise.all([
           supabaseClient.from('notas_parcial_actividades').select('*').eq('estudiante_id', estId),
           supabaseClient.from('notas_trimestre').select('*').eq('estudiante_id', estId),
-          supabaseClient.from('comportamiento_parcial').select('*').eq('estudiante_id', estId),
+          supabaseClient.from('comportamiento_parcial').select('*').eq('estudiante_id', estId).eq('curso_id', cursoId),
           supabaseClient.from('asistencia_estudiantes').select('*').eq('estudiante_id', estId)
         ]);
         if (reqId !== currentViewRequestId) return;
