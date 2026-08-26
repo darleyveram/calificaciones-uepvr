@@ -99,6 +99,12 @@
           </div>
           <div class="d-flex align-items-center gap-2 ms-auto">
             <img id="appLogoDer" class="logo-header d-none d-sm-block" alt="Logo Derecho">
+            <button class="btn btn-warning btn-sm px-2 py-1 fw-bold shadow-sm d-none" id="btnAbrirAuditoria" onclick="abrirModalAuditoria()" title="Auditoría de Notas">
+              <i class="bi bi-search me-1"></i><span class="d-none d-sm-inline">Auditoría</span>
+            </button>
+            <!-- ============================================== -->
+            
+            <img id="appLogoDer" class="logo-header d-none d-sm-block" alt="Logo Derecho">
             <button class="btn btn-outline-danger btn-sm px-2 py-1" onclick="cerrarSesion()" style="font-size: 0.75rem;">
               <i class="bi bi-box-arrow-right me-1"></i><span class="d-none d-sm-inline">Cerrar Sesión</span><span class="d-inline d-sm-none">Salir</span>
             </button>
@@ -249,6 +255,75 @@
     </div>
   </div>
 
+  <!-- Modal Auditoria de Notas -->
+  <div class="modal fade" id="modalAuditoria" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header bg-dark text-white py-2">
+          <h6 class="modal-title fw-bold"><i class="bi bi-search me-2"></i>Auditoría de Ingreso de Calificaciones</h6>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body bg-light">
+          <div class="row g-2 mb-3 align-items-end">
+            <div class="col-md-4">
+              <label class="form-label fw-bold small">Trimestre / Ciclo:</label>
+              <select id="audTrimestre" class="form-select form-select-sm">
+                <option value="1">1er Trimestre</option>
+                <option value="2">2do Trimestre</option>
+                <option value="3">3er Trimestre</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-bold small">Evaluación / Parcial:</label>
+              <select id="audParcial" class="form-select form-select-sm">
+                <option value="1">Parcial 1</option>
+                <option value="2">Parcial 2</option>
+                <option value="3">Examen Trimestral</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <button class="btn btn-primary btn-sm w-100 fw-bold" onclick="generarAuditoriaNotas()" id="btnGenerarAuditoria">Generar Reporte</button>
+            </div>
+          </div>
+
+          <div class="row g-3">
+            <!-- Columna Faltantes -->
+            <div class="col-md-6">
+              <div class="card border-danger shadow-sm h-100">
+                <div class="card-header bg-danger text-white fw-bold py-2 d-flex justify-content-between align-items-center">
+                  <span><i class="bi bi-x-circle me-1"></i> FALTAN POR LLENAR</span>
+                  <span class="badge bg-white text-danger fs-6" id="countFaltan">0</span>
+                </div>
+                <div class="table-responsive" style="max-height: 50vh;">
+                  <table class="table table-sm table-hover mb-0" style="font-size: 0.75rem;">
+                    <thead class="table-light sticky-top"><tr><th>Docente Responsable</th><th>Curso</th><th>Materia</th></tr></thead>
+                    <tbody id="tablaAudFaltan"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+            <!-- Columna Completados -->
+            <div class="col-md-6">
+              <div class="card border-success shadow-sm h-100">
+                <div class="card-header bg-success text-white fw-bold py-2 d-flex justify-content-between align-items-center">
+                  <span><i class="bi bi-check-circle me-1"></i> COMPLETADOS</span>
+                  <span class="badge bg-white text-success fs-6" id="countCompletados">0</span>
+                </div>
+                <div class="table-responsive" style="max-height: 50vh;">
+                  <table class="table table-sm table-hover mb-0" style="font-size: 0.75rem;">
+                    <thead class="table-light sticky-top"><tr><th>Docente Responsable</th><th>Curso</th><th>Materia</th></tr></thead>
+                    <tbody id="tablaAudCompletados"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+  
   <script>
     const SUPABASE_URL = 'https://sbomuqwntosvdsojlfyr.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNib211cXdudG9zdmRzb2psZnlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY5Mjk5NzcsImV4cCI6MjEwMjUwNTk3N30.WLgWyVOWVieC-4XjnkZFAKEqARKszvLpVqiAoGHdUU8';
@@ -268,6 +343,7 @@
     let usuarioActualPerfil = null;
     let datosConsolidadoTutoria = [];
     let currentViewRequestId = 0;
+    let modalAuditoriaInst = null;
 
     function generarDiasHabilesRango(fInicioStr, fFinStr) {
       const dias = [];
@@ -415,6 +491,10 @@
           
           const optCert = document.getElementById('optModoCertificados');
           if (optCert) optCert.classList.remove('d-none');
+
+          // HABILITAR AUDITORÍA
+          document.getElementById('btnAbrirAuditoria').classList.remove('d-none');
+          modalAuditoriaInst = new bootstrap.Modal(document.getElementById('modalAuditoria'));
         }
         // -----------------------------------------------
 
@@ -3657,6 +3737,103 @@
         }
       }
     });
+
+    // =======================================================
+    // MOTOR DE AUDITORÍA DE CALIFICACIONES (EN INDEX)
+    // =======================================================
+    function abrirModalAuditoria() {
+      document.getElementById('tablaAudFaltan').innerHTML = '<tr><td colspan="3" class="text-center text-muted py-4">Haga clic en "Generar Reporte" para consultar la base de datos.</td></tr>';
+      document.getElementById('tablaAudCompletados').innerHTML = '<tr><td colspan="3" class="text-center text-muted py-4">Haga clic en "Generar Reporte" para consultar la base de datos.</td></tr>';
+      document.getElementById('countFaltan').innerText = '0';
+      document.getElementById('countCompletados').innerText = '0';
+      modalAuditoriaInst.show();
+    }
+
+    async function generarAuditoriaNotas() {
+      const btn = document.getElementById('btnGenerarAuditoria');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Escaneando...';
+
+      const trim = parseInt(document.getElementById('audTrimestre').value);
+      const parc = parseInt(document.getElementById('audParcial').value);
+
+      try {
+        // 1. Obtener toda la malla de asignaciones (Qué docentes dan qué materias en qué cursos)
+        const { data: asignaciones } = await supabaseClient.from('curso_materia_docente').select(`
+            id, curso_id, materia_id, docente_id,
+            cursos(nombre), materias(nombre)
+        `);
+
+        // 2. Traer nombres de todos los docentes
+        const { data: perfiles } = await supabaseClient.from('perfiles').select('id, titulo, nombres, apellidos');
+        const docentesMap = new Map();
+        (perfiles || []).forEach(p => {
+            const tit = p.titulo ? `${p.titulo} ` : '';
+            const ape = p.apellidos ? ` ${p.apellidos}` : '';
+            docentesMap.set(p.id, `${tit}${p.nombres}${ape}`.trim());
+        });
+
+        // 3. Obtener qué asignaciones ya guardaron notas en la BD
+        let savedAsigIds = new Set();
+        
+        if (parc === 1 || parc === 2) {
+            const { data: config } = await supabaseClient.from('config_parcial_cabeceras')
+                .select('asignacion_id').eq('trimestre', trim).eq('parcial', parc);
+            (config || []).forEach(c => savedAsigIds.add(c.asignacion_id));
+        } else if (parc === 3) {
+            const { data: examen } = await supabaseClient.from('notas_trimestre')
+                .select('asignacion_id').eq('trimestre', trim);
+            (examen || []).forEach(e => savedAsigIds.add(e.asignacion_id));
+        }
+
+        const faltan = [];
+        const completados = [];
+
+        // 4. Clasificarlos
+        (asignaciones || []).forEach(asig => {
+            if (!asig.docente_id) return; // Si no hay docente asignado, lo ignoramos
+            
+            const docName = docentesMap.get(asig.docente_id) || 'Docente Desconocido';
+            
+            const filaObj = {
+                docente: docName,
+                curso: asig.cursos?.nombre || '-',
+                materia: asig.materias?.nombre || '-'
+            };
+
+            // Si el ID de asignación está en el Set de guardados, ya cumplió.
+            if (savedAsigIds.has(asig.id)) {
+                completados.push(filaObj);
+            } else {
+                faltan.push(filaObj);
+            }
+        });
+
+        // 5. Ordenar alfabéticamente por nombre del Docente
+        const sortByDocente = (a, b) => a.docente.localeCompare(b.docente);
+        faltan.sort(sortByDocente);
+        completados.sort(sortByDocente);
+
+        // 6. Inyectar datos en las tablas
+        document.getElementById('countFaltan').innerText = faltan.length;
+        document.getElementById('countCompletados').innerText = completados.length;
+
+        const renderTable = (arr) => {
+            if (arr.length === 0) return '<tr><td colspan="3" class="text-center text-success py-3"><i class="bi bi-check-circle-fill me-1"></i>¡Excelente! No hay pendientes.</td></tr>';
+            return arr.map(x => `<tr><td class="fw-bold text-dark">${x.docente}</td><td>${x.curso}</td><td>${x.materia}</td></tr>`).join('');
+        };
+
+        document.getElementById('tablaAudFaltan').innerHTML = renderTable(faltan);
+        document.getElementById('tablaAudCompletados').innerHTML = renderTable(completados);
+
+      } catch (err) {
+        alert('Error en la auditoría: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerText = 'Generar Reporte';
+      }
+    }
+    
   </script>
 </body>
 </html>
