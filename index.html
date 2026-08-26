@@ -116,9 +116,10 @@
             <select id="selectModo" class="form-select form-select-sm fw-bold border-primary text-primary" onchange="alCambiarModo()">
               <option value="calificaciones">📘 Calificaciones Académicas</option>
               <option value="asistencia" id="optModoAsistencia" class="d-none">📅 Control Diario de Asistencia</option>
+              <!-- NUEVO MÓDULO DE COMPORTAMIENTO -->
+              <option value="comportamiento" id="optModoComportamiento" class="d-none">🤝 Evaluación de Comportamiento</option>
               <option value="tutoria" id="optModoTutoria" class="d-none">📊 Reportes y Libretas de Tutoría</option>
               <option value="reporte_estudiante" id="optModoReporteEstudiante" class="d-none">🧑‍🎓 Reporte Total por Estudiante</option>
-              <!-- NUEVA OPCIÓN AÑADIDA -->
               <option value="certificados" id="optModoCertificados" class="d-none">📜 Certificados de Matrícula</option>
             </select>
           </div>
@@ -151,9 +152,7 @@
             <label class="form-label mb-1 fw-bold small">Evaluación / Parcial:</label>
             <select id="selectVista" class="form-select form-select-sm" onchange="cambiarFiltro()">
               <option value="p1">Parcial 1 (Insumos 1 y 2)</option>
-              <option value="comp1">Comportamiento Parcial 1</option>
               <option value="p2">Parcial 2 (Insumos 1 y 2)</option>
-              <option value="comp2">Comportamiento Parcial 2</option>
               <option value="resumen_trimestre">Examen y Resumen Trimestral</option>
             </select>
           </div>
@@ -185,11 +184,10 @@
             <button class="btn btn-danger btn-sm px-2 px-md-3 fw-bold btn-control ms-1" id="btnDescargarParcialPDF" onclick="exportarParcialPDF()" disabled title="Descargar Reporte en PDF"><i class="bi bi-file-pdf me-1"></i> PDF</button>
           </div>
 
-          <div class="col-12 col-md-3 text-end pt-2 pt-md-3 d-none" id="accionesComportamiento">
+         <div class="col-12 col-md-3 text-end pt-2 pt-md-3 d-none" id="accionesComportamiento">
             <button class="btn btn-outline-secondary btn-sm me-1 btn-control" onclick="llenarTodoCon10Comportamiento()" disabled><i class="bi bi-lightning-charge-fill"></i> Auto 10</button>
-            <button class="btn btn-success btn-sm px-3 fw-bold btn-control" id="btnGuardarComp" onclick="guardarDatos()" disabled>💾 Guardar</button>
-            <!-- NUEVO BOTÓN CON TEXTO "PDF" -->
-            <button class="btn btn-danger btn-sm px-2 px-md-3 fw-bold btn-control ms-1" id="btnDescargarCompPDF" onclick="exportarComportamientoPDF()" disabled title="Descargar Reporte en PDF"><i class="bi bi-file-pdf me-1"></i>PDF</button>
+            <button class="btn btn-success btn-sm px-3 fw-bold btn-control" id="btnGuardarComp" onclick="guardarComportamientoGeneral()" disabled>💾 Guardar</button>
+            <button class="btn btn-danger btn-sm px-2 px-md-3 fw-bold btn-control ms-1" id="btnDescargarCompPDF" onclick="exportarComportamientoGeneralPDF()" disabled title="Descargar Reporte en PDF"><i class="bi bi-file-pdf me-1"></i>PDF</button>
           </div>
 
           <div class="col-12 col-md-3 text-end pt-2 pt-md-3 d-none" id="accionesResumen">
@@ -404,7 +402,10 @@
         const puedeVerAsistencia = (esAdmin || perfil?.puede_gestionar_asistencia === true);
 
         if (esTutor) document.getElementById('badgeTutorInfo').classList.remove('d-none');
-        if (puedeVerAsistencia) document.getElementById('optModoAsistencia').classList.remove('d-none');
+        if (puedeVerAsistencia) {
+            document.getElementById('optModoAsistencia').classList.remove('d-none');
+            document.getElementById('optModoComportamiento').classList.remove('d-none');
+        }
         if (esAdmin || esTutor) document.getElementById('optModoTutoria').classList.remove('d-none');
         
         // --- NUEVA RESTRICCIÓN PARA EL REPORTE TOTAL ---
@@ -497,13 +498,13 @@
         const cursosDisponibles = esAdmin ? todosCursos : cursosTutor;
         selectCurso.innerHTML = '<option value="">Seleccione curso...</option>' + cursosDisponibles.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
       } 
-      else if (modo === 'asistencia') {
+      else if (modo === 'asistencia' || modo === 'comportamiento') {
         boxMateria.classList.add('d-none'); boxVista.classList.add('d-none'); boxParcialAsist.classList.remove('d-none'); boxParcialTut.classList.add('d-none'); optAnual.classList.add('d-none');
-        boxTrimestre.classList.remove('d-none'); // Mostrar trimestre
+        boxTrimestre.classList.remove('d-none'); 
         if (document.getElementById('selectTrimestre').value === 'anual') document.getElementById('selectTrimestre').value = '1';
         const cursosDisponibles = puedeVerAsistencia ? todosCursos : Array.from(new Map(todasAsignaciones.map(a => [a.cursos.id, a.cursos])).values());
         selectCurso.innerHTML = '<option value="">Seleccione curso...</option>' + cursosDisponibles.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
-      } 
+      }
       else if (modo === 'reporte_estudiante') {
         boxMateria.classList.add('d-none'); boxVista.classList.add('d-none'); boxParcialAsist.classList.add('d-none'); boxParcialTut.classList.add('d-none'); optAnual.classList.add('d-none');
         boxTrimestre.classList.add('d-none'); // Ocultar trimestre
@@ -609,6 +610,18 @@
         }
         controles.forEach(b => b.disabled = false);
         cargarVistaAsistencia();
+        return;
+      }
+
+      if (modo === 'comportamiento') {
+        accComp.classList.remove('d-none');
+        if (!cursoId) {
+          controles.forEach(b => b.disabled = true);
+          document.getElementById('contenedorTabla').innerHTML = '<div class="py-4 text-muted text-center">Seleccione un Curso para evaluar el Comportamiento.</div>';
+          return;
+        }
+        controles.forEach(b => b.disabled = false);
+        cargarVistaComportamientoGeneral();
         return;
       }
 
@@ -1509,21 +1522,22 @@
     }
 
     // =========================================================================
-    // MOTOR DE BLOQUEO DE CALIFICACIONES
+    // MOTOR DE BLOQUEO DE CALIFICACIONES Y PERMISOS
     // =========================================================================
     async function verificarBloqueoCalificaciones(asignacionId, trimestre, parcialNum) {
         const esAdmin = usuarioActualPerfil?.rol === 'admin';
-        // Los admins NUNCA se bloquean
-        if (esAdmin) return { bloqueado: false, mensaje: '' };
+        if (esAdmin) return { bloqueado: false, mensaje: '' }; // Admins no se bloquean
 
-        const hoy = new Date().toISOString().split('T')[0]; // Fecha actual "AAAA-MM-DD"
+        const hoy = new Date().toISOString().split('T')[0];
 
         // 1. Revisar si hay una prórroga/excepción activa para este docente/materia
-        const { data: exc } = await supabaseClient.from('excepciones_notas').select('*')
-            .eq('asignacion_id', asignacionId).eq('trimestre', trimestre).eq('parcial', parcialNum)
-            .gte('fecha_cierre', hoy).maybeSingle();
-        
-        if (exc) return { bloqueado: false, mensaje: `Tiene una prórroga especial hasta el ${exc.fecha_cierre}` };
+        if (asignacionId > 0) {
+            const { data: exc } = await supabaseClient.from('excepciones_notas').select('*')
+                .eq('asignacion_id', asignacionId).eq('trimestre', trimestre).eq('parcial', parcialNum)
+                .gte('fecha_cierre', hoy).maybeSingle();
+            
+            if (exc) return { bloqueado: false, mensaje: `Tiene una prórroga especial hasta el ${exc.fecha_cierre}` };
+        }
 
         // 2. Revisar la fecha global
         const { data: global } = await supabaseClient.from('periodos_calificaciones').select('*')
@@ -1534,7 +1548,7 @@
         }
 
         if (hoy >= global.fecha_apertura && hoy <= global.fecha_cierre) {
-            return { bloqueado: false, mensaje: '' }; // Está dentro de la fecha permitida
+            return { bloqueado: false, mensaje: '' };
         } else if (hoy < global.fecha_apertura) {
             return { bloqueado: true, mensaje: `El sistema se abrirá el ${global.fecha_apertura}` };
         } else {
@@ -1543,41 +1557,26 @@
     }
 
     function aplicarCierreVisual(bloqueoObj, btnGuardarId) {
-        // Removemos cualquier alerta previa
         const oldAlert = document.getElementById('alertaBloqueoNotas');
         if (oldAlert) oldAlert.remove();
 
         if (bloqueoObj.bloqueado) {
-            // 1. Deshabilitar todos los inputs de notas y selects
-            document.querySelectorAll('.input-nota-app, .select-act-custom').forEach(el => el.disabled = true);
-            
-            // 2. Deshabilitar botones internos de la tabla (X rojas, botones de 10 y borrar)
-            // Se añade opacidad y se bloquea el puntero para que se note que no funcionan
+            document.querySelectorAll('.input-nota-app, .select-act-custom, .comp-ind').forEach(el => el.disabled = true);
             document.querySelectorAll('.btn-del-col, .btn-act-header').forEach(el => {
-                el.disabled = true;
-                el.style.opacity = '0.4';
-                el.style.pointerEvents = 'none';
+                el.disabled = true; el.style.opacity = '0.4'; el.style.pointerEvents = 'none';
             });
-            
-            // 3. Deshabilitar la barra de botones superior (+Ins, Auto 10, Borrar todo, Guardar)
-            // EXCEPTO el botón de descargar PDF
             document.querySelectorAll('#accionesParcial button, #accionesComportamiento button, #accionesResumen button').forEach(btn => {
-                if (!btn.id.includes('PDF')) {
-                    btn.disabled = true;
-                }
+                if (!btn.id.includes('PDF')) btn.disabled = true;
             });
 
-            // Mostrar Banner Rojo
             const banner = document.createElement('div');
             banner.id = 'alertaBloqueoNotas';
             banner.className = 'alert alert-danger p-2 mb-3 fw-bold text-center border-danger shadow-sm';
             banner.innerHTML = `<i class="bi bi-lock-fill me-2"></i> SISTEMA BLOQUEADO: ${bloqueoObj.mensaje}. 
                                 <span class="fw-normal ms-2 d-block d-md-inline">(Solo puede visualizar y descargar PDF)</span>`;
-            
             const contenedor = document.getElementById('contenedorTabla');
             contenedor.parentNode.insertBefore(banner, contenedor);
         } else if (bloqueoObj.mensaje !== '') {
-            // Es una prórroga, mostramos banner amarillo
             const banner = document.createElement('div');
             banner.id = 'alertaBloqueoNotas';
             banner.className = 'alert alert-warning p-2 mb-3 fw-bold text-center border-warning shadow-sm';
@@ -1585,6 +1584,200 @@
             const contenedor = document.getElementById('contenedorTabla');
             contenedor.parentNode.insertBefore(banner, contenedor);
         }
+    }
+
+    // =========================================================================
+    // NUEVO MÓDULO: COMPORTAMIENTO GENERAL (POR CURSO)
+    // =========================================================================
+    async function cargarVistaComportamientoGeneral() {
+      const reqId = ++currentViewRequestId;
+      const cursoId = document.getElementById('selectCurso').value;
+      const trimestre = parseInt(document.getElementById('selectTrimestre').value);
+      const parcialNum = parseInt(document.getElementById('selectParcialAsistencia').value) || 1;
+      const contenedor = document.getElementById('contenedorTabla');
+      contenedor.innerHTML = `<div class="py-4 text-center"><div class="spinner-border text-primary me-2"></div>Cargando comportamiento...</div>`;
+
+      try {
+        const { data: estData } = await supabaseClient.from('estudiantes').select('*').eq('curso_id', parseInt(cursoId)).order('nombres');
+        if (reqId !== currentViewRequestId) return;
+        estudiantes = estData || [];
+
+        // Ahora buscamos por curso_id, no por asignacion_id
+        const { data: compData } = await supabaseClient.from('comportamiento_parcial').select('*').eq('curso_id', parseInt(cursoId)).eq('trimestre', trimestre).eq('parcial', parcialNum);
+        if (reqId !== currentViewRequestId) return;
+        const compMap = {}; (compData || []).forEach(c => { compMap[c.estudiante_id] = c; });
+
+        let html = `
+          <table class="table table-bordered table-sm mb-0 align-middle">
+            <thead>
+              <tr>
+                <th rowspan="2" class="sticky-col-num">N°</th>
+                <th rowspan="2" class="sticky-col-nombre text-center">NÓMINA / INDICADORES</th>
+                <th>Puntualidad</th><th colspan="3">Limpieza</th><th colspan="2">Respeto y Consideración</th><th colspan="2">Valoración Diversidad</th><th>Patrimonio</th><th>Propiedad</th>
+                <th rowspan="2" class="bg-prom-ins" style="width: 75px;">TOTAL CUANT.</th><th rowspan="2" class="bg-nota-final" style="width: 75px;">TOTAL CUALIT.</th>
+              </tr>
+              <tr class="bg-light">
+                <th class="th-comp-ind">1. Asiste puntual</th><th class="th-comp-ind">2. Aseo personal</th><th class="th-comp-ind">3. Aseo lugar trab.</th><th class="th-comp-ind">4. Aseo del aula</th><th class="th-comp-ind">5. Saludo cordial</th><th class="th-comp-ind">6. Evita leng. soez</th><th class="th-comp-ind">7. Leng. no agresivo</th><th class="th-comp-ind">8. Tolerancia div.</th><th class="th-comp-ind">9. Cuida infraest.</th><th class="th-comp-ind">10. Respeta objeto</th>
+              </tr>
+            </thead>
+            <tbody id="tablaCuerpoComp">
+              ${estudiantes.map((est, idx) => {
+                const c = compMap[est.id] || {}, v = (val) => val !== undefined && val !== null ? val : '10';
+                return `<tr data-estudiante-id="${est.id}"><td class="sticky-col-num fw-bold text-muted">${idx + 1}</td><td class="sticky-col-nombre" title="${est.nombres}">${formatearNombreVisual(est.nombres)}</td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind1" value="${v(c.ind1)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind2" value="${v(c.ind2)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind3" value="${v(c.ind3)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind4" value="${v(c.ind4)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind5" value="${v(c.ind5)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind6" value="${v(c.ind6)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind7" value="${v(c.ind7)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind8" value="${v(c.ind8)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind9" value="${v(c.ind9)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind10" value="${v(c.ind10)}" oninput="validarYCalcularComp(this)"></td><td class="total-cuant fw-bold">10.00</td><td class="total-cualit fw-bold">A</td></tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        `;
+        if (reqId === currentViewRequestId) { 
+            contenedor.innerHTML = html; 
+            document.querySelectorAll('#tablaCuerpoComp tr').forEach(fila => calcularFilaComp(fila)); 
+            
+            // Evaluamos el bloqueo global (0 porque no es de una materia)
+            const estadoBloqueo = await verificarBloqueoCalificaciones(0, trimestre, parcialNum);
+            aplicarCierreVisual(estadoBloqueo, 'btnGuardarComp');
+        }
+      } catch (err) {
+        if (reqId === currentViewRequestId) contenedor.innerHTML = `<div class="py-4 text-danger text-center fw-bold">Error: ${err.message}</div>`;
+      }
+    }
+
+    async function guardarComportamientoGeneral() {
+      const cursoId = parseInt(document.getElementById('selectCurso').value);
+      const trimestre = parseInt(document.getElementById('selectTrimestre').value);
+      const parcialNum = parseInt(document.getElementById('selectParcialAsistencia').value) || 1;
+      const btn = document.getElementById('btnGuardarComp');
+      btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Guardando...';
+
+      try {
+        const filas = document.querySelectorAll('#tablaCuerpoComp tr');
+        const { data: existentes } = await supabaseClient.from('comportamiento_parcial').select('id, estudiante_id').eq('curso_id', cursoId).eq('trimestre', trimestre).eq('parcial', parcialNum);
+        
+        const payloadInsert = [];
+        const payloadUpdate = [];
+
+        filas.forEach(tr => {
+          const estId = parseInt(tr.getAttribute('data-estudiante-id'));
+          if (estId) {
+            const record = (existentes || []).find(e => e.estudiante_id === estId);
+            const data = {
+              curso_id: cursoId, estudiante_id: estId, trimestre: trimestre, parcial: parcialNum,
+              ind1: parseFloat(tr.querySelector('.c-ind1').value) || 0, ind2: parseFloat(tr.querySelector('.c-ind2').value) || 0, 
+              ind3: parseFloat(tr.querySelector('.c-ind3').value) || 0, ind4: parseFloat(tr.querySelector('.c-ind4').value) || 0, 
+              ind5: parseFloat(tr.querySelector('.c-ind5').value) || 0, ind6: parseFloat(tr.querySelector('.c-ind6').value) || 0, 
+              ind7: parseFloat(tr.querySelector('.c-ind7').value) || 0, ind8: parseFloat(tr.querySelector('.c-ind8').value) || 0, 
+              ind9: parseFloat(tr.querySelector('.c-ind9').value) || 0, ind10: parseFloat(tr.querySelector('.c-ind10').value) || 0,
+              total_cuantitativo: parseFloat(tr.querySelector('.total-cuant').innerText) || 0, total_cualitativo: tr.querySelector('.total-cualit').innerText
+            };
+            if (record) { data.id = record.id; payloadUpdate.push(data); } else { payloadInsert.push(data); }
+          }
+        });
+
+        if (payloadInsert.length > 0) { const { error } = await supabaseClient.from('comportamiento_parcial').insert(payloadInsert); if (error) throw error; }
+        if (payloadUpdate.length > 0) { const { error } = await supabaseClient.from('comportamiento_parcial').upsert(payloadUpdate); if (error) throw error; }
+        
+        alert('¡Comportamiento guardado con éxito!');
+      } catch (err) { alert('Error: ' + err.message); } finally { btn.disabled = false; btn.innerHTML = '💾 Guardar'; }
+    }
+
+    async function exportarComportamientoGeneralPDF() {
+      const cursoId = document.getElementById('selectCurso').value;
+      const cursoInfo = todosCursos.find(c => String(c.id) === String(cursoId));
+      if (!cursoInfo) return alert('Seleccione un curso.');
+
+      const btn = document.getElementById('btnDescargarCompPDF');
+      const originalHtml = btn.innerHTML;
+      btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+
+      try {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+
+        const nomArriba = (infoInstitucion?.nombre_arriba || 'Unidad Educativa Particular').toUpperCase();
+        const nomAbajo = (infoInstitucion?.nombre_abajo || '"Vicente Rocafuerte"').toUpperCase();
+        const periodo = infoInstitucion?.periodo_lectivo || '2026-2027';
+        const amie = infoInstitucion?.amie || '13H03021';
+        const distrito = infoInstitucion?.distrito || '13D08';
+        const circuito = infoInstitucion?.circuito || '13D08C0_b';
+        const dir1 = infoInstitucion?.direccion_1 || 'Pichincha - Manabí - Ecuador';
+
+        const nombreCursoLargo = (cursoInfo?.nombre_largo_mayuscula || cursoInfo?.nombre || '').toUpperCase();
+        const trimestreVal = document.getElementById('selectTrimestre').value;
+        const nombreParcial = document.getElementById('selectParcialAsistencia').options[document.getElementById('selectParcialAsistencia').selectedIndex].text.toUpperCase();
+
+        let nombreDocenteTutor = 'DOCENTE TUTOR';
+        if (cursoInfo.tutor_id) {
+          try {
+            const { data: prof } = await supabaseClient.from('perfiles').select('titulo, nombres, apellidos').eq('id', cursoInfo.tutor_id).maybeSingle();
+            if (prof) nombreDocenteTutor = `${prof.titulo ? prof.titulo + ' ' : ''}${prof.nombres} ${prof.apellidos || ''}`.trim().toUpperCase();
+          } catch(e) {}
+        }
+
+        const nombreSecretaria = 'C.P.A. MERCEDES A. SALAMEA M.';
+        const nombreRector = 'ING. DÍDIMO A. SALTOS S.';
+
+        const imgLogoIzq = await obtenerBase64DesdeUrl(infoInstitucion?.logo_izquierdo || infoInstitucion?.logo_institucion);
+        const imgLogoDer = await obtenerBase64DesdeUrl(infoInstitucion?.logo_derecho || infoInstitucion?.escudo_nacional);
+
+        const bodyData = [];
+        document.querySelectorAll('#tablaCuerpoComp tr').forEach(tr => {
+            const num = tr.querySelector('.sticky-col-num').innerText;
+            const nom = tr.querySelector('.sticky-col-nombre').getAttribute('title') || tr.querySelector('.sticky-col-nombre').innerText;
+            const i1 = tr.querySelector('.c-ind1').value; const i2 = tr.querySelector('.c-ind2').value;
+            const i3 = tr.querySelector('.c-ind3').value; const i4 = tr.querySelector('.c-ind4').value;
+            const i5 = tr.querySelector('.c-ind5').value; const i6 = tr.querySelector('.c-ind6').value;
+            const i7 = tr.querySelector('.c-ind7').value; const i8 = tr.querySelector('.c-ind8').value;
+            const i9 = tr.querySelector('.c-ind9').value; const i10 = tr.querySelector('.c-ind10').value;
+            const tc = tr.querySelector('.total-cuant').innerText; const tcl = tr.querySelector('.total-cualit').innerText;
+            bodyData.push([num, nom, i1, i2, i3, i4, i5, i6, i7, i8, i9, i10, tc, tcl]);
+        });
+
+        const headers = [
+          [
+            { content: 'N°', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } },
+            { content: 'NÓMINA DE ESTUDIANTES', rowSpan: 2, styles: { valign: 'middle', halign: 'left' } },
+            { content: 'Puntualidad', colSpan: 1, styles: { halign: 'center', valign: 'middle' } },
+            { content: 'Limpieza', colSpan: 3, styles: { halign: 'center', valign: 'middle' } },
+            { content: 'Respeto y Consideración', colSpan: 2, styles: { halign: 'center', valign: 'middle' } },
+            { content: 'Valoración Diversidad', colSpan: 2, styles: { halign: 'center', valign: 'middle' } },
+            { content: 'Patrimonio', colSpan: 1, styles: { halign: 'center', valign: 'middle' } },
+            { content: 'Propiedad', colSpan: 1, styles: { halign: 'center', valign: 'middle' } },
+            { content: 'TOTAL\nCUANT.', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } },
+            { content: 'TOTAL\nCUALIT.', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } }
+          ],
+          [
+            { content: '1. Asiste', styles: { halign: 'center' } }, { content: '2. Aseo personal', styles: { halign: 'center' } },
+            { content: '3. Aseo lugar', styles: { halign: 'center' } }, { content: '4. Aseo aula', styles: { halign: 'center' } },
+            { content: '5. Saludo', styles: { halign: 'center' } }, { content: '6. Sin leng. soez', styles: { halign: 'center' } },
+            { content: '7. Leng. no agres.', styles: { halign: 'center' } }, { content: '8. Tolerancia div.', styles: { halign: 'center' } },
+            { content: '9. Cuida infraest.', styles: { halign: 'center' } }, { content: '10. Respeta obj.', styles: { halign: 'center' } }
+          ]
+        ];
+
+        doc.autoTable({
+          head: headers, body: bodyData, margin: { top: 48, bottom: 32, left: 12, right: 12 }, theme: 'grid',
+          styles: { fontSize: 7, cellPadding: 1, lineColor: [200, 200, 200], lineWidth: 0.1, valign: 'middle' },
+          headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 6.5 },
+          columnStyles: { 0: { cellWidth: 9, halign: 'center' }, 1: { cellWidth: 56, halign: 'left' }, 12: { cellWidth: 22, halign: 'center', fontStyle: 'bold', fillColor: [241, 245, 249] }, 13: { cellWidth: 26, halign: 'center', fontStyle: 'bold', fillColor: [220, 252, 231], textColor: [21, 128, 61] } },
+          didDrawPage: function (data) {
+            const pageNumber = doc.internal.getNumberOfPages();
+            if (imgLogoIzq) { try { doc.addImage(imgLogoIzq, 'PNG', 12, 7, 22, 22); } catch(e){} }
+            if (imgLogoDer) { try { doc.addImage(imgLogoDer, 'PNG', 263, 7, 22, 22); } catch(e){} }
+            doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(30, 41, 59); doc.text(nomArriba, 148.5, 11, { align: 'center' });
+            doc.setFontSize(13); doc.text(nomAbajo, 148.5, 16, { align: 'center' });
+            doc.setFontSize(9.5); doc.text(`REPORTE GENERAL DE COMPORTAMIENTO - TRIMESTRE ${trimestreVal} - ${nombreParcial}`, 148.5, 21, { align: 'center' });
+            doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(71, 85, 105); doc.text(`AMIE: ${amie} | DISTRITO: ${distrito} | CIRCUITO: ${circuito} | ${dir1} | AÑO LECTIVO: ${periodo}`, 148.5, 25.5, { align: 'center' });
+            doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(15, 23, 42); doc.setDrawColor(203, 213, 225); doc.setLineWidth(0.3); doc.line(12, 33, 285, 33);
+            doc.text(`CURSO: ${nombreCursoLargo}`, 12, 38); 
+            doc.text(`TUTOR RESPONSABLE: ${nombreDocenteTutor}`, 285, 38, { align: 'right' }); doc.line(12, 40, 285, 40);
+            const footerY = 188; doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(30, 41, 59); doc.setLineWidth(0.2); doc.line(25, footerY, 85, footerY); doc.line(118, footerY, 178, footerY); doc.line(212, footerY, 272, footerY);
+            doc.setFont('helvetica', 'bold'); doc.text(nombreDocenteTutor, 55, footerY + 4, { align: 'center' }); doc.setFont('helvetica', 'normal'); doc.text('DOCENTE TUTOR', 55, footerY + 7.5, { align: 'center' });
+            doc.setFont('helvetica', 'bold'); doc.text(nombreSecretaria, 148.5, footerY + 4, { align: 'center' }); doc.setFont('helvetica', 'normal'); doc.text('SECRETARIO/A GENERAL', 148.5, footerY + 7.5, { align: 'center' });
+            doc.setFont('helvetica', 'bold'); doc.text(nombreRector, 242, footerY + 4, { align: 'center' }); doc.setFont('helvetica', 'normal'); doc.text('RECTOR / DIRECTOR', 242, footerY + 7.5, { align: 'center' });
+            doc.setFontSize(7); doc.setTextColor(148, 163, 184); doc.text(`Página ${pageNumber}`, 285, 202, { align: 'right' });
+          }
+        });
+        doc.save(`Comportamiento_General_${nombreCursoLargo.replace(/\s+/g, '_')}.pdf`);
+      } catch (err) { alert('Error al exportar PDF: ' + err.message); } finally { btn.disabled = false; btn.innerHTML = originalHtml; }
     }
     
     // EXPORTAR PARCIAL ACADÉMICO A PDF (CON MARCA DE AGUA BLANCA Y PEQUEÑA)
