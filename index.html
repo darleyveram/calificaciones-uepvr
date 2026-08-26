@@ -1543,22 +1543,34 @@
     }
 
     function aplicarCierreVisual(bloqueoObj, btnGuardarId) {
-        const btn = document.getElementById(btnGuardarId);
-        
         // Removemos cualquier alerta previa
         const oldAlert = document.getElementById('alertaBloqueoNotas');
         if (oldAlert) oldAlert.remove();
 
         if (bloqueoObj.bloqueado) {
-            // Deshabilitar todos los inputs de notas
-            document.querySelectorAll('.input-nota-app, .select-act-custom, .btn-del-col, .btn-act-header').forEach(el => el.disabled = true);
-            // Deshabilitar botón de guardar
-            if(btn) btn.disabled = true;
+            // 1. Deshabilitar todos los inputs de notas y selects
+            document.querySelectorAll('.input-nota-app, .select-act-custom').forEach(el => el.disabled = true);
+            
+            // 2. Deshabilitar botones internos de la tabla (X rojas, botones de 10 y borrar)
+            // Se añade opacidad y se bloquea el puntero para que se note que no funcionan
+            document.querySelectorAll('.btn-del-col, .btn-act-header').forEach(el => {
+                el.disabled = true;
+                el.style.opacity = '0.4';
+                el.style.pointerEvents = 'none';
+            });
+            
+            // 3. Deshabilitar la barra de botones superior (+Ins, Auto 10, Borrar todo, Guardar)
+            // EXCEPTO el botón de descargar PDF
+            document.querySelectorAll('#accionesParcial button, #accionesComportamiento button, #accionesResumen button').forEach(btn => {
+                if (!btn.id.includes('PDF')) {
+                    btn.disabled = true;
+                }
+            });
 
             // Mostrar Banner Rojo
             const banner = document.createElement('div');
             banner.id = 'alertaBloqueoNotas';
-            banner.className = 'alert alert-danger p-2 mb-3 fw-bold text-center border-danger';
+            banner.className = 'alert alert-danger p-2 mb-3 fw-bold text-center border-danger shadow-sm';
             banner.innerHTML = `<i class="bi bi-lock-fill me-2"></i> SISTEMA BLOQUEADO: ${bloqueoObj.mensaje}. 
                                 <span class="fw-normal ms-2 d-block d-md-inline">(Solo puede visualizar y descargar PDF)</span>`;
             
@@ -1568,7 +1580,7 @@
             // Es una prórroga, mostramos banner amarillo
             const banner = document.createElement('div');
             banner.id = 'alertaBloqueoNotas';
-            banner.className = 'alert alert-warning p-2 mb-3 fw-bold text-center border-warning';
+            banner.className = 'alert alert-warning p-2 mb-3 fw-bold text-center border-warning shadow-sm';
             banner.innerHTML = `<i class="bi bi-unlock-fill me-2"></i> ATENCIÓN: ${bloqueoObj.mensaje}.`;
             const contenedor = document.getElementById('contenedorTabla');
             contenedor.parentNode.insertBefore(banner, contenedor);
