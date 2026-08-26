@@ -1210,8 +1210,8 @@
           <tbody id="tablaCuerpo">
             ${estudiantes.map((est, idx) => {
               const memData = notasActualesMemoria[est.id] || { i1: [], i2: [] }, i1Notas = memData.i1 || [], i2Notas = memData.i2 || [];
-              const inp1 = configActividades.insumo1.length === 0 ? '<td class="text-muted">-</td>' : configActividades.insumo1.map((_, i) => `<td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app nota-i1 col-act-i1-${i}" value="${i1Notas[i] !== undefined && i1Notas[i] !== null ? i1Notas[i] : ''}" oninput="validarYCalcularParcial(this)"></td>`).join('');
-              const inp2 = configActividades.insumo2.length === 0 ? '<td class="text-muted">-</td>' : configActividades.insumo2.map((_, i) => `<td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app nota-i2 col-act-i2-${i}" value="${i2Notas[i] !== undefined && i2Notas[i] !== null ? i2Notas[i] : ''}" oninput="validarYCalcularParcial(this)"></td>`).join('');
+              const inp1 = configActividades.insumo1.length === 0 ? '<td class="text-muted">-</td>' : configActividades.insumo1.map((_, i) => `<td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app nota-i1 col-act-i1-${i}" value="${i1Notas[i] !== undefined && i1Notas[i] !== null ? i1Notas[i] : ''}" oninput="validarYCalcularParcial(this)" onkeydown="moverFocoVertical(event, 1, ${i}, ${idx})"></td>`).join('');
+              const inp2 = configActividades.insumo2.length === 0 ? '<td class="text-muted">-</td>' : configActividades.insumo2.map((_, i) => `<td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app nota-i2 col-act-i2-${i}" value="${i2Notas[i] !== undefined && i2Notas[i] !== null ? i2Notas[i] : ''}" oninput="validarYCalcularParcial(this)" onkeydown="moverFocoVertical(event, 2, ${i}, ${idx})"></td>`).join('');
               return `<tr data-estudiante-id="${est.id}"><td class="sticky-col-num fw-bold text-muted">${idx + 1}</td><td class="sticky-col-nombre" title="${est.nombres}">${formatearNombreVisual(est.nombres)}</td>${inp1}<td class="prom-i1">0.00</td>${inp2}<td class="prom-i2">0.00</td><td class="nota-parcial">0.00</td></tr>`;
             }).join('')}
           </tbody>
@@ -1219,6 +1219,65 @@
       `;
       contenedor.innerHTML = html;
       document.querySelectorAll('#tablaCuerpo tr').forEach(fila => calcularFilaParcial(fila));
+    }
+
+    // =========================================================================
+    // NAVEGACIÓN VERTICAL ESTILO EXCEL PARA CALIFICACIONES
+    // =========================================================================
+    function moverFocoVertical(e, insumo, colIndex, rowIndex) {
+        // Detectar si el usuario presionó la tecla "Tab" o "Enter"
+        if (e.key === 'Tab' || e.key === 'Enter') {
+            const inputsActuales = document.querySelectorAll(`.col-act-i${insumo}-${colIndex}`);
+            
+            // Si presionan "Shift + Tab" (Quieren ir hacia ARRIBA)
+            if (e.shiftKey && e.key === 'Tab') {
+                e.preventDefault();
+                if (rowIndex > 0 && inputsActuales[rowIndex - 1]) {
+                    inputsActuales[rowIndex - 1].focus();
+                    inputsActuales[rowIndex - 1].select();
+                } else {
+                    // Si está en el primer alumno, saltar al último de la columna anterior
+                    let prevColInputs = null;
+                    if (insumo === 2) {
+                        if (colIndex > 0) prevColInputs = document.querySelectorAll(`.col-act-i2-${colIndex - 1}`);
+                        else prevColInputs = document.querySelectorAll(`.col-act-i1-${configActividades.insumo1.length - 1}`);
+                    } else {
+                        if (colIndex > 0) prevColInputs = document.querySelectorAll(`.col-act-i1-${colIndex - 1}`);
+                    }
+                    if (prevColInputs && prevColInputs.length > 0) {
+                        prevColInputs[prevColInputs.length - 1].focus();
+                        prevColInputs[prevColInputs.length - 1].select();
+                    }
+                }
+            } 
+            // Quieren ir hacia ABAJO (Tab normal o Enter)
+            else {
+                if (rowIndex + 1 < inputsActuales.length && inputsActuales[rowIndex + 1]) {
+                    e.preventDefault();
+                    inputsActuales[rowIndex + 1].focus();
+                    inputsActuales[rowIndex + 1].select();
+                } else if (e.key === 'Tab' || e.key === 'Enter') {
+                    // Si está en el último alumno, saltar al primero de la columna siguiente
+                    e.preventDefault();
+                    let nextColInputs = null;
+                    if (insumo === 1) {
+                        if (colIndex + 1 < configActividades.insumo1.length) nextColInputs = document.querySelectorAll(`.col-act-i1-${colIndex + 1}`);
+                        else nextColInputs = document.querySelectorAll(`.col-act-i2-0`);
+                    } else {
+                        if (colIndex + 1 < configActividades.insumo2.length) nextColInputs = document.querySelectorAll(`.col-act-i2-${colIndex + 1}`);
+                    }
+                    
+                    if (nextColInputs && nextColInputs.length > 0) {
+                        nextColInputs[0].focus();
+                        nextColInputs[0].select();
+                    } else {
+                        // Si ya llenó la última materia, enviar foco al botón de Guardar
+                        const btnGuardar = document.getElementById('btnGuardarParcial');
+                        if (btnGuardar) btnGuardar.focus();
+                    }
+                }
+            }
+        }
     }
 
     function validarYCalcularParcial(input) {
