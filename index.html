@@ -3553,49 +3553,53 @@
         saveAs(zipBlob, `Certificados_Matricula_${nombreCursoLargo.replace(/\s+/g, '_')}.zip`);
     }
     // =========================================================================
-    // PEGAR CALIFICACIONES EN BLOQUE DESDE GOOGLE SHEETS / EXCEL
+    // PEGAR CALIFICACIONES Y ASISTENCIA EN BLOQUE DESDE GOOGLE SHEETS / EXCEL
     // =========================================================================
     document.addEventListener('paste', function(e) {
       const target = e.target;
       
-      // Solo aplicar si estamos pegando dentro de una casilla de notas
-      if (!target.classList.contains('input-nota-app')) return;
+      // Identificar si estamos pegando en Notas o en Asistencia
+      const esNota = target.classList.contains('input-nota-app');
+      const esAsistencia = target.classList.contains('cell-asig-input');
+
+      // Si no es ninguna de las dos, no hacemos nada
+      if (!esNota && !esAsistencia) return;
       
       // Si el input está bloqueado por el administrador, no hacemos nada
       if (target.disabled) return;
 
-      e.preventDefault(); // Evitamos que pegue todo el texto en una sola celda
+      e.preventDefault(); // Evitamos el comportamiento por defecto
 
       // Obtener el texto del portapapeles
       const clipboardData = e.clipboardData || window.clipboardData;
       const pastedData = clipboardData.getData('text/plain');
 
-      // Dividir por saltos de línea (filas de Excel)
+      // Dividir por saltos de línea (filas)
       const filasPegadas = pastedData.split(/\r\n|\n|\r/);
       
-      // Encontrar la fila (tr) actual y el cuerpo de la tabla (tbody)
+      // Encontrar la fila y tabla actual
       const trActual = target.closest('tr');
       const tbody = trActual.parentElement;
       const todasLasFilas = Array.from(tbody.querySelectorAll('tr'));
-      
       const indiceFilaInicio = todasLasFilas.indexOf(trActual);
       
-      // Encontrar todos los inputs de nota en esta fila para saber la columna inicial
-      const inputsFilaActual = Array.from(trActual.querySelectorAll('.input-nota-app'));
+      // Encontrar la columna inicial basada en el tipo de input
+      const selectorClase = esNota ? '.input-nota-app' : '.cell-asig-input';
+      const inputsFilaActual = Array.from(trActual.querySelectorAll(selectorClase));
       const indiceColInicio = inputsFilaActual.indexOf(target);
 
       if (indiceFilaInicio === -1 || indiceColInicio === -1) return;
 
       // Recorrer las filas pegadas
       for (let i = 0; i < filasPegadas.length; i++) {
-        // Ignorar filas vacías al final (Excel suele añadir una línea vacía al copiar)
+        // Ignorar fila vacía al final
         if (i === filasPegadas.length - 1 && filasPegadas[i].trim() === '') continue;
 
         const indiceFilaDestino = indiceFilaInicio + i;
-        if (indiceFilaDestino >= todasLasFilas.length) break; // Se acabó la tabla hacia abajo
+        if (indiceFilaDestino >= todasLasFilas.length) break;
 
         const filaDestino = todasLasFilas[indiceFilaDestino];
-        const inputsFilaDestino = Array.from(filaDestino.querySelectorAll('.input-nota-app'));
+        const inputsFilaDestino = Array.from(filaDestino.querySelectorAll(selectorClase));
         
         // Dividir por tabulaciones (columnas de Excel/Sheets)
         const columnasPegadas = filasPegadas[i].split('\t');
@@ -3603,31 +3607,43 @@
 
         for (let j = 0; j < columnasPegadas.length; j++) {
           const indiceColDestino = indiceColInicio + j;
-          if (indiceColDestino >= inputsFilaDestino.length) break; // Se acabaron las columnas hacia la derecha
+          if (indiceColDestino >= inputsFilaDestino.length) break;
 
           const inputDestino = inputsFilaDestino[indiceColDestino];
-          
-          // Proteger contra columnas bloqueadas por el administrador
           if (inputDestino.disabled) continue;
 
-          // Limpiar el valor (cambiar comas por puntos para los decimales)
-          let valorPegado = columnasPegadas[j].trim().replace(',', '.');
-          
-          if (valorPegado !== '' && !isNaN(valorPegado)) {
-            let numVal = parseFloat(valorPegado);
-            // Respetar el rango de notas de 0 a 10
-            if (numVal > 10) numVal = 10;
-            if (numVal < 0) numVal = 0;
-            
-            inputDestino.value = numVal;
-            filaModificada = true;
-          } else if (valorPegado === '') {
-            inputDestino.value = '';
-            filaModificada = true;
+          let valorPegado = columnasPegadas[j].trim().toUpperCase();
+
+          if (esNota) {
+            // LÓGICA PARA NOTAS (0 a 10)
+            valorPegado = valorPegado.replace(',', '.');
+            if (valorPegado !== '' && !isNaN(valorPegado)) {
+              let numVal = parseFloat(valorPegado);
+              if (numVal > 10) numVal = 10;
+              if (numVal < 0) numVal = 0;
+              inputDestino.value = numVal;
+              filaModificada = true;
+            } else if (valorPegado === '') {
+              inputDestino.value = '';
+              filaModificada = true;
+            }
+          } else if (esAsistencia) {
+            // LÓGICA PARA ASISTENCIA (A, F, J)
+            if (['A', 'F', 'J', ''].includes(valorPegado)) {
+              inputDestino.value = valorPegado;
+              
+              // Ajustar el color de la celda al pegar
+              inputDestino.className = 'cell-asig-input'; 
+              if (valorPegado === 'A') inputDestino.classList.add('asig-a');
+              else if (valorPegado === 'F') inputDestino.classList.add('asig-f');
+              else if (valorPegado === 'J') inputDestino.classList.add('asig-j');
+              
+              filaModificada = true;
+            }
           }
         }
 
-        // Recalcular el promedio y colores de la fila automáticamente si hubo cambios
+        // Recalcular promedios o sumas automáticamente
         if (filaModificada) {
           if (tbody.id === 'tablaCuerpo') {
             calcularFilaParcial(filaDestino);
@@ -3635,6 +3651,8 @@
             calcularFilaComp(filaDestino);
           } else if (tbody.id === 'tablaCuerpoTrimestre') {
             calcularFilaTrimestre(filaDestino);
+          } else if (tbody.id === 'tablaCuerpoAsistencia') {
+            calcularFilaAsistencia(filaDestino);
           }
         }
       }
