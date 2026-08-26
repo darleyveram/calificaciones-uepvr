@@ -3552,6 +3552,93 @@
         const zipBlob = await zip.generateAsync({ type: 'blob' });
         saveAs(zipBlob, `Certificados_Matricula_${nombreCursoLargo.replace(/\s+/g, '_')}.zip`);
     }
+    // =========================================================================
+    // PEGAR CALIFICACIONES EN BLOQUE DESDE GOOGLE SHEETS / EXCEL
+    // =========================================================================
+    document.addEventListener('paste', function(e) {
+      const target = e.target;
+      
+      // Solo aplicar si estamos pegando dentro de una casilla de notas
+      if (!target.classList.contains('input-nota-app')) return;
+      
+      // Si el input está bloqueado por el administrador, no hacemos nada
+      if (target.disabled) return;
+
+      e.preventDefault(); // Evitamos que pegue todo el texto en una sola celda
+
+      // Obtener el texto del portapapeles
+      const clipboardData = e.clipboardData || window.clipboardData;
+      const pastedData = clipboardData.getData('text/plain');
+
+      // Dividir por saltos de línea (filas de Excel)
+      const filasPegadas = pastedData.split(/\r\n|\n|\r/);
+      
+      // Encontrar la fila (tr) actual y el cuerpo de la tabla (tbody)
+      const trActual = target.closest('tr');
+      const tbody = trActual.parentElement;
+      const todasLasFilas = Array.from(tbody.querySelectorAll('tr'));
+      
+      const indiceFilaInicio = todasLasFilas.indexOf(trActual);
+      
+      // Encontrar todos los inputs de nota en esta fila para saber la columna inicial
+      const inputsFilaActual = Array.from(trActual.querySelectorAll('.input-nota-app'));
+      const indiceColInicio = inputsFilaActual.indexOf(target);
+
+      if (indiceFilaInicio === -1 || indiceColInicio === -1) return;
+
+      // Recorrer las filas pegadas
+      for (let i = 0; i < filasPegadas.length; i++) {
+        // Ignorar filas vacías al final (Excel suele añadir una línea vacía al copiar)
+        if (i === filasPegadas.length - 1 && filasPegadas[i].trim() === '') continue;
+
+        const indiceFilaDestino = indiceFilaInicio + i;
+        if (indiceFilaDestino >= todasLasFilas.length) break; // Se acabó la tabla hacia abajo
+
+        const filaDestino = todasLasFilas[indiceFilaDestino];
+        const inputsFilaDestino = Array.from(filaDestino.querySelectorAll('.input-nota-app'));
+        
+        // Dividir por tabulaciones (columnas de Excel/Sheets)
+        const columnasPegadas = filasPegadas[i].split('\t');
+        let filaModificada = false;
+
+        for (let j = 0; j < columnasPegadas.length; j++) {
+          const indiceColDestino = indiceColInicio + j;
+          if (indiceColDestino >= inputsFilaDestino.length) break; // Se acabaron las columnas hacia la derecha
+
+          const inputDestino = inputsFilaDestino[indiceColDestino];
+          
+          // Proteger contra columnas bloqueadas por el administrador
+          if (inputDestino.disabled) continue;
+
+          // Limpiar el valor (cambiar comas por puntos para los decimales)
+          let valorPegado = columnasPegadas[j].trim().replace(',', '.');
+          
+          if (valorPegado !== '' && !isNaN(valorPegado)) {
+            let numVal = parseFloat(valorPegado);
+            // Respetar el rango de notas de 0 a 10
+            if (numVal > 10) numVal = 10;
+            if (numVal < 0) numVal = 0;
+            
+            inputDestino.value = numVal;
+            filaModificada = true;
+          } else if (valorPegado === '') {
+            inputDestino.value = '';
+            filaModificada = true;
+          }
+        }
+
+        // Recalcular el promedio y colores de la fila automáticamente si hubo cambios
+        if (filaModificada) {
+          if (tbody.id === 'tablaCuerpo') {
+            calcularFilaParcial(filaDestino);
+          } else if (tbody.id === 'tablaCuerpoComp') {
+            calcularFilaComp(filaDestino);
+          } else if (tbody.id === 'tablaCuerpoTrimestre') {
+            calcularFilaTrimestre(filaDestino);
+          }
+        }
+      }
+    });
   </script>
 </body>
 </html>
