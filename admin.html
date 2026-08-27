@@ -888,6 +888,34 @@
       </div>
     </div>
   </div>
+
+  <div class="modal fade" id="modalResetPassword" tabindex="-1">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+      <div class="modal-content border-0 shadow">
+        <div class="modal-header bg-warning text-dark py-2">
+          <h6 class="modal-title fw-bold"><i class="bi bi-key-fill me-2"></i>Cambiar Contraseña</h6>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="formResetPassword" onsubmit="guardarNuevaPassword(event)">
+            <input type="hidden" id="resetUserId">
+            <div class="mb-3">
+              <label class="form-label fw-bold small">Docente / Usuario:</label>
+              <input type="text" id="resetUserName" class="form-control form-control-sm bg-light text-primary fw-bold" readonly>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-bold small text-danger">Escriba la Nueva Contraseña:</label>
+              <input type="text" id="resetNewPassword" class="form-control form-control-sm border-danger" placeholder="Mínimo 6 caracteres" required minlength="6">
+              <div class="form-text" style="font-size: 0.65rem;">Por seguridad la clave actual está encriptada. Escriba aquí la nueva clave para reemplazarla.</div>
+            </div>
+            <button type="submit" class="btn btn-warning btn-sm w-100 fw-bold" id="btnGuardarClave"><i class="bi bi-save me-1"></i> Actualizar Clave</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  
   <!-- Modal Configuraciones -->
   <div class="modal fade" id="modalConfiguraciones" tabindex="-1">
     <div class="modal-dialog modal-sm modal-dialog-centered">
@@ -929,7 +957,7 @@
     let cursosList = [];
     let materiasList = [];
     let periodosList = [];
-    let modalAsignarInst, modalCursoInst, modalPersonalInst, modalTituloInst, modalEstudianteInst, modalConfigInst;
+    let modalAsignarInst, modalCursoInst, modalPersonalInst, modalTituloInst, modalEstudianteInst, modalConfigInst, modalResetPasswordInst;
     let usuarioActualSesionId = null;
 
     // --- VARIABLES DE INACTIVIDAD ---
@@ -1026,6 +1054,7 @@
           modalAsignarInst = new bootstrap.Modal(document.getElementById('modalAsignarMateria'));
           modalCursoInst = new bootstrap.Modal(document.getElementById('modalCursoBox'));
           modalPersonalInst = new bootstrap.Modal(document.getElementById('modalPersonalBox'));
+          modalResetPasswordInst = new bootstrap.Modal(document.getElementById('modalResetPassword'));
           modalTituloInst = new bootstrap.Modal(document.getElementById('modalTituloBox'));
           modalEstudianteInst = new bootstrap.Modal(document.getElementById('modalEstudianteFicha'));
           
@@ -1706,6 +1735,20 @@
                 : '<span class="badge bg-light text-muted border">No</span>'}
             </td>
             <td>
+              <button class="btn btn-sm btn-warning text-dark py-0 me-1 mb-1 fw-bold" onclick="abrirModalResetPassword('${d.id}', '${nombreCompleto.replace(/'/g, "\\'")}')">
+                <i class="bi bi-key-fill"></i> Clave
+              </button>
+              <button class="btn btn-sm btn-outline-primary py-0 me-1 mb-1" onclick="abrirModalPersonal('${d.id}')">Editar</button>
+              <button class="btn btn-sm btn-outline-secondary py-0 me-1 mb-1" onclick="cambiarRolDocente('${d.id}', '${d.rol}')">
+                ${d.rol === 'admin' ? 'Hacer Docente' : 'Hacer Admin'}
+              </button>
+              ${!esMismoUsuario ? `
+                <button class="btn btn-sm btn-outline-danger py-0 mb-1" onclick="confirmarEliminarPersonal('${d.id}', '${nombreCompleto.replace(/'/g, "\\'")}', '${d.email}')">
+                  <i class="bi bi-trash"></i>
+                </button>
+              ` : ''}
+            </td>
+            <td>
               <button class="btn btn-sm btn-outline-primary py-0 me-1 mb-1" onclick="abrirModalPersonal('${d.id}')">Editar</button>
               <button class="btn btn-sm btn-outline-secondary py-0 me-1 mb-1" onclick="cambiarRolDocente('${d.id}', '${d.rol}')">
                 ${d.rol === 'admin' ? 'Hacer Docente' : 'Hacer Admin'}
@@ -2030,6 +2073,45 @@
           <td><button class="btn btn-sm btn-outline-danger py-0" onclick="eliminarRegistro('excepciones_notas', ${e.id}); setTimeout(cargarExcepcionesTabla, 500);">Quitar</button></td>
         </tr>
       `).join('');
+    }
+    // =========================================================================
+    // CAMBIO DE CONTRASEÑAS DE USUARIOS
+    // =========================================================================
+    function abrirModalResetPassword(id, nombre) {
+      document.getElementById('resetUserId').value = id;
+      document.getElementById('resetUserName').value = nombre;
+      document.getElementById('resetNewPassword').value = ''; // Se limpia el campo
+      modalResetPasswordInst.show();
+    }
+
+    async function guardarNuevaPassword(e) {
+      e.preventDefault();
+      const id = document.getElementById('resetUserId').value;
+      const nuevaClave = document.getElementById('resetNewPassword').value.trim();
+      const btn = document.getElementById('btnGuardarClave');
+
+      if (nuevaClave.length < 6) return alert('La contraseña debe tener al menos 6 caracteres.');
+
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Actualizando...';
+
+      try {
+        // Llama a la función segura que creamos en Supabase SQL
+        const { error } = await supabaseClient.rpc('cambiar_clave_usuario', { 
+            p_user_id: id, 
+            p_nueva_clave: nuevaClave 
+        });
+        
+        if (error) throw error;
+        
+        alert('¡Contraseña actualizada con éxito! El docente ya puede iniciar sesión con la nueva clave.');
+        modalResetPasswordInst.hide();
+      } catch (err) {
+        alert('Error al cambiar la contraseña: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-save me-1"></i> Actualizar Clave';
+      }
     }
   </script>
 </body>
