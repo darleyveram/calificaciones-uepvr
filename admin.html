@@ -1748,17 +1748,6 @@
                 </button>
               ` : ''}
             </td>
-            <td>
-              <button class="btn btn-sm btn-outline-primary py-0 me-1 mb-1" onclick="abrirModalPersonal('${d.id}')">Editar</button>
-              <button class="btn btn-sm btn-outline-secondary py-0 me-1 mb-1" onclick="cambiarRolDocente('${d.id}', '${d.rol}')">
-                ${d.rol === 'admin' ? 'Hacer Docente' : 'Hacer Admin'}
-              </button>
-              ${!esMismoUsuario ? `
-                <button class="btn btn-sm btn-outline-danger py-0 mb-1" onclick="confirmarEliminarPersonal('${d.id}', '${nombreCompleto.replace(/'/g, "\\'")}', '${d.email}')">
-                  <i class="bi bi-trash"></i>
-                </button>
-              ` : ''}
-            </td>
           </tr>
         `;
       }).join('');
