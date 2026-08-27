@@ -284,13 +284,17 @@
             </button>
           </div>
 
-          <div class="card p-3 mb-3 bg-white">
+          <div class="card p-3 mb-3 bg-white shadow-sm border-0">
             <div class="row align-items-center">
               <div class="col-md-5">
                 <label class="form-label fw-bold mb-1">Seleccione el Curso a Configurar:</label>
-                <select id="selectCursoAsignar" class="form-select form-select-sm" onchange="cargarMateriasDelCurso()">
+                <select id="selectCursoAsignar" class="form-select form-select-sm border-primary" onchange="cargarMateriasDelCurso()">
                   <option value="">Seleccione curso...</option>
                 </select>
+              </div>
+              <!-- NUEVO: CONTENEDOR DE RECUENTO -->
+              <div class="col-md-7 text-md-end mt-3 mt-md-0" id="boxConteoMaterias">
+                <!-- Se llenará automáticamente con JS -->
               </div>
             </div>
           </div>
@@ -1313,10 +1317,12 @@
       const cursoId = document.getElementById('selectCursoAsignar').value;
       const tbody = document.getElementById('tablaMateriasCurso');
       const btn = document.getElementById('btnNuevaAsignacion');
+      const boxConteo = document.getElementById('boxConteoMaterias'); // Contenedor del recuento
 
       if (!cursoId) {
         btn.disabled = true;
         tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-muted">Seleccione un curso arriba.</td></tr>';
+        if (boxConteo) boxConteo.innerHTML = ''; // Limpiar recuento si no hay curso
         return;
       }
 
@@ -1327,6 +1333,24 @@
         .from('curso_materia_docente')
         .select(`id, curso_id, materia_id, docente_id, docente_id_2, docente_id_3, es_optativa, materias(id, nombre)`)
         .eq('curso_id', parseInt(cursoId));
+
+      // --- INICIO: CÁLCULO DE MATERIAS ---
+      if (boxConteo) {
+        if (!data || data.length === 0) {
+            boxConteo.innerHTML = '<span class="badge bg-secondary">Sin materias asignadas</span>';
+        } else {
+            const total = data.length;
+            const optativas = data.filter(m => m.es_optativa).length;
+            const obligatorias = total - optativas;
+            
+            boxConteo.innerHTML = `
+              <span class="badge bg-primary fs-6 me-2 shadow-sm py-2"><i class="bi bi-journal-album me-1"></i> Total: ${total}</span>
+              <span class="badge bg-success fs-6 me-2 shadow-sm py-2"><i class="bi bi-bookmark-check-fill me-1"></i> Obligatorias: ${obligatorias}</span>
+              <span class="badge bg-warning text-dark fs-6 shadow-sm py-2"><i class="bi bi-bookmark-star-fill me-1"></i> Optativas: ${optativas}</span>
+            `;
+        }
+      }
+      // --- FIN: CÁLCULO DE MATERIAS ---
 
       if (!data || data.length === 0) {
         tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-muted">No hay materias asignadas en este curso.</td></tr>';
