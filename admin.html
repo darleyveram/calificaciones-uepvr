@@ -437,17 +437,34 @@
 
             <div class="col-md-5">
               <div class="card p-0 h-100 border-0 shadow-sm">
-                <div class="card-header bg-warning text-dark fw-bold"><i class="bi bi-key-fill me-2"></i>Prórroga (Habilitar materia)</div>
+                <div class="card-header bg-warning text-dark fw-bold"><i class="bi bi-key-fill me-2"></i>Otorgar Prórroga</div>
                 <div class="card-body p-3 bg-light">
                   <form onsubmit="guardarExcepcionModal(event)">
+                    
                     <div class="mb-2">
-                      <label class="form-label fw-bold small">Curso:</label>
-                      <select id="excCurso" class="form-select form-select-sm" onchange="cargarMateriasExcepcion()" required></select>
+                      <label class="form-label fw-bold small text-primary">¿A quién aplicar la prórroga?</label>
+                      <select id="excTipo" class="form-select form-select-sm border-primary fw-bold" onchange="cambiarTipoProrroga()">
+                        <option value="materia">A una sola materia específica</option>
+                        <option value="docente">A TODAS las materias de un docente</option>
+                      </select>
                     </div>
-                    <div class="mb-2">
-                      <label class="form-label fw-bold small">Materia (Docente):</label>
-                      <select id="excMateria" class="form-select form-select-sm" required><option value="">Seleccione curso...</option></select>
+
+                    <div id="boxExcMateria">
+                      <div class="mb-2">
+                        <label class="form-label fw-bold small">Curso:</label>
+                        <select id="excCurso" class="form-select form-select-sm" onchange="cargarMateriasExcepcion()"></select>
+                      </div>
+                      <div class="mb-2">
+                        <label class="form-label fw-bold small">Materia (Docente):</label>
+                        <select id="excMateria" class="form-select form-select-sm"><option value="">Seleccione curso...</option></select>
+                      </div>
                     </div>
+
+                    <div id="boxExcDocente" class="d-none mb-3">
+                      <label class="form-label fw-bold small">Seleccione al Docente:</label>
+                      <select id="excDocente" class="form-select form-select-sm"></select>
+                    </div>
+
                     <div class="row g-2 mb-2">
                       <div class="col-6">
                         <label class="form-label fw-bold small">Trimestre:</label>
@@ -466,7 +483,7 @@
                       <label class="form-label fw-bold small text-danger">Habilitar hasta (Fecha Cierre):</label>
                       <input type="date" id="excFecha" class="form-control form-control-sm border-danger" required>
                     </div>
-                    <button type="submit" class="btn btn-warning btn-sm w-100 fw-bold">Otorgar Prórroga</button>
+                    <button type="submit" class="btn btn-warning btn-sm w-100 fw-bold" id="btnOtorgarProrroga">Otorgar Prórroga</button>
                   </form>
                 </div>
               </div>
@@ -1980,12 +1997,29 @@
     // =======================================================
     let fechasGlobalesList = [];
 
+    function cambiarTipoProrroga() {
+      const tipo = document.getElementById('excTipo').value;
+      if (tipo === 'materia') {
+        document.getElementById('boxExcMateria').classList.remove('d-none');
+        document.getElementById('boxExcDocente').classList.add('d-none');
+      } else {
+        document.getElementById('boxExcMateria').classList.add('d-none');
+        document.getElementById('boxExcDocente').classList.remove('d-none');
+      }
+    }
+
     // Añade esto a tu función mostrarModulo(id, link) ya existente:
     // if (id === 'control') cargarControlAccesos();
 
     async function cargarControlAccesos() {
       await cargarDatosIniciales();
+      
+      // Llenar Cursos
       document.getElementById('excCurso').innerHTML = '<option value="">Seleccione curso...</option>' + cursosList.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
+      
+      // Llenar Docentes para el nuevo modo masivo
+      document.getElementById('excDocente').innerHTML = '<option value="">Seleccione docente...</option>' + 
+        docentesList.map(d => `<option value="${d.id}">${formatNombreDocente(d)}</option>`).join('');
 
       // Cargar fechas globales
       const { data: fechas } = await supabaseClient.from('periodos_calificaciones').select('*').order('trimestre').order('parcial');
@@ -2039,14 +2073,58 @@
 
     async function guardarExcepcionModal(e) {
       e.preventDefault();
-      const asigId = document.getElementById('excMateria').value;
+      const tipo = document.getElementById('excTipo').value; // 'materia' o 'docente'
       const trim = document.getElementById('excTrimestre').value;
       const parc = document.getElementById('excParcial').value;
       const fecha = document.getElementById('excFecha').value;
 
-      const { error } = await supabaseClient.from('excepciones_notas').insert([{ asignacion_id: asigId, trimestre: trim, parcial: parc, fecha_cierre: fecha }]);
-      if (error) alert('Error: ' + error.message);
-      else { alert('Prórroga otorgada.'); cargarExcepcionesTabla(); }
+      const btn = document.getElementById('btnOtorgarProrroga');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Procesando...';
+
+      try {
+        let payload = [];
+
+        if (tipo === 'materia') {
+          const asigId = document.getElementById('excMateria').value;
+          if (!asigId) throw new Error("Seleccione un curso y luego una materia.");
+          
+          payload.push({ asignacion_id: asigId, trimestre: trim, parcial: parc, fecha_cierre: fecha });
+        } 
+        else if (tipo === 'docente') {
+          const docId = document.getElementById('excDocente').value;
+          if (!docId) throw new Error("Seleccione un docente.");
+
+          // Busca TODAS las materias donde este profesor dé clases (sea principal o auxiliar)
+          const { data: asignaciones } = await supabaseClient.from('curso_materia_docente')
+            .select('id')
+            .or(`docente_id.eq.${docId},docente_id_2.eq.${docId},docente_id_3.eq.${docId}`);
+
+          if (!asignaciones || asignaciones.length === 0) {
+            throw new Error("Este docente no tiene materias asignadas en el sistema.");
+          }
+
+          // Armamos el bloque de registros para insertarlos todos de golpe
+          payload = asignaciones.map(a => ({ 
+            asignacion_id: a.id, 
+            trimestre: trim, 
+            parcial: parc, 
+            fecha_cierre: fecha 
+          }));
+        }
+
+        const { error } = await supabaseClient.from('excepciones_notas').insert(payload);
+        if (error) throw error;
+        
+        alert(tipo === 'materia' ? 'Prórroga otorgada a la materia.' : `¡Prórroga masiva otorgada con éxito! Se habilitaron ${payload.length} materias para este docente.`);
+        cargarExcepcionesTabla();
+        
+      } catch (err) {
+        alert('Error: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = 'Otorgar Prórroga';
+      }
     }
 
     async function cargarExcepcionesTabla() {
