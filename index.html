@@ -4029,7 +4029,7 @@
 
       const payload = {
         curso_id: parseInt(cursoId),
-        docente_id: usuarioActualSesionId,
+        docente_id: usuarioActualPerfil.id, // <--- AQUÍ ESTABA EL ERROR
         trimestre: parseInt(trimestre),
         parcial: parcial,
         tipo_incidencia: document.getElementById('incTipo').value,
@@ -4055,13 +4055,14 @@
     async function cargarHistorialIncidencias() {
       const tbody = document.getElementById('tablaHistorialIncidencias');
       try {
-        // Obtenemos todas las incidencias (Si es admin las ve todas, si es docente solo las suyas, lo controla el backend o lo filtramos aquí)
         const esAdmin = usuarioActualPerfil?.rol === 'admin';
         const puedeVerAsistencia = usuarioActualPerfil?.puede_gestionar_asistencia === true;
         
         let query = supabaseClient.from('incidencias').select('*, perfiles(titulo, nombres, apellidos), cursos(nombre)').order('fecha_hora', { ascending: false });
+        
+        // Si no es admin ni inspector, solo puede ver las incidencias que él mismo reportó
         if (!esAdmin && !puedeVerAsistencia) {
-            query = query.eq('docente_id', usuarioActualSesionId);
+            query = query.eq('docente_id', usuarioActualPerfil.id); // <--- AQUÍ TAMBIÉN ESTABA EL ERROR
         }
 
         const { data } = await query;
