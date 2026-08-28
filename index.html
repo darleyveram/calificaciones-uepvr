@@ -3941,6 +3941,7 @@
             </ul>
 
             <div class="tab-content">
+              <!-- PESTAÑA: FORMULARIO -->
               <div class="tab-pane fade show active" id="form-inc">
                 <div class="card border-danger shadow-sm">
                   <div class="card-body bg-light">
@@ -3998,6 +3999,7 @@
                 </div>
               </div>
 
+              <!-- PESTAÑA: HISTORIAL -->
               <div class="tab-pane fade" id="hist-inc">
                 <div class="mb-3">
                   <input type="text" class="form-control form-control-sm border-primary shadow-sm" placeholder="🔍 Buscar por nombre o apellido del estudiante (Ej: Vera)..." oninput="filtrarHistorialIncidencias(this.value)">
@@ -4005,10 +4007,10 @@
                 <div class="table-responsive" style="max-height: 50vh;">
                   <table class="table table-bordered table-hover table-sm align-middle mb-0" style="font-size: 0.75rem;">
                     <thead class="table-dark sticky-top">
-                      <tr><th>Fecha y Hora</th><th>Tipo</th><th>Contexto</th><th>Estudiantes Involucrados</th><th>Observaciones</th><th>Reportado por</th></tr>
+                      <tr><th>Fecha y Hora</th><th>Tipo</th><th>Contexto</th><th>Estudiantes Involucrados</th><th>Observaciones</th><th>Reportado por</th><th style="width: 60px;">Acción</th></tr>
                     </thead>
                     <tbody id="tablaHistorialIncidencias">
-                      <tr><td colspan="6" class="text-center py-4">Haga clic en 'Historial Global' para buscar en la base de datos...</td></tr>
+                      <tr><td colspan="7" class="text-center py-4">Haga clic en 'Historial Global' para buscar en la base de datos...</td></tr>
                     </tbody>
                   </table>
                 </div>
@@ -4068,13 +4070,12 @@
 
     async function cargarHistorialIncidencias() {
       const tbody = document.getElementById('tablaHistorialIncidencias');
-      tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4"><div class="spinner-border text-primary spinner-border-sm"></div> Cargando...</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4"><div class="spinner-border text-primary spinner-border-sm"></div> Cargando...</td></tr>';
       
       try {
         const esAdmin = usuarioActualPerfil?.rol === 'admin';
         const puedeVerAsistencia = usuarioActualPerfil?.puede_gestionar_asistencia === true;
         
-        // Petición limpia directa a la tabla
         let query = supabaseClient.from('incidencias').select('*').order('fecha_hora', { ascending: false });
         
         if (!esAdmin && !puedeVerAsistencia) {
@@ -4087,14 +4088,14 @@
         historialIncidenciasGlobal = data || [];
         renderizarTablaHistorial(historialIncidenciasGlobal);
       } catch (err) {
-        tbody.innerHTML = `<tr><td colspan="6" class="text-danger text-center fw-bold">Error de red: ${err.message}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" class="text-danger text-center fw-bold">Error de red: ${err.message}</td></tr>`;
       }
     }
 
     function renderizarTablaHistorial(datos) {
       const tbody = document.getElementById('tablaHistorialIncidencias');
       if (datos.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted fw-bold">No se encontraron incidencias en el historial.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-muted fw-bold">No se encontraron incidencias en el historial.</td></tr>';
         return;
       }
       tbody.innerHTML = datos.map(inc => {
@@ -4112,6 +4113,11 @@
             <td class="fw-bold text-primary">${inc.nombres_estudiantes}<br><small class="text-muted fw-normal">${nombreCurso}</small></td>
             <td>${inc.observaciones}</td>
             <td><small>${docName}</small></td>
+            <td>
+              <button class="btn btn-sm btn-outline-danger py-0 px-2" onclick="eliminarIncidencia(${inc.id})" title="Eliminar registro">
+                <i class="bi bi-trash-fill"></i>
+              </button>
+            </td>
           </tr>
         `;
       }).join('');
@@ -4121,6 +4127,17 @@
       const lowerTerm = termino.toLowerCase();
       const filtrados = historialIncidenciasGlobal.filter(inc => inc.nombres_estudiantes.toLowerCase().includes(lowerTerm) || inc.tipo_incidencia.toLowerCase().includes(lowerTerm));
       renderizarTablaHistorial(filtrados);
+    }
+
+    async function eliminarIncidencia(id) {
+      if (!confirm('¿Está seguro de eliminar permanentemente este reporte de incidencia?')) return;
+      try {
+        const { error } = await supabaseClient.from('incidencias').delete().eq('id', id);
+        if (error) throw error;
+        cargarHistorialIncidencias(); // Recargar la tabla automáticamente
+      } catch (err) {
+        alert('Error al eliminar: ' + err.message);
+      }
     }
 
     // =========================================================================
