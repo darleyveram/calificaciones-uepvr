@@ -357,6 +357,7 @@
     let catalogo = [];
     let todasAsignaciones = [];
     let todosCursos = [];
+    let docentesList = [];
     let cursosTutor = [];
     let estudiantes = [];
     let configActividades = { insumo1: [], insumo2: [] };
@@ -565,6 +566,11 @@
       // Se agregó tutor_id en la consulta
       const { data: cData } = await supabaseClient.from('cursos').select('id, nombre, nombre_largo_mayuscula, tutor_id').order('id');
       todosCursos = cData || [];
+
+      // --- ESTO ES LO NUEVO: CARGAR LA LISTA DE DOCENTES ---
+      const { data: dData } = await supabaseClient.from('perfiles').select('id, titulo, nombres, apellidos');
+      docentesList = dData || [];
+      // -----------------------------------------------------
 
       let query = supabaseClient.from('curso_materia_docente').select(`
         id, curso_id, materia_id, docente_id, docente_id_2, docente_id_3, es_optativa,
