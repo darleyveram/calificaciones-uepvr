@@ -614,20 +614,11 @@
         selectCurso.innerHTML = '<option value="">Seleccione curso...</option>' + cursosDisponibles.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
       } 
       // === TANTO ASISTENCIA COMO COMPORTAMIENTO USAN SOLO 2 PARCIALES (SIN EXAMEN) ===
-      else if (modo === 'asistencia' || modo === 'comportamiento') {
+      // === ASISTENCIA, COMPORTAMIENTO E INCIDENCIAS USAN SOLO 2 PARCIALES (SIN EXAMEN) ===
+      else if (modo === 'asistencia' || modo === 'comportamiento' || modo === 'incidencias') {
         boxCurso.classList.remove('d-none'); boxMateria.classList.add('d-none'); 
         boxVista.classList.add('d-none'); // Ocultamos el selector de notas con examen
         boxParcialAsist.classList.remove('d-none'); // Mostramos el selector de Parcial 1 y Parcial 2
-        boxParcialTut.classList.add('d-none'); optAnual.classList.add('d-none');
-        boxTrimestre.classList.remove('d-none'); 
-        if (document.getElementById('selectTrimestre').value === 'anual') document.getElementById('selectTrimestre').value = '1';
-        let cursosDisponibles = puedeVerAsistencia ? todosCursos : Array.from(new Map([...cursosTutor.map(c => [c.id, c]), ...todasAsignaciones.map(a => [a.cursos.id, a.cursos])]).values());
-        selectCurso.innerHTML = '<option value="">Seleccione curso...</option>' + cursosDisponibles.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
-      }
-      else if (modo === 'incidencias') {
-        boxCurso.classList.remove('d-none'); boxMateria.classList.add('d-none'); 
-        boxVista.classList.remove('d-none'); // Incidencias sí usa el selector normal de notas/parciales
-        boxParcialAsist.classList.add('d-none'); 
         boxParcialTut.classList.add('d-none'); optAnual.classList.add('d-none');
         boxTrimestre.classList.remove('d-none'); 
         if (document.getElementById('selectTrimestre').value === 'anual') document.getElementById('selectTrimestre').value = '1';
@@ -3933,8 +3924,7 @@
       
       // --- Obtenemos trimestre y parcial para el bloqueo ---
       const trimestre = parseInt(document.getElementById('selectTrimestre').value);
-      const parcialVal = document.getElementById('selectVista').value;
-      const parcial = parcialVal === 'p2' ? 2 : (parcialVal === 'resumen_trimestre' ? 3 : 1);
+      const parcial = parseInt(document.getElementById('selectParcialAsistencia').value) || 1;
 
       const hoy = new Date();
       const tzOffset = hoy.getTimezoneOffset() * 60000;
@@ -4049,7 +4039,7 @@
       e.preventDefault();
       const cursoId = document.getElementById('selectCurso').value;
       const trimestre = document.getElementById('selectTrimestre').value;
-      const parcial = document.getElementById('selectVista').value === 'p2' ? 2 : (document.getElementById('selectVista').value === 'resumen_trimestre' ? 3 : 1);
+      const parcial = parseInt(document.getElementById('selectParcialAsistencia').value) || 1;
       
       const checks = document.querySelectorAll('.check-incidencia-est:checked');
       if (checks.length === 0) return alert('Debe seleccionar al menos un estudiante involucrado.');
