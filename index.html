@@ -1649,6 +1649,115 @@
         }
     }
 
+    function alternarEstadoAsistencia(input) {
+      const actual = input.value.toUpperCase();
+      let siguiente = actual === '' ? 'A' : (actual === 'A' ? 'F' : (actual === 'F' ? 'J' : ''));
+      input.value = siguiente;
+      input.className = 'cell-asig-input';
+      if (siguiente === 'A') input.classList.add('asig-a');
+      else if (siguiente === 'F') input.classList.add('asig-f');
+      else if (siguiente === 'J') input.classList.add('asig-j');
+      calcularFilaAsistencia(input.closest('tr'));
+    }
+
+    function calcularFilaAsistencia(tr) {
+      const inputs = Array.from(tr.querySelectorAll('.cell-asig-input'));
+      let a = 0, f = 0, j = 0;
+      inputs.forEach(inp => {
+        const v = inp.value.toUpperCase();
+        if (v === 'A') a++; else if (v === 'F') f++; else if (v === 'J') j++;
+      });
+
+      const trimestre = parseInt(document.getElementById('selectTrimestre').value);
+      const parcial = parseInt(document.getElementById('selectParcialAsistencia').value);
+      const per = periodosAsistencia.find(p => p.trimestre === trimestre && p.parcial === parcial);
+      const metaDias = per ? per.total_dias_laborados : diasHabilesParcialActual.length;
+      
+      const faltasRealesF = Math.max(metaDias - a - j, 0);
+
+      tr.querySelector('.sum-a').innerText = a;
+      tr.querySelector('.sum-f').innerText = faltasRealesF;
+      tr.querySelector('.sum-j').innerText = j;
+      tr.querySelector('.total-asist').innerText = a;
+      tr.querySelector('.dias-faltantes').innerText = faltasRealesF;
+    }
+
+    function llenarDiaColumna(fechaIso, tipo) {
+      document.querySelectorAll(`#tablaCuerpoAsistencia .cell-asig-input[data-iso="${fechaIso}"]`).forEach(inp => {
+        inp.value = tipo;
+        inp.className = 'cell-asig-input';
+        if (tipo === 'A') inp.classList.add('asig-a');
+        else if (tipo === 'F') inp.classList.add('asig-f');
+        else if (tipo === 'J') inp.classList.add('asig-j');
+      });
+      document.querySelectorAll('#tablaCuerpoAsistencia tr').forEach(fila => calcularFilaAsistencia(fila));
+    }
+
+    function llenarTodoConAsistencia() {
+      document.querySelectorAll('#tablaCuerpoAsistencia .cell-asig-input').forEach(inp => {
+        inp.value = 'A';
+        inp.className = 'cell-asig-input asig-a';
+      });
+      document.querySelectorAll('#tablaCuerpoAsistencia tr').forEach(fila => calcularFilaAsistencia(fila));
+    }
+
+    function limpiarTodaAsistencia() {
+      if (!confirm('¿Desea poner en blanco todas las casillas de este parcial?')) return;
+      document.querySelectorAll('#tablaCuerpoAsistencia .cell-asig-input').forEach(inp => {
+        inp.value = '';
+        inp.className = 'cell-asig-input';
+      });
+      document.querySelectorAll('#tablaCuerpoAsistencia tr').forEach(fila => calcularFilaAsistencia(fila));
+    }
+
+    async function guardarAsistencia() {
+      const cursoId = parseInt(document.getElementById('selectCurso').value);
+      const trimestre = parseInt(document.getElementById('selectTrimestre').value);
+      const parcial = parseInt(document.getElementById('selectParcialAsistencia').value);
+      const btn = document.getElementById('btnGuardarAsist');
+
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Guardando...';
+
+      try {
+        const filas = document.querySelectorAll('#tablaCuerpoAsistencia tr');
+        const payload = [];
+
+        filas.forEach(tr => {
+          const estId = parseInt(tr.getAttribute('data-est-id'));
+          if (estId) {
+            const regDiario = {};
+            tr.querySelectorAll('.cell-asig-input').forEach(inp => {
+              const iso = inp.getAttribute('data-iso');
+              if (inp.value) regDiario[iso] = inp.value.toUpperCase();
+            });
+
+            payload.push({
+              curso_id: cursoId,
+              estudiante_id: estId,
+              trimestre: trimestre,
+              parcial: parcial,
+              registro_diario: regDiario,
+              total_asistencias: parseInt(tr.querySelector('.sum-a').innerText) || 0,
+              total_faltas: parseInt(tr.querySelector('.sum-f').innerText) || 0,
+              total_justificadas: parseInt(tr.querySelector('.sum-j').innerText) || 0,
+              total_dias: parseInt(tr.querySelector('.total-asist').innerText) || 0,
+              dias_faltantes: parseInt(tr.querySelector('.dias-faltantes').innerText) || 0
+            });
+          }
+        });
+
+        const { error } = await supabaseClient.from('asistencia_estudiantes').upsert(payload, { onConflict: 'curso_id,estudiante_id,trimestre,parcial' });
+        if (error) throw error;
+        alert('¡Control de Asistencia guardado con éxito!');
+      } catch (err) {
+        alert('Error al guardar asistencia: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerText = '💾 Guardar';
+      }
+    }
+
     async function guardarDatos() {
       const asigId = document.getElementById('selectMateria').value.trim();
       const trimestreVal = document.getElementById('selectTrimestre').value;
