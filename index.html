@@ -3905,7 +3905,6 @@
       const contenedor = document.getElementById('contenedorTabla');
       
       const hoy = new Date();
-      // Formato para input datetime-local: YYYY-MM-DDThh:mm
       const tzOffset = hoy.getTimezoneOffset() * 60000;
       const localISOTime = (new Date(hoy - tzOffset)).toISOString().slice(0,16);
 
@@ -3925,7 +3924,6 @@
             </ul>
 
             <div class="tab-content">
-              <!-- PESTAÑA: FORMULARIO -->
               <div class="tab-pane fade show active" id="form-inc">
                 <div class="card border-danger shadow-sm">
                   <div class="card-body bg-light">
@@ -3983,7 +3981,6 @@
                 </div>
               </div>
 
-              <!-- PESTAÑA: HISTORIAL -->
               <div class="tab-pane fade" id="hist-inc">
                 <div class="mb-3">
                   <input type="text" class="form-control form-control-sm border-primary shadow-sm" placeholder="🔍 Buscar por nombre o apellido del estudiante (Ej: Vera)..." oninput="filtrarHistorialIncidencias(this.value)">
@@ -3994,7 +3991,7 @@
                       <tr><th>Fecha y Hora</th><th>Tipo</th><th>Contexto</th><th>Estudiantes Involucrados</th><th>Observaciones</th><th>Reportado por</th></tr>
                     </thead>
                     <tbody id="tablaHistorialIncidencias">
-                      <tr><td colspan="6" class="text-center py-4">Cargando historial...</td></tr>
+                      <tr><td colspan="6" class="text-center py-4">Haga clic en 'Historial Global' para buscar en la base de datos...</td></tr>
                     </tbody>
                   </table>
                 </div>
@@ -4029,7 +4026,7 @@
 
       const payload = {
         curso_id: parseInt(cursoId),
-        docente_id: usuarioActualPerfil.id, // <--- AQUÍ ESTABA EL ERROR
+        docente_id: usuarioActualPerfil.id, 
         trimestre: parseInt(trimestre),
         parcial: parcial,
         tipo_incidencia: document.getElementById('incTipo').value,
@@ -4044,7 +4041,7 @@
         const { error } = await supabaseClient.from('incidencias').insert([payload]);
         if (error) throw error;
         alert('Reporte de incidencia guardado correctamente.');
-        cargarVistaIncidencias(); // Recargar para limpiar
+        cargarVistaIncidencias(); 
       } catch (err) {
         alert('Error al guardar: ' + err.message);
       } finally {
@@ -4054,40 +4051,48 @@
 
     async function cargarHistorialIncidencias() {
       const tbody = document.getElementById('tablaHistorialIncidencias');
+      tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4"><div class="spinner-border text-primary spinner-border-sm"></div> Cargando...</td></tr>';
+      
       try {
         const esAdmin = usuarioActualPerfil?.rol === 'admin';
         const puedeVerAsistencia = usuarioActualPerfil?.puede_gestionar_asistencia === true;
         
-        let query = supabaseClient.from('incidencias').select('*, perfiles(titulo, nombres, apellidos), cursos(nombre)').order('fecha_hora', { ascending: false });
+        // Petición limpia directa a la tabla
+        let query = supabaseClient.from('incidencias').select('*').order('fecha_hora', { ascending: false });
         
-        // Si no es admin ni inspector, solo puede ver las incidencias que él mismo reportó
         if (!esAdmin && !puedeVerAsistencia) {
-            query = query.eq('docente_id', usuarioActualPerfil.id); // <--- AQUÍ TAMBIÉN ESTABA EL ERROR
+            query = query.eq('docente_id', usuarioActualPerfil.id);
         }
 
-        const { data } = await query;
+        const { data, error } = await query;
+        if (error) throw error; 
+
         historialIncidenciasGlobal = data || [];
         renderizarTablaHistorial(historialIncidenciasGlobal);
       } catch (err) {
-        tbody.innerHTML = `<tr><td colspan="6" class="text-danger text-center fw-bold">Error: ${err.message}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" class="text-danger text-center fw-bold">Error de red: ${err.message}</td></tr>`;
       }
     }
 
     function renderizarTablaHistorial(datos) {
       const tbody = document.getElementById('tablaHistorialIncidencias');
       if (datos.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted fw-bold">No se encontraron incidencias.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted fw-bold">No se encontraron incidencias en el historial.</td></tr>';
         return;
       }
       tbody.innerHTML = datos.map(inc => {
-        const docName = inc.perfiles ? `${inc.perfiles.titulo || ''} ${inc.perfiles.nombres} ${inc.perfiles.apellidos || ''}` : 'Docente';
+        const docInfo = docentesList.find(d => d.id === inc.docente_id);
+        const docName = docInfo ? `${docInfo.titulo || ''} ${docInfo.nombres} ${docInfo.apellidos || ''}`.trim() : 'Docente';
+        const cursoInfo = todosCursos.find(c => String(c.id) === String(inc.curso_id));
+        const nombreCurso = cursoInfo ? cursoInfo.nombre : '';
+
         const fechaFormat = new Date(inc.fecha_hora).toLocaleString('es-EC', { dateStyle: 'short', timeStyle: 'short' });
         return `
           <tr>
             <td class="fw-bold text-nowrap">${fechaFormat}</td>
             <td><span class="badge bg-danger">${inc.tipo_incidencia}</span></td>
             <td>${inc.contexto}</td>
-            <td class="fw-bold text-primary">${inc.nombres_estudiantes}<br><small class="text-muted fw-normal">${inc.cursos?.nombre || ''}</small></td>
+            <td class="fw-bold text-primary">${inc.nombres_estudiantes}<br><small class="text-muted fw-normal">${nombreCurso}</small></td>
             <td>${inc.observaciones}</td>
             <td><small>${docName}</small></td>
           </tr>
@@ -4104,13 +4109,16 @@
     // =========================================================================
     // INYECCIÓN DE ALERTAS EN EL MÓDULO DE COMPORTAMIENTO
     // =========================================================================
-    // Esta función REEMPLAZA a la existente `cargarVistaComportamientoGeneral` 
-    // Busca tu `async function cargarVistaComportamientoGeneral()` anterior y REEMPLÁZALA completa por esta:
     async function cargarVistaComportamientoGeneral() {
       const reqId = ++currentViewRequestId;
       const cursoId = document.getElementById('selectCurso').value;
       const trimestre = parseInt(document.getElementById('selectTrimestre').value);
-      const parcialNum = parseInt(document.getElementById('selectParcialAsistencia').value) || 1;
+      
+      const vVal = document.getElementById('selectVista').value;
+      let parcialNum = 1;
+      if (vVal === 'p2') parcialNum = 2;
+      else if (vVal === 'resumen_trimestre') parcialNum = 3;
+
       const contenedor = document.getElementById('contenedorTabla');
       contenedor.innerHTML = `<div class="py-4 text-center"><div class="spinner-border text-primary me-2"></div>Cargando comportamiento e incidencias...</div>`;
 
@@ -4122,11 +4130,13 @@
         const { data: compData } = await supabaseClient.from('comportamiento_parcial').select('*').eq('curso_id', parseInt(cursoId)).eq('trimestre', trimestre).eq('parcial', parcialNum);
         const compMap = {}; (compData || []).forEach(c => { compMap[c.estudiante_id] = c; });
 
-        // --- NUEVO: EXTRAER INCIDENCIAS ---
-        const { data: incData } = await supabaseClient.from('incidencias')
-            .select('*, perfiles(titulo, nombres, apellidos)')
+        // Extraer incidencias sin usar JOINs problemáticos
+        const { data: incData, error: incError } = await supabaseClient.from('incidencias')
+            .select('*')
             .eq('curso_id', parseInt(cursoId)).eq('trimestre', trimestre).eq('parcial', parcialNum);
         
+        if (incError) throw incError;
+
         incidenciasActivasMemoria = {};
         (incData || []).forEach(inc => {
             const ids = inc.estudiantes_ids || [];
@@ -4135,7 +4145,6 @@
                 incidenciasActivasMemoria[eid].push(inc);
             });
         });
-        // ----------------------------------
 
         if (reqId !== currentViewRequestId) return;
 
@@ -4156,7 +4165,6 @@
               ${estudiantes.map((est, idx) => {
                 const c = compMap[est.id] || {}, v = (val) => val !== undefined && val !== null ? val : '10';
                 
-                // --- PINTAR ALERTA DE INCIDENCIAS ---
                 const incs = incidenciasActivasMemoria[est.id] || [];
                 const badgeInc = incs.length > 0 ? `<span class="badge bg-danger shadow ms-2 blink" style="cursor:pointer;" onclick="verModalDetalleIncidencias(${est.id}, '${est.nombres.replace(/'/g, "\\'")}')" title="Ver detalles"><i class="bi bi-exclamation-triangle-fill"></i> ${incs.length} Reportes</span>` : '';
 
@@ -4181,6 +4189,8 @@
     }
 
     function verModalDetalleIncidencias(estId, nombres) {
+      if (!modalIncidenciasInst) modalIncidenciasInst = new bootstrap.Modal(document.getElementById('modalVerIncidencias'));
+      
       const incs = incidenciasActivasMemoria[estId] || [];
       document.getElementById('tituloModalIncidencias').innerHTML = `<i class="bi bi-exclamation-triangle-fill me-2"></i>Incidencias: ${nombres}`;
       
@@ -4189,7 +4199,9 @@
           body.innerHTML = '<p class="text-muted text-center py-3">No hay registros detallados.</p>';
       } else {
           body.innerHTML = incs.map((inc, i) => {
-              const docName = inc.perfiles ? `${inc.perfiles.titulo || ''} ${inc.perfiles.nombres} ${inc.perfiles.apellidos || ''}` : 'Docente';
+              const docInfo = docentesList.find(d => d.id === inc.docente_id);
+              const docName = docInfo ? `${docInfo.titulo || ''} ${docInfo.nombres} ${docInfo.apellidos || ''}`.trim() : 'Docente';
+              
               const dFormat = new Date(inc.fecha_hora).toLocaleString('es-EC', { dateStyle: 'long', timeStyle: 'short' });
               return `
                 <div class="card mb-3 border-danger shadow-sm">
@@ -4221,14 +4233,21 @@
         doc.setFontSize(14); doc.setFont('helvetica', 'bold');
         doc.text('HISTORIAL GLOBAL DE INCIDENCIAS', 148.5, 15, { align: 'center' });
         
-        const bodyData = historialIncidenciasGlobal.map(inc => [
-            new Date(inc.fecha_hora).toLocaleString('es-EC', { dateStyle: 'short', timeStyle: 'short' }),
-            inc.tipo_incidencia,
-            inc.contexto,
-            `${inc.nombres_estudiantes}\n(${inc.cursos?.nombre || ''})`,
-            inc.observaciones,
-            inc.perfiles ? `${inc.perfiles.nombres} ${inc.perfiles.apellidos || ''}` : 'Docente'
-        ]);
+        const bodyData = historialIncidenciasGlobal.map(inc => {
+            const docInfo = docentesList.find(d => d.id === inc.docente_id);
+            const docName = docInfo ? `${docInfo.nombres} ${docInfo.apellidos || ''}`.trim() : 'Docente';
+            const cursoInfo = todosCursos.find(c => String(c.id) === String(inc.curso_id));
+            const nombreCurso = cursoInfo ? cursoInfo.nombre : '';
+
+            return [
+                new Date(inc.fecha_hora).toLocaleString('es-EC', { dateStyle: 'short', timeStyle: 'short' }),
+                inc.tipo_incidencia,
+                inc.contexto,
+                `${inc.nombres_estudiantes}\n(${nombreCurso})`,
+                inc.observaciones,
+                docName
+            ];
+        });
 
         doc.autoTable({
           head: [['Fecha y Hora', 'Tipo', 'Contexto', 'Estudiantes (Curso)', 'Observaciones', 'Reportado por']],
