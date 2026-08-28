@@ -1728,13 +1728,22 @@
         if (oldAlert) oldAlert.remove();
 
         if (bloqueoObj.bloqueado) {
-            document.querySelectorAll('.input-nota-app, .select-act-custom, .comp-ind').forEach(el => el.disabled = true);
+            // Deshabilitar notas, comportamiento e INCIDENCIAS
+            document.querySelectorAll('.input-nota-app, .select-act-custom, .comp-ind, .check-incidencia-est, #incTipo, #incContexto, #incFechaHora, #incObservaciones').forEach(el => el.disabled = true);
+            
             document.querySelectorAll('.btn-del-col, .btn-act-header').forEach(el => {
                 el.disabled = true; el.style.opacity = '0.4'; el.style.pointerEvents = 'none';
             });
+            
             document.querySelectorAll('#accionesParcial button, #accionesComportamiento button, #accionesResumen button').forEach(btn => {
                 if (!btn.id.includes('PDF')) btn.disabled = true;
             });
+
+            // Apagar botón específico (ej. btnGuardarInc)
+            if (btnGuardarId) {
+                const btnExtra = document.getElementById(btnGuardarId);
+                if (btnExtra) btnExtra.disabled = true;
+            }
 
             const banner = document.createElement('div');
             banner.id = 'alertaBloqueoNotas';
@@ -3918,15 +3927,22 @@
     let historialIncidenciasGlobal = [];
 
     async function cargarVistaIncidencias() {
+      const reqId = ++currentViewRequestId;
       const cursoId = document.getElementById('selectCurso').value;
       const contenedor = document.getElementById('contenedorTabla');
       
+      // --- Obtenemos trimestre y parcial para el bloqueo ---
+      const trimestre = parseInt(document.getElementById('selectTrimestre').value);
+      const parcialVal = document.getElementById('selectVista').value;
+      const parcial = parcialVal === 'p2' ? 2 : (parcialVal === 'resumen_trimestre' ? 3 : 1);
+
       const hoy = new Date();
       const tzOffset = hoy.getTimezoneOffset() * 60000;
       const localISOTime = (new Date(hoy - tzOffset)).toISOString().slice(0,16);
 
       try {
         const { data: estData } = await supabaseClient.from('estudiantes').select('id, nombres').eq('curso_id', parseInt(cursoId)).order('nombres');
+        if (reqId !== currentViewRequestId) return;
         const listaEstudiantes = estData || [];
 
         let html = `
@@ -4018,9 +4034,14 @@
             </div>
           </div>
         `;
-        contenedor.innerHTML = html;
+        if (reqId === currentViewRequestId) {
+            contenedor.innerHTML = html;
+            // --- ACTIVAMOS EL BLOQUEO AQUÍ ---
+            const estadoBloqueo = await verificarBloqueoCalificaciones(0, trimestre, parcial);
+            aplicarCierreVisual(estadoBloqueo, 'btnGuardarInc');
+        }
       } catch (err) {
-        contenedor.innerHTML = `<div class="py-4 text-danger text-center fw-bold">Error: ${err.message}</div>`;
+        if (reqId === currentViewRequestId) contenedor.innerHTML = `<div class="py-4 text-danger text-center fw-bold">Error: ${err.message}</div>`;
       }
     }
 
@@ -4130,6 +4151,16 @@
     }
 
     async function eliminarIncidencia(id) {
+      // 1. Verificar si el sistema está bloqueado antes de permitir eliminar
+      const trimestre = parseInt(document.getElementById('selectTrimestre').value);
+      const parcialVal = document.getElementById('selectVista').value;
+      const parcial = parcialVal === 'p2' ? 2 : (parcialVal === 'resumen_trimestre' ? 3 : 1);
+      
+      const estadoBloqueo = await verificarBloqueoCalificaciones(0, trimestre, parcial);
+      if (estadoBloqueo.bloqueado) {
+          return alert(`El sistema está bloqueado. ${estadoBloqueo.mensaje} No se pueden eliminar registros.`);
+      }
+
       if (!confirm('¿Está seguro de eliminar permanentemente este reporte de incidencia?')) return;
       try {
         const { error } = await supabaseClient.from('incidencias').delete().eq('id', id);
