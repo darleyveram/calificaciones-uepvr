@@ -604,7 +604,6 @@
       const puedeVerAsistencia = (esAdmin || usuarioActualPerfil?.puede_gestionar_asistencia === true);
       const cursoSeleccionadoPrevio = selectCurso.value;
 
-      // Ocultar por defecto el boxAuditoria
       if (boxTipoAuditoria) boxTipoAuditoria.classList.add('d-none');
 
       if (modo === 'tutoria') {
@@ -614,20 +613,20 @@
         const cursosDisponibles = esAdmin ? todosCursos : cursosTutor;
         selectCurso.innerHTML = '<option value="">Seleccione curso...</option>' + cursosDisponibles.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
       } 
-      // === SOLUCIÓN: LA ASISTENCIA SE CONTROLA POR SEPARADO ===
-      else if (modo === 'asistencia') {
+      // === TANTO ASISTENCIA COMO COMPORTAMIENTO USAN SOLO 2 PARCIALES (SIN EXAMEN) ===
+      else if (modo === 'asistencia' || modo === 'comportamiento') {
         boxCurso.classList.remove('d-none'); boxMateria.classList.add('d-none'); 
-        boxVista.classList.add('d-none'); // Ocultamos el selector de notas que incluye Examen
-        boxParcialAsist.classList.remove('d-none'); // Mostramos el selector correcto (Solo P1 y P2)
+        boxVista.classList.add('d-none'); // Ocultamos el selector de notas con examen
+        boxParcialAsist.classList.remove('d-none'); // Mostramos el selector de Parcial 1 y Parcial 2
         boxParcialTut.classList.add('d-none'); optAnual.classList.add('d-none');
         boxTrimestre.classList.remove('d-none'); 
         if (document.getElementById('selectTrimestre').value === 'anual') document.getElementById('selectTrimestre').value = '1';
         let cursosDisponibles = puedeVerAsistencia ? todosCursos : Array.from(new Map([...cursosTutor.map(c => [c.id, c]), ...todasAsignaciones.map(a => [a.cursos.id, a.cursos])]).values());
         selectCurso.innerHTML = '<option value="">Seleccione curso...</option>' + cursosDisponibles.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
       }
-      else if (modo === 'comportamiento' || modo === 'incidencias') {
+      else if (modo === 'incidencias') {
         boxCurso.classList.remove('d-none'); boxMateria.classList.add('d-none'); 
-        boxVista.classList.remove('d-none'); 
+        boxVista.classList.remove('d-none'); // Incidencias sí usa el selector normal de notas/parciales
         boxParcialAsist.classList.add('d-none'); 
         boxParcialTut.classList.add('d-none'); optAnual.classList.add('d-none');
         boxTrimestre.classList.remove('d-none'); 
@@ -635,7 +634,7 @@
         let cursosDisponibles = puedeVerAsistencia ? todosCursos : Array.from(new Map([...cursosTutor.map(c => [c.id, c]), ...todasAsignaciones.map(a => [a.cursos.id, a.cursos])]).values());
         selectCurso.innerHTML = '<option value="">Seleccione curso...</option>' + cursosDisponibles.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
       }
-      // =========================================================
+      // =========================================================================
       else if (modo === 'reporte_estudiante') {
         boxCurso.classList.remove('d-none'); boxMateria.classList.add('d-none'); boxVista.classList.add('d-none'); boxParcialAsist.classList.add('d-none'); boxParcialTut.classList.add('d-none'); optAnual.classList.add('d-none');
         boxTrimestre.classList.add('d-none'); 
@@ -658,7 +657,7 @@
         if (v === 'comp1' || v === 'comp2' || v === 'anual') document.getElementById('selectVista').value = 'p1';
         
         cambiarFiltro();
-        return; // Salimos para no ejecutar alCambiarCurso()
+        return; 
       }
       else {
         boxCurso.classList.remove('d-none'); boxMateria.classList.remove('d-none'); boxVista.classList.remove('d-none'); boxParcialAsist.classList.add('d-none'); boxParcialTut.classList.add('d-none'); optAnual.classList.remove('d-none');
