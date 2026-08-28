@@ -48,6 +48,8 @@
     .bg-examen { background-color: #fd7e14 !important; color: #fff; font-weight: bold; }
     .logo-header { height: 48px; width: auto; object-fit: contain; }
     .logo-login { height: 75px; width: auto; object-fit: contain; }
+    .blink { animation: blinker 1.5s linear infinite; }
+    @keyframes blinker { 50% { opacity: 0.5; } }
   </style>
 </head>
 <body class="bg-light py-2">
@@ -120,9 +122,7 @@
               <option value="tutoria" id="optModoTutoria" class="d-none">📊 Reportes y Libretas de Tutoría</option>
               <option value="reporte_estudiante" id="optModoReporteEstudiante" class="d-none">🧑‍🎓 Reporte Total por Estudiante</option>
               <option value="certificados" id="optModoCertificados" class="d-none">📜 Certificados de Matrícula</option>
-              <!-- NUEVO MÓDULO DE AUDITORÍA -->
               <option value="auditoria" id="optModoAuditoria" class="d-none">🔍 Auditoría de Calificaciones</option>
-              <!-- NUEVO MÓDULO -->
               <option value="incidencias" id="optModoIncidencias" class="text-danger fw-bold">⚠️ Registro de Incidencias</option>
             </select>
           </div>
@@ -191,7 +191,6 @@
             <button class="btn btn-outline-success btn-sm me-1 btn-control" onclick="autoLlenarTodoCon10()" disabled title="Llenar vacíos con 10"><i class="bi bi-lightning-charge-fill"></i> 10</button>
             <button class="btn btn-outline-secondary btn-sm me-1 btn-control" onclick="limpiarTodasNotasParcial()" disabled title="Limpiar TODAS las notas"><i class="bi bi-eraser-fill"></i></button>
             <button class="btn btn-success btn-sm px-2 px-md-3 fw-bold btn-control" id="btnGuardarParcial" onclick="guardarDatos()" disabled>💾 Guardar</button>
-            <!-- BOTÓN PDF CORREGIDO CON NOMBRE -->
             <button class="btn btn-danger btn-sm px-2 px-md-3 fw-bold btn-control ms-1" id="btnDescargarParcialPDF" onclick="exportarParcialPDF()" disabled title="Descargar Reporte en PDF"><i class="bi bi-file-pdf me-1"></i> PDF</button>
           </div>
 
@@ -213,25 +212,21 @@
             <button class="btn btn-outline-success btn-sm me-1 btn-control" onclick="llenarTodoConAsistencia()" disabled><i class="bi bi-lightning-charge-fill"></i> Todo 'A'</button>
             <button class="btn btn-outline-secondary btn-sm me-1 btn-control" onclick="limpiarTodaAsistencia()" disabled title="Limpiar todas las casillas"><i class="bi bi-eraser-fill"></i></button>
             <button class="btn btn-success btn-sm px-3 fw-bold btn-control" id="btnGuardarAsist" onclick="guardarAsistencia()" disabled>💾 Guardar</button>
-            <!-- NUEVO BOTÓN PDF PARA ASISTENCIA -->
             <button class="btn btn-danger btn-sm px-2 px-md-3 fw-bold btn-control ms-1" id="btnDescargarAsistenciaPDF" onclick="exportarAsistenciaPDF()" disabled title="Descargar Registro de Asistencia en PDF"><i class="bi bi-file-pdf me-1"></i> PDF</button>
           </div>
 
           <div class="col-12 col-md-3 text-end pt-2 pt-md-3 d-none" id="accionesTutoria">
-            <!-- Botones exclusivos Admin -->
             <button class="btn btn-danger btn-sm px-2 fw-bold me-1 d-none" id="btnDescargarTodasLibretas" onclick="generarLibretasLotePDF()">
               <i class="bi bi-file-earmark-pdf-fill me-1"></i>Consolidado
             </button>
             <button class="btn btn-outline-primary btn-sm px-2 fw-bold me-1 d-none" id="btnDescargarZipIndividuales" onclick="descargarTodasBoletasEnZip()">
               <i class="bi bi-file-earmark-zip-fill me-1"></i>ZIP
             </button>
-            <!-- Botón exclusivo Sábana (Admin y Tutor) -->
             <button class="btn btn-danger btn-sm px-2 fw-bold d-none" id="btnDescargarSabanaTutoria" onclick="exportarSabanaTutoriaPDF()">
               <i class="bi bi-file-earmark-spreadsheet-fill me-1"></i>Sábana PDF
             </button>
           </div>
 
-          <!-- BOTONES CERTIFICADOS DE MATRÍCULA -->
           <div class="col-12 col-md-5 text-end pt-2 pt-md-3 d-none" id="accionesCertificados">
             <div class="d-flex justify-content-end align-items-center gap-2">
               <div class="input-group input-group-sm" style="max-width: 170px;">
@@ -246,12 +241,11 @@
               </button>
             </div>
           </div>
-          <!-- BOTÓN INCIDENCIAS -->
+          
           <div class="col-12 col-md-3 text-end pt-2 pt-md-3 d-none" id="accionesIncidencias">
             <button class="btn btn-danger btn-sm px-3 fw-bold" onclick="exportarHistorialIncidenciasPDF()"><i class="bi bi-file-pdf me-1"></i> PDF Historial</button>
           </div>
           
-
         </div>
       </div>
     </div>
@@ -297,7 +291,6 @@
           </div>
 
           <div class="row g-3">
-            <!-- Columna Faltantes -->
             <div class="col-md-6">
               <div class="card border-danger shadow-sm h-100">
                 <div class="card-header bg-danger text-white fw-bold py-2 d-flex justify-content-between align-items-center">
@@ -312,7 +305,6 @@
                 </div>
               </div>
             </div>
-            <!-- Columna Completados -->
             <div class="col-md-6">
               <div class="card border-success shadow-sm h-100">
                 <div class="card-header bg-success text-white fw-bold py-2 d-flex justify-content-between align-items-center">
@@ -328,11 +320,11 @@
               </div>
             </div>
           </div>
-
         </div>
       </div>
     </div>
   </div>
+
   <!-- Modal Ver Detalles de Incidencias -->
   <div class="modal fade" id="modalVerIncidencias" tabindex="-1">
     <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
@@ -357,6 +349,7 @@
     let catalogo = [];
     let todasAsignaciones = [];
     let todosCursos = [];
+    let docentesList = []; // Añadido para cruzar nombres en incidencias
     let cursosTutor = [];
     let estudiantes = [];
     let configActividades = { insumo1: [], insumo2: [] };
@@ -510,7 +503,6 @@
         }
         if (esAdmin || esTutor) document.getElementById('optModoTutoria').classList.remove('d-none');
         
-        // --- NUEVA RESTRICCIÓN PARA EL REPORTE TOTAL ---
         if (esAdmin) {
           const optRepEst = document.getElementById('optModoReporteEstudiante');
           if (optRepEst) optRepEst.classList.remove('d-none');
@@ -521,7 +513,6 @@
           const optAud = document.getElementById('optModoAuditoria');
           if (optAud) optAud.classList.remove('d-none');
         }
-        // -----------------------------------------------
 
         await cargarCatalogo();
         await cargarPeriodosAsistenciaDB();
@@ -562,9 +553,12 @@
     }
 
     async function cargarCursosYMaterias(userId, userRol, puedeAsistencia) {
-      // Se agregó tutor_id en la consulta
       const { data: cData } = await supabaseClient.from('cursos').select('id, nombre, nombre_largo_mayuscula, tutor_id').order('id');
       todosCursos = cData || [];
+
+      // Cargar TODOS los docentes para poder enlazar nombres en las Incidencias
+      const { data: dData } = await supabaseClient.from('perfiles').select('id, titulo, nombres, apellidos');
+      docentesList = dData || [];
 
       let query = supabaseClient.from('curso_materia_docente').select(`
         id, curso_id, materia_id, docente_id, docente_id_2, docente_id_3, es_optativa,
@@ -592,13 +586,12 @@
       const boxTrimestre = document.getElementById('boxTrimestre');
       const optAnual = document.getElementById('optTrimAnual');
       const selectCurso = document.getElementById('selectCurso');
-      const boxTipoAuditoria = document.getElementById('boxTipoAuditoria'); // NUEVO
+      const boxTipoAuditoria = document.getElementById('boxTipoAuditoria');
 
       const esAdmin = usuarioActualPerfil?.rol === 'admin';
       const puedeVerAsistencia = (esAdmin || usuarioActualPerfil?.puede_gestionar_asistencia === true);
       const cursoSeleccionadoPrevio = selectCurso.value;
 
-      // Ocultar por defecto el boxAuditoria
       if (boxTipoAuditoria) boxTipoAuditoria.classList.add('d-none');
 
       if (modo === 'tutoria') {
@@ -626,22 +619,19 @@
         boxTrimestre.classList.add('d-none');
         selectCurso.innerHTML = '<option value="">Seleccione curso...</option>' + todosCursos.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
       }
-      // === NUEVA LÓGICA DE AUDITORÍA ===
       else if (modo === 'auditoria') {
         boxCurso.classList.add('d-none'); boxMateria.classList.add('d-none'); boxParcialAsist.classList.add('d-none'); boxParcialTut.classList.add('d-none'); optAnual.classList.add('d-none');
         boxTrimestre.classList.remove('d-none'); 
         boxVista.classList.remove('d-none'); 
         if (boxTipoAuditoria) boxTipoAuditoria.classList.remove('d-none');
         
-        // Forzamos a quitar opciones inválidas para la auditoría
         if (document.getElementById('selectTrimestre').value === 'anual') document.getElementById('selectTrimestre').value = '1';
         const v = document.getElementById('selectVista').value;
         if (v === 'comp1' || v === 'comp2' || v === 'anual') document.getElementById('selectVista').value = 'p1';
         
         cambiarFiltro();
-        return; // Salimos para no ejecutar alCambiarCurso()
+        return;
       }
-      // =================================
       else {
         boxCurso.classList.remove('d-none'); boxMateria.classList.remove('d-none'); boxVista.classList.remove('d-none'); boxParcialAsist.classList.add('d-none'); boxParcialTut.classList.add('d-none'); optAnual.classList.remove('d-none');
         boxTrimestre.classList.remove('d-none'); 
@@ -692,7 +682,6 @@
       if (accCertificados) accCertificados.classList.add('d-none');
       if (accIncidencias) accIncidencias.classList.add('d-none');
 
-      // === AUDITORÍA DIRECTA ===
       if (modo === 'auditoria') {
         cargarVistaAuditoria();
         return;
@@ -774,7 +763,6 @@
         return;
       }
 
-      // Limpia la tabla inmediatamente para mostrar el spinner
       contenedor.innerHTML = '<div class="py-4 text-center"><div class="spinner-border text-primary me-2"></div>Cargando sábana de control diario de asistencia...</div>';
 
       try {
@@ -943,7 +931,6 @@
           (tData || []).forEach(t => { if (!examenesMap[t.estudiante_id]) examenesMap[t.estudiante_id] = {}; examenesMap[t.estudiante_id][t.asignacion_id] = parseFloat(t.examen) || 0; });
         }
 
-        // AHORA BUSCAMOS EL COMPORTAMIENTO POR CURSO (NO POR MATERIA)
         const { data: cData } = await supabaseClient.from('comportamiento_parcial').select('estudiante_id, parcial, total_cuantitativo').eq('curso_id', parseInt(cursoId)).eq('trimestre', trimestre);
         if (reqId !== currentViewRequestId) return;
         let compMapP1 = {}, compMapP2 = {};
@@ -1114,9 +1101,9 @@
         startY: escalasY,
         head: [['Eval. Comportamiento', 'Escala Cualitativa y Cuantitativa', 'PROMEDIO']],
         body: [
-          ['A: Muy Satisfactorio', 'A+ = (10)       C+ = (6-6.99)       E+ = (2-2.99)', { content: '', rowSpan: 5, styles: { fillColor: [248, 250, 252] } }],
-          ['B: Satisfactorio', 'A- = (9-9.99)   C- = (5-5.99)       E- = (1-1.99)', ''],
-          ['C: Poco Satisfactorio', 'B+ = (8-8.99)   D+ = (4-4.99)       F = (0-0.99)', ''],
+          ['A: Muy Satisfactorio', 'A+ = (10)        C+ = (6-6.99)        E+ = (2-2.99)', { content: '', rowSpan: 5, styles: { fillColor: [248, 250, 252] } }],
+          ['B: Satisfactorio', 'A- = (9-9.99)   C- = (5-5.99)        E- = (1-1.99)', ''],
+          ['C: Poco Satisfactorio', 'B+ = (8-8.99)   D+ = (4-4.99)        F = (0-0.99)', ''],
           ['D: Mejorable', 'B- = (7-7.99)   D- = (3-3.99)', ''],
           ['E: Insatisfactorio', frase1, '']
         ],
@@ -1264,10 +1251,8 @@
         (notasData || []).forEach(n => { notasActualesMemoria[n.estudiante_id] = { i1: n.insumo1_notas || [], i2: n.insumo2_notas || [] }; });
         renderizarTablaParcial();
         
-        // --- NUEVO: BLOQUEO DE NOTAS ---
         const estadoBloqueo = await verificarBloqueoCalificaciones(parseInt(asigId), trimestre, parcialNum);
         aplicarCierreVisual(estadoBloqueo, 'btnGuardarParcial');
-        // -------------------------------
 
       } catch (err) {
         if (reqId === currentViewRequestId) contenedor.innerHTML = `<div class="py-4 text-danger text-center fw-bold">Error: ${err.message}</div>`;
@@ -1313,22 +1298,15 @@
       document.querySelectorAll('#tablaCuerpo tr').forEach(fila => calcularFilaParcial(fila));
     }
 
-    // =========================================================================
-    // NAVEGACIÓN VERTICAL ESTILO EXCEL PARA CALIFICACIONES
-    // =========================================================================
     function moverFocoVertical(e, insumo, colIndex, rowIndex) {
-        // Detectar si el usuario presionó la tecla "Tab" o "Enter"
         if (e.key === 'Tab' || e.key === 'Enter') {
             const inputsActuales = document.querySelectorAll(`.col-act-i${insumo}-${colIndex}`);
-            
-            // Si presionan "Shift + Tab" (Quieren ir hacia ARRIBA)
             if (e.shiftKey && e.key === 'Tab') {
                 e.preventDefault();
                 if (rowIndex > 0 && inputsActuales[rowIndex - 1]) {
                     inputsActuales[rowIndex - 1].focus();
                     inputsActuales[rowIndex - 1].select();
                 } else {
-                    // Si está en el primer alumno, saltar al último de la columna anterior
                     let prevColInputs = null;
                     if (insumo === 2) {
                         if (colIndex > 0) prevColInputs = document.querySelectorAll(`.col-act-i2-${colIndex - 1}`);
@@ -1342,14 +1320,12 @@
                     }
                 }
             } 
-            // Quieren ir hacia ABAJO (Tab normal o Enter)
             else {
                 if (rowIndex + 1 < inputsActuales.length && inputsActuales[rowIndex + 1]) {
                     e.preventDefault();
                     inputsActuales[rowIndex + 1].focus();
                     inputsActuales[rowIndex + 1].select();
                 } else if (e.key === 'Tab' || e.key === 'Enter') {
-                    // Si está en el último alumno, saltar al primero de la columna siguiente
                     e.preventDefault();
                     let nextColInputs = null;
                     if (insumo === 1) {
@@ -1363,7 +1339,6 @@
                         nextColInputs[0].focus();
                         nextColInputs[0].select();
                     } else {
-                        // Si ya llenó la última materia, enviar foco al botón de Guardar
                         const btnGuardar = document.getElementById('btnGuardarParcial');
                         if (btnGuardar) btnGuardar.focus();
                     }
@@ -1391,60 +1366,6 @@
       if (cProm1) { cProm1.innerText = prom1.toFixed(2); cProm1.className = `prom-i1 fw-bold ${obtenerClaseColor(prom1, true)}`; }
       if (cProm2) { cProm2.innerText = prom2.toFixed(2); cProm2.className = `prom-i2 fw-bold ${obtenerClaseColor(prom2, true)}`; }
       if (cTotal) { cTotal.innerText = total.toFixed(2); cTotal.className = `nota-parcial fw-bold ${obtenerClaseColor(total, true)}`; }
-    }
-
-    async function cargarVistaComportamiento(parcialNum) {
-      const reqId = ++currentViewRequestId;
-      const asigId = document.getElementById('selectMateria').value.trim();
-      const trimestre = parseInt(document.getElementById('selectTrimestre').value);
-      const contenedor = document.getElementById('contenedorTabla');
-      contenedor.innerHTML = `<div class="py-4 text-center"><div class="spinner-border text-primary me-2"></div>Cargando comportamiento...</div>`;
-
-      const asig = todasAsignaciones.find(a => String(a.id) === asigId);
-      if (!asig) { if (reqId === currentViewRequestId) contenedor.innerHTML = '<div class="py-4 text-muted text-center">Seleccione un Curso y una Materia.</div>'; return; }
-
-      try {
-        const { data: estData } = await supabaseClient.from('estudiantes').select('*').eq('curso_id', parseInt(asig.curso_id)).order('nombres');
-        if (reqId !== currentViewRequestId) return;
-        estudiantes = estData || [];
-
-        const { data: compData } = await supabaseClient.from('comportamiento_parcial').select('*').eq('asignacion_id', parseInt(asigId)).eq('trimestre', trimestre).eq('parcial', parcialNum);
-        if (reqId !== currentViewRequestId) return;
-        const compMap = {}; (compData || []).forEach(c => { compMap[c.estudiante_id] = c; });
-
-        let html = `
-          <table class="table table-bordered table-sm mb-0 align-middle">
-            <thead>
-              <tr>
-                <th rowspan="2" class="sticky-col-num">N°</th>
-                <th rowspan="2" class="sticky-col-nombre text-center">NÓMINA / INDICADORES</th>
-                <th>Puntualidad</th><th colspan="3">Limpieza</th><th colspan="2">Respeto y Consideración</th><th colspan="2">Valoración Diversidad</th><th>Patrimonio</th><th>Propiedad</th>
-                <th rowspan="2" class="bg-prom-ins" style="width: 75px;">TOTAL CUANT.</th><th rowspan="2" class="bg-nota-final" style="width: 75px;">TOTAL CUALIT.</th>
-              </tr>
-              <tr class="bg-light">
-                <th class="th-comp-ind">1. Asiste puntual</th><th class="th-comp-ind">2. Aseo personal</th><th class="th-comp-ind">3. Aseo lugar trab.</th><th class="th-comp-ind">4. Aseo del aula</th><th class="th-comp-ind">5. Saludo cordial</th><th class="th-comp-ind">6. Evita leng. soez</th><th class="th-comp-ind">7. Leng. no agresivo</th><th class="th-comp-ind">8. Tolerancia div.</th><th class="th-comp-ind">9. Cuida infraest.</th><th class="th-comp-ind">10. Respeta objeto</th>
-              </tr>
-            </thead>
-            <tbody id="tablaCuerpoComp">
-              ${estudiantes.map((est, idx) => {
-                const c = compMap[est.id] || {}, v = (val) => val !== undefined && val !== null ? val : '10';
-                return `<tr data-estudiante-id="${est.id}"><td class="sticky-col-num fw-bold text-muted">${idx + 1}</td><td class="sticky-col-nombre" title="${est.nombres}">${formatearNombreVisual(est.nombres)}</td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind1" value="${v(c.ind1)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind2" value="${v(c.ind2)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind3" value="${v(c.ind3)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind4" value="${v(c.ind4)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind5" value="${v(c.ind5)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind6" value="${v(c.ind6)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind7" value="${v(c.ind7)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind8" value="${v(c.ind8)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind9" value="${v(c.ind9)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind10" value="${v(c.ind10)}" oninput="validarYCalcularComp(this)"></td><td class="total-cuant fw-bold">10.00</td><td class="total-cualit fw-bold">A</td></tr>`;
-              }).join('')}
-            </tbody>
-          </table>
-        `;
-        if (reqId === currentViewRequestId) { 
-            contenedor.innerHTML = html; 
-            document.querySelectorAll('#tablaCuerpoComp tr').forEach(fila => calcularFilaComp(fila)); 
-            
-            // --- NUEVO: BLOQUEO DE NOTAS ---
-            const estadoBloqueo = await verificarBloqueoCalificaciones(parseInt(asigId), trimestre, parcialNum);
-            aplicarCierreVisual(estadoBloqueo, 'btnGuardarComp');
-            // -------------------------------
-        }
-      } catch (err) {
-        if (reqId === currentViewRequestId) contenedor.innerHTML = `<div class="py-4 text-danger text-center fw-bold">Error: ${err.message}</div>`;
-      }
     }
 
     function validarYCalcularComp(input) {
@@ -1543,11 +1464,8 @@
         if (reqId === currentViewRequestId) { 
             contenedor.innerHTML = html; 
             document.querySelectorAll('#tablaCuerpoTrimestre tr').forEach(fila => calcularFilaTrimestre(fila)); 
-            
-            // --- NUEVO: BLOQUEO DE NOTAS (Se envía el 3 por ser Examen) ---
             const estadoBloqueo = await verificarBloqueoCalificaciones(parseInt(asigId), trimestre, 3);
             aplicarCierreVisual(estadoBloqueo, 'btnGuardarResumen');
-            // -------------------------------------------------------------
         }
       } catch (err) {
         if (reqId === currentViewRequestId) contenedor.innerHTML = `<div class="py-4 text-danger text-center fw-bold">Error: ${err.message}</div>`;
@@ -1671,16 +1589,12 @@
       }
     }
 
-    // =========================================================================
-    // MOTOR DE BLOQUEO DE CALIFICACIONES Y PERMISOS
-    // =========================================================================
     async function verificarBloqueoCalificaciones(asignacionId, trimestre, parcialNum) {
         const esAdmin = usuarioActualPerfil?.rol === 'admin';
-        if (esAdmin) return { bloqueado: false, mensaje: '' }; // Admins no se bloquean
+        if (esAdmin) return { bloqueado: false, mensaje: '' }; 
 
         const hoy = new Date().toISOString().split('T')[0];
 
-        // 1. Revisar si hay una prórroga/excepción activa para este docente/materia
         if (asignacionId > 0) {
             const { data: exc } = await supabaseClient.from('excepciones_notas').select('*')
                 .eq('asignacion_id', asignacionId).eq('trimestre', trimestre).eq('parcial', parcialNum)
@@ -1689,7 +1603,6 @@
             if (exc) return { bloqueado: false, mensaje: `Tiene una prórroga especial hasta el ${exc.fecha_cierre}` };
         }
 
-        // 2. Revisar la fecha global
         const { data: global } = await supabaseClient.from('periodos_calificaciones').select('*')
             .eq('trimestre', trimestre).eq('parcial', parcialNum).maybeSingle();
         
@@ -1736,824 +1649,12 @@
         }
     }
 
-    // =========================================================================
-    // NUEVO MÓDULO: COMPORTAMIENTO GENERAL (POR CURSO)
-    // =========================================================================
-    async function cargarVistaComportamientoGeneral() {
-      const reqId = ++currentViewRequestId;
-      const cursoId = document.getElementById('selectCurso').value;
-      const trimestre = parseInt(document.getElementById('selectTrimestre').value);
-      const parcialNum = parseInt(document.getElementById('selectParcialAsistencia').value) || 1;
-      const contenedor = document.getElementById('contenedorTabla');
-      contenedor.innerHTML = `<div class="py-4 text-center"><div class="spinner-border text-primary me-2"></div>Cargando comportamiento...</div>`;
-
-      try {
-        const { data: estData } = await supabaseClient.from('estudiantes').select('*').eq('curso_id', parseInt(cursoId)).order('nombres');
-        if (reqId !== currentViewRequestId) return;
-        estudiantes = estData || [];
-
-        // Ahora buscamos por curso_id, no por asignacion_id
-        const { data: compData } = await supabaseClient.from('comportamiento_parcial').select('*').eq('curso_id', parseInt(cursoId)).eq('trimestre', trimestre).eq('parcial', parcialNum);
-        if (reqId !== currentViewRequestId) return;
-        const compMap = {}; (compData || []).forEach(c => { compMap[c.estudiante_id] = c; });
-
-        let html = `
-          <table class="table table-bordered table-sm mb-0 align-middle">
-            <thead>
-              <tr>
-                <th rowspan="2" class="sticky-col-num">N°</th>
-                <th rowspan="2" class="sticky-col-nombre text-center">NÓMINA / INDICADORES</th>
-                <th>Puntualidad</th><th colspan="3">Limpieza</th><th colspan="2">Respeto y Consideración</th><th colspan="2">Valoración Diversidad</th><th>Patrimonio</th><th>Propiedad</th>
-                <th rowspan="2" class="bg-prom-ins" style="width: 75px;">TOTAL CUANT.</th><th rowspan="2" class="bg-nota-final" style="width: 75px;">TOTAL CUALIT.</th>
-              </tr>
-              <tr class="bg-light">
-                <th class="th-comp-ind">1. Asiste puntual</th><th class="th-comp-ind">2. Aseo personal</th><th class="th-comp-ind">3. Aseo lugar trab.</th><th class="th-comp-ind">4. Aseo del aula</th><th class="th-comp-ind">5. Saludo cordial</th><th class="th-comp-ind">6. Evita leng. soez</th><th class="th-comp-ind">7. Leng. no agresivo</th><th class="th-comp-ind">8. Tolerancia div.</th><th class="th-comp-ind">9. Cuida infraest.</th><th class="th-comp-ind">10. Respeta objeto</th>
-              </tr>
-            </thead>
-            <tbody id="tablaCuerpoComp">
-              ${estudiantes.map((est, idx) => {
-                const c = compMap[est.id] || {}, v = (val) => val !== undefined && val !== null ? val : '10';
-                return `<tr data-estudiante-id="${est.id}"><td class="sticky-col-num fw-bold text-muted">${idx + 1}</td><td class="sticky-col-nombre" title="${est.nombres}">${formatearNombreVisual(est.nombres)}</td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind1" value="${v(c.ind1)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind2" value="${v(c.ind2)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind3" value="${v(c.ind3)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind4" value="${v(c.ind4)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind5" value="${v(c.ind5)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind6" value="${v(c.ind6)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind7" value="${v(c.ind7)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind8" value="${v(c.ind8)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind9" value="${v(c.ind9)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind10" value="${v(c.ind10)}" oninput="validarYCalcularComp(this)"></td><td class="total-cuant fw-bold">10.00</td><td class="total-cualit fw-bold">A</td></tr>`;
-              }).join('')}
-            </tbody>
-          </table>
-        `;
-        if (reqId === currentViewRequestId) { 
-            contenedor.innerHTML = html; 
-            document.querySelectorAll('#tablaCuerpoComp tr').forEach(fila => calcularFilaComp(fila)); 
-            
-            // Evaluamos el bloqueo global (0 porque no es de una materia)
-            const estadoBloqueo = await verificarBloqueoCalificaciones(0, trimestre, parcialNum);
-            aplicarCierreVisual(estadoBloqueo, 'btnGuardarComp');
-        }
-      } catch (err) {
-        if (reqId === currentViewRequestId) contenedor.innerHTML = `<div class="py-4 text-danger text-center fw-bold">Error: ${err.message}</div>`;
-      }
-    }
-
-    async function guardarComportamientoGeneral() {
-      const cursoId = parseInt(document.getElementById('selectCurso').value);
-      const trimestre = parseInt(document.getElementById('selectTrimestre').value);
-      const parcialNum = parseInt(document.getElementById('selectParcialAsistencia').value) || 1;
-      const btn = document.getElementById('btnGuardarComp');
-      btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Guardando...';
-
-      try {
-        const filas = document.querySelectorAll('#tablaCuerpoComp tr');
-        const { data: existentes } = await supabaseClient.from('comportamiento_parcial').select('id, estudiante_id').eq('curso_id', cursoId).eq('trimestre', trimestre).eq('parcial', parcialNum);
-        
-        const payloadInsert = [];
-        const payloadUpdate = [];
-
-        filas.forEach(tr => {
-          const estId = parseInt(tr.getAttribute('data-estudiante-id'));
-          if (estId) {
-            const record = (existentes || []).find(e => e.estudiante_id === estId);
-            const data = {
-              curso_id: cursoId, estudiante_id: estId, trimestre: trimestre, parcial: parcialNum,
-              ind1: parseFloat(tr.querySelector('.c-ind1').value) || 0, ind2: parseFloat(tr.querySelector('.c-ind2').value) || 0, 
-              ind3: parseFloat(tr.querySelector('.c-ind3').value) || 0, ind4: parseFloat(tr.querySelector('.c-ind4').value) || 0, 
-              ind5: parseFloat(tr.querySelector('.c-ind5').value) || 0, ind6: parseFloat(tr.querySelector('.c-ind6').value) || 0, 
-              ind7: parseFloat(tr.querySelector('.c-ind7').value) || 0, ind8: parseFloat(tr.querySelector('.c-ind8').value) || 0, 
-              ind9: parseFloat(tr.querySelector('.c-ind9').value) || 0, ind10: parseFloat(tr.querySelector('.c-ind10').value) || 0,
-              total_cuantitativo: parseFloat(tr.querySelector('.total-cuant').innerText) || 0, total_cualitativo: tr.querySelector('.total-cualit').innerText
-            };
-            if (record) { data.id = record.id; payloadUpdate.push(data); } else { payloadInsert.push(data); }
-          }
-        });
-
-        if (payloadInsert.length > 0) { const { error } = await supabaseClient.from('comportamiento_parcial').insert(payloadInsert); if (error) throw error; }
-        if (payloadUpdate.length > 0) { const { error } = await supabaseClient.from('comportamiento_parcial').upsert(payloadUpdate); if (error) throw error; }
-        
-        alert('¡Comportamiento guardado con éxito!');
-      } catch (err) { alert('Error: ' + err.message); } finally { btn.disabled = false; btn.innerHTML = '💾 Guardar'; }
-    }
-
-    async function exportarComportamientoGeneralPDF() {
-      const cursoId = document.getElementById('selectCurso').value;
-      const cursoInfo = todosCursos.find(c => String(c.id) === String(cursoId));
-      if (!cursoInfo) return alert('Seleccione un curso.');
-
-      const btn = document.getElementById('btnDescargarCompPDF');
-      const originalHtml = btn.innerHTML;
-      btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
-
-      try {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-
-        const nomArriba = (infoInstitucion?.nombre_arriba || 'Unidad Educativa Particular').toUpperCase();
-        const nomAbajo = (infoInstitucion?.nombre_abajo || '"Vicente Rocafuerte"').toUpperCase();
-        const periodo = infoInstitucion?.periodo_lectivo || '2026-2027';
-        const amie = infoInstitucion?.amie || '13H03021';
-        const distrito = infoInstitucion?.distrito || '13D08';
-        const circuito = infoInstitucion?.circuito || '13D08C0_b';
-        const dir1 = infoInstitucion?.direccion_1 || 'Pichincha - Manabí - Ecuador';
-
-        const nombreCursoLargo = (cursoInfo?.nombre_largo_mayuscula || cursoInfo?.nombre || '').toUpperCase();
-        const trimestreVal = document.getElementById('selectTrimestre').value;
-        const nombreParcial = document.getElementById('selectParcialAsistencia').options[document.getElementById('selectParcialAsistencia').selectedIndex].text.toUpperCase();
-
-        let nombreDocenteTutor = 'DOCENTE TUTOR';
-        if (cursoInfo.tutor_id) {
-          try {
-            const { data: prof } = await supabaseClient.from('perfiles').select('titulo, nombres, apellidos').eq('id', cursoInfo.tutor_id).maybeSingle();
-            if (prof) nombreDocenteTutor = `${prof.titulo ? prof.titulo + ' ' : ''}${prof.nombres} ${prof.apellidos || ''}`.trim().toUpperCase();
-          } catch(e) {}
-        }
-
-        const nombreSecretaria = 'C.P.A. MERCEDES A. SALAMEA M.';
-        const nombreRector = 'ING. DÍDIMO A. SALTOS S.';
-
-        const imgLogoIzq = await obtenerBase64DesdeUrl(infoInstitucion?.logo_izquierdo || infoInstitucion?.logo_institucion);
-        const imgLogoDer = await obtenerBase64DesdeUrl(infoInstitucion?.logo_derecho || infoInstitucion?.escudo_nacional);
-
-        const bodyData = [];
-        document.querySelectorAll('#tablaCuerpoComp tr').forEach(tr => {
-            const num = tr.querySelector('.sticky-col-num').innerText;
-            const nom = tr.querySelector('.sticky-col-nombre').getAttribute('title') || tr.querySelector('.sticky-col-nombre').innerText;
-            const i1 = tr.querySelector('.c-ind1').value; const i2 = tr.querySelector('.c-ind2').value;
-            const i3 = tr.querySelector('.c-ind3').value; const i4 = tr.querySelector('.c-ind4').value;
-            const i5 = tr.querySelector('.c-ind5').value; const i6 = tr.querySelector('.c-ind6').value;
-            const i7 = tr.querySelector('.c-ind7').value; const i8 = tr.querySelector('.c-ind8').value;
-            const i9 = tr.querySelector('.c-ind9').value; const i10 = tr.querySelector('.c-ind10').value;
-            const tc = tr.querySelector('.total-cuant').innerText; const tcl = tr.querySelector('.total-cualit').innerText;
-            bodyData.push([num, nom, i1, i2, i3, i4, i5, i6, i7, i8, i9, i10, tc, tcl]);
-        });
-
-        const headers = [
-          [
-            { content: 'N°', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } },
-            { content: 'NÓMINA DE ESTUDIANTES', rowSpan: 2, styles: { valign: 'middle', halign: 'left' } },
-            { content: 'Puntualidad', colSpan: 1, styles: { halign: 'center', valign: 'middle' } },
-            { content: 'Limpieza', colSpan: 3, styles: { halign: 'center', valign: 'middle' } },
-            { content: 'Respeto y Consideración', colSpan: 2, styles: { halign: 'center', valign: 'middle' } },
-            { content: 'Valoración Diversidad', colSpan: 2, styles: { halign: 'center', valign: 'middle' } },
-            { content: 'Patrimonio', colSpan: 1, styles: { halign: 'center', valign: 'middle' } },
-            { content: 'Propiedad', colSpan: 1, styles: { halign: 'center', valign: 'middle' } },
-            { content: 'TOTAL\nCUANT.', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } },
-            { content: 'TOTAL\nCUALIT.', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } }
-          ],
-          [
-            { content: '1. Asiste', styles: { halign: 'center' } }, { content: '2. Aseo personal', styles: { halign: 'center' } },
-            { content: '3. Aseo lugar', styles: { halign: 'center' } }, { content: '4. Aseo aula', styles: { halign: 'center' } },
-            { content: '5. Saludo', styles: { halign: 'center' } }, { content: '6. Sin leng. soez', styles: { halign: 'center' } },
-            { content: '7. Leng. no agres.', styles: { halign: 'center' } }, { content: '8. Tolerancia div.', styles: { halign: 'center' } },
-            { content: '9. Cuida infraest.', styles: { halign: 'center' } }, { content: '10. Respeta obj.', styles: { halign: 'center' } }
-          ]
-        ];
-
-        doc.autoTable({
-          head: headers, body: bodyData, margin: { top: 48, bottom: 32, left: 12, right: 12 }, theme: 'grid',
-          styles: { fontSize: 7, cellPadding: 1, lineColor: [200, 200, 200], lineWidth: 0.1, valign: 'middle' },
-          headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 6.5 },
-          columnStyles: { 0: { cellWidth: 9, halign: 'center' }, 1: { cellWidth: 56, halign: 'left' }, 12: { cellWidth: 22, halign: 'center', fontStyle: 'bold', fillColor: [241, 245, 249] }, 13: { cellWidth: 26, halign: 'center', fontStyle: 'bold', fillColor: [220, 252, 231], textColor: [21, 128, 61] } },
-          didDrawPage: function (data) {
-            const pageNumber = doc.internal.getNumberOfPages();
-            if (imgLogoIzq) { try { doc.addImage(imgLogoIzq, 'PNG', 12, 7, 22, 22); } catch(e){} }
-            if (imgLogoDer) { try { doc.addImage(imgLogoDer, 'PNG', 263, 7, 22, 22); } catch(e){} }
-            doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(30, 41, 59); doc.text(nomArriba, 148.5, 11, { align: 'center' });
-            doc.setFontSize(13); doc.text(nomAbajo, 148.5, 16, { align: 'center' });
-            doc.setFontSize(9.5); doc.text(`REPORTE GENERAL DE COMPORTAMIENTO - TRIMESTRE ${trimestreVal} - ${nombreParcial}`, 148.5, 21, { align: 'center' });
-            doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(71, 85, 105); doc.text(`AMIE: ${amie} | DISTRITO: ${distrito} | CIRCUITO: ${circuito} | ${dir1} | AÑO LECTIVO: ${periodo}`, 148.5, 25.5, { align: 'center' });
-            doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(15, 23, 42); doc.setDrawColor(203, 213, 225); doc.setLineWidth(0.3); doc.line(12, 33, 285, 33);
-            doc.text(`CURSO: ${nombreCursoLargo}`, 12, 38); 
-            doc.text(`TUTOR RESPONSABLE: ${nombreDocenteTutor}`, 285, 38, { align: 'right' }); doc.line(12, 40, 285, 40);
-            const footerY = 188; doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(30, 41, 59); doc.setLineWidth(0.2); doc.line(25, footerY, 85, footerY); doc.line(118, footerY, 178, footerY); doc.line(212, footerY, 272, footerY);
-            doc.setFont('helvetica', 'bold'); doc.text(nombreDocenteTutor, 55, footerY + 4, { align: 'center' }); doc.setFont('helvetica', 'normal'); doc.text('DOCENTE TUTOR', 55, footerY + 7.5, { align: 'center' });
-            doc.setFont('helvetica', 'bold'); doc.text(nombreSecretaria, 148.5, footerY + 4, { align: 'center' }); doc.setFont('helvetica', 'normal'); doc.text('SECRETARIO/A GENERAL', 148.5, footerY + 7.5, { align: 'center' });
-            doc.setFont('helvetica', 'bold'); doc.text(nombreRector, 242, footerY + 4, { align: 'center' }); doc.setFont('helvetica', 'normal'); doc.text('RECTOR / DIRECTOR', 242, footerY + 7.5, { align: 'center' });
-            doc.setFontSize(7); doc.setTextColor(148, 163, 184); doc.text(`Página ${pageNumber}`, 285, 202, { align: 'right' });
-          }
-        });
-        doc.save(`Comportamiento_General_${nombreCursoLargo.replace(/\s+/g, '_')}.pdf`);
-      } catch (err) { alert('Error al exportar PDF: ' + err.message); } finally { btn.disabled = false; btn.innerHTML = originalHtml; }
-    }
-    
-    // EXPORTAR PARCIAL ACADÉMICO A PDF (CON MARCA DE AGUA BLANCA Y PEQUEÑA)
-    // =========================================================================
-    async function exportarParcialPDF() {
-      const asigId = document.getElementById('selectMateria').value.trim();
-      const asig = todasAsignaciones.find(a => String(a.id) === String(asigId));
-      if (!asig) return alert('Seleccione una materia.');
-
-      const btn = document.getElementById('btnDescargarParcialPDF');
-      const originalHtml = btn.innerHTML;
-      btn.disabled = true;
-      btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
-
-      try {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-
-        const nomArriba = (infoInstitucion?.nombre_arriba || 'Unidad Educativa Particular').toUpperCase();
-        const nomAbajo = (infoInstitucion?.nombre_abajo || '"Vicente Rocafuerte"').toUpperCase();
-        const periodo = infoInstitucion?.periodo_lectivo || '2026-2027';
-        const amie = infoInstitucion?.amie || '13H03021';
-        const distrito = infoInstitucion?.distrito || '13D08';
-        const circuito = infoInstitucion?.circuito || '13D08C0_b';
-        const dir1 = infoInstitucion?.direccion_1 || 'Pichincha - Manabí - Ecuador';
-        const frase1 = infoInstitucion?.frase_1 ? `"${infoInstitucion.frase_1}"` : '';
-
-        const cursoEncontrado = (todosCursos && todosCursos.length > 0) ? todosCursos.find(c => c.id === asig.curso_id) : asig.cursos;
-        const nombreCursoLargo = (cursoEncontrado?.nombre_largo_mayuscula || cursoEncontrado?.nombre || asig.cursos?.nombre || '').toUpperCase();
-        const nombreMateria = (asig.materias?.nombre || '').toUpperCase();
-
-        const selectVista = document.getElementById('selectVista');
-        const nombreParcial = selectVista.options[selectVista.selectedIndex].text.toUpperCase();
-        const trimestreVal = document.getElementById('selectTrimestre').value;
-
-        // CONSULTAR DOCENTE TITULAR DE LA MATERIA
-        let nombreDocenteMateria = 'DOCENTE RESPONSABLE';
-        if (asig.docente_id) {
-          try {
-            const { data: prof } = await supabaseClient.from('perfiles').select('titulo, nombres, apellidos').eq('id', asig.docente_id).maybeSingle();
-            if (prof) {
-               nombreDocenteMateria = `${prof.titulo ? prof.titulo + ' ' : ''}${prof.nombres} ${prof.apellidos || ''}`.trim().toUpperCase();
-            }
-          } catch(e) {}
-        }
-
-        const nombreSecretaria = 'C.P.A. MERCEDES A. SALAMEA M.';
-        const nombreRector = 'ING. DÍDIMO A. SALTOS S.';
-
-        const imgLogoIzq = await obtenerBase64DesdeUrl(infoInstitucion?.logo_izquierdo || infoInstitucion?.logo_institucion);
-        const imgLogoDer = await obtenerBase64DesdeUrl(infoInstitucion?.logo_derecho || infoInstitucion?.escudo_nacional);
-
-        // CONFIGURACIÓN DE MARCA DE AGUA
-        const usuarioDescarga = usuarioActualPerfil ? `${usuarioActualPerfil.nombres} ${usuarioActualPerfil.apellidos || ''}`.trim().toUpperCase() : 'USUARIO DESCONOCIDO';
-        const fechaActual = new Date().toLocaleString('es-EC');
-
-        // EXTRACCIÓN DINÁMICA DE DATOS DE LA TABLA Y FORMATEO A 2 DECIMALES
-        const colIns1 = Math.max(configActividades.insumo1.length, 1);
-        const colIns2 = Math.max(configActividades.insumo2.length, 1);
-
-        const bodyData = [];
-        document.querySelectorAll('#tablaCuerpo tr').forEach(tr => {
-            const num = tr.querySelector('.sticky-col-num').innerText;
-            const nom = tr.querySelector('.sticky-col-nombre').getAttribute('title') || tr.querySelector('.sticky-col-nombre').innerText;
-            
-            const rowData = [num, nom];
-            
-            // Insumo 1 (Con 2 decimales y centrado)
-            const i1Inputs = tr.querySelectorAll('.nota-i1');
-            if (configActividades.insumo1.length === 0) {
-              rowData.push('-');
-            } else {
-              i1Inputs.forEach(inp => {
-                const valStr = inp.value.trim();
-                rowData.push(valStr !== '' ? parseFloat(valStr).toFixed(2) : ''); 
-              });
-            }
-            rowData.push(parseFloat(tr.querySelector('.prom-i1').innerText || 0).toFixed(2));
-
-            // Insumo 2 (Con 2 decimales y centrado)
-            const i2Inputs = tr.querySelectorAll('.nota-i2');
-            if (configActividades.insumo2.length === 0) {
-              rowData.push('-');
-            } else {
-              i2Inputs.forEach(inp => {
-                const valStr = inp.value.trim();
-                rowData.push(valStr !== '' ? parseFloat(valStr).toFixed(2) : '');
-              });
-            }
-            rowData.push(parseFloat(tr.querySelector('.prom-i2').innerText || 0).toFixed(2));
-
-            // Nota Parcial
-            rowData.push(parseFloat(tr.querySelector('.nota-parcial').innerText || 0).toFixed(2));
-
-            bodyData.push(rowData);
-        });
-
-        const headerRow1 = [
-            { content: 'N°', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } },
-            { content: 'NÓMINA DE ESTUDIANTES', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } },
-            { content: 'INSUMO 1 (Actividades Individuales)', colSpan: colIns1, styles: { halign: 'center', fillColor: [13, 110, 253] } },
-            { content: 'PROM.\nINS. 1', rowSpan: 2, styles: { valign: 'middle', halign: 'center', fillColor: [255, 235, 59], textColor: [0,0,0] } },
-            { content: 'INSUMO 2 (Actividades Grupales)', colSpan: colIns2, styles: { halign: 'center', fillColor: [13, 202, 240], textColor: [0,0,0] } },
-            { content: 'PROM.\nINS. 2', rowSpan: 2, styles: { valign: 'middle', halign: 'center', fillColor: [255, 235, 59], textColor: [0,0,0] } },
-            { content: 'NOTA\nPARCIAL', rowSpan: 2, styles: { valign: 'middle', halign: 'center', fillColor: [25, 135, 84] } }
-        ];
-
-        const headerRow2 = [];
-        for(let i=0; i<colIns1; i++) headerRow2.push({ content: `Act. ${i+1}`, styles: { halign: 'center', fontSize: 6.5 }});
-        for(let i=0; i<colIns2; i++) headerRow2.push({ content: `Act. ${i+1}`, styles: { halign: 'center', fontSize: 6.5 }});
-
-        doc.autoTable({
-          head: [headerRow1, headerRow2],
-          body: bodyData,
-          margin: { top: 48, bottom: 32, left: 12, right: 12 },
-          theme: 'grid',
-          // halign: 'center' APLICA CENTRADO A TODO EL CUERPO (Calificaciones)
-          styles: { fontSize: 7.2, cellPadding: 1.5, lineColor: [200, 200, 200], lineWidth: 0.1, valign: 'middle', halign: 'center' },
-          headStyles: { textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 7, halign: 'center' },
-          columnStyles: {
-            0: { cellWidth: 10, halign: 'center' },
-            1: { cellWidth: 70, halign: 'left' }, // Excepción: Solo los nombres van a la izquierda
-          },
-          didParseCell: function(data) {
-            // Pintar la última columna (Nota Parcial)
-            if (data.section === 'body' && data.column.index === data.table.columns.length - 1) {
-              data.cell.styles.fontStyle = 'bold';
-              data.cell.styles.fillColor = [230, 244, 234];
-              data.cell.styles.textColor = [21, 128, 61];
-            }
-          },
-          didDrawPage: function (data) {
-            const pageNumber = doc.internal.getNumberOfPages();
-            const pageWidth = doc.internal.pageSize.getWidth();
-            const pageHeight = doc.internal.pageSize.getHeight();
-
-            // DIBUJAR MARCA DE AGUA (TAMAÑO MÁS PEQUEÑO Y COLOR BLANCO HUMO)
-            doc.saveGraphicsState();
-            doc.setGState(new doc.GState({ opacity: 0.25 })); // Opacidad
-            doc.setTextColor(240, 240, 240); // Blanco tenue para que destaque sobre la tabla pero no desaparezca en el fondo
-            doc.setFontSize(20); // Tamaño de letra más pequeño (20 en vez de 45/28)
-            doc.setFont('helvetica', 'bold');
-            doc.text(`DESCARGADO POR: ${usuarioDescarga}`, pageWidth / 2, pageHeight / 2 - 10, { align: 'center', angle: 30 });
-            doc.text(`EL: ${fechaActual}`, pageWidth / 2, pageHeight / 2 + 10, { align: 'center', angle: 30 });
-            doc.restoreGraphicsState();
-
-            // HEADER
-            if (imgLogoIzq) { try { doc.addImage(imgLogoIzq, 'PNG', 12, 7, 22, 22); } catch(e){} }
-            if (imgLogoDer) { try { doc.addImage(imgLogoDer, 'PNG', 263, 7, 22, 22); } catch(e){} }
-
-            doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(30, 41, 59); 
-            doc.text(nomArriba, 148.5, 11, { align: 'center' });
-            doc.setFontSize(13); doc.text(nomAbajo, 148.5, 16, { align: 'center' });
-            
-            doc.setFontSize(9.5); 
-            doc.text(`REPORTE DE CALIFICACIONES ACADÉMICAS - TRIMESTRE ${trimestreVal} - ${nombreParcial}`, 148.5, 21, { align: 'center' });
-
-            doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(71, 85, 105); 
-            doc.text(`AMIE: ${amie} | DISTRITO: ${distrito} | CIRCUITO: ${circuito} | ${dir1} | AÑO LECTIVO: ${periodo}`, 148.5, 25.5, { align: 'center' });
-            if (frase1) { doc.setFont('helvetica', 'italic'); doc.text(frase1, 148.5, 29, { align: 'center' }); }
-
-            doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(15, 23, 42); doc.setDrawColor(203, 213, 225); doc.setLineWidth(0.3); doc.line(12, 33, 285, 33);
-            doc.text(`CURSO: ${nombreCursoLargo}`, 12, 38); 
-            doc.text(`ASIGNATURA: ${nombreMateria}`, 12, 43); 
-            
-            doc.text(`DOCENTE RESPONSABLE: ${nombreDocenteMateria}`, 285, 43, { align: 'right' }); 
-            doc.line(12, 45, 285, 45);
-
-            // FOOTER CON FIRMAS
-            const footerY = 188; 
-            doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(30, 41, 59); doc.setLineWidth(0.2); 
-            doc.line(25, footerY, 85, footerY); doc.line(118, footerY, 178, footerY); doc.line(212, footerY, 272, footerY);
-
-            doc.setFont('helvetica', 'bold');
-            doc.text(nombreDocenteMateria, 55, footerY + 4, { align: 'center' });
-            doc.setFont('helvetica', 'normal');
-            doc.text('DOCENTE RESPONSABLE', 55, footerY + 7.5, { align: 'center' });
-
-            doc.setFont('helvetica', 'bold');
-            doc.text(nombreSecretaria, 148.5, footerY + 4, { align: 'center' });
-            doc.setFont('helvetica', 'normal');
-            doc.text('SECRETARIO/A GENERAL', 148.5, footerY + 7.5, { align: 'center' });
-
-            doc.setFont('helvetica', 'bold');
-            doc.text(nombreRector, 242, footerY + 4, { align: 'center' });
-            doc.setFont('helvetica', 'normal');
-            doc.text('RECTOR / DIRECTOR', 242, footerY + 7.5, { align: 'center' });
-
-            doc.setFontSize(7); doc.setTextColor(148, 163, 184); 
-            doc.text(`Página ${pageNumber}`, 285, 202, { align: 'right' });
-          }
-        });
-
-        doc.save(`Calificaciones_${nombreCursoLargo.replace(/\s+/g, '_')}_${nombreMateria.replace(/\s+/g, '_')}.pdf`);
-      } catch (err) {
-        alert('Error al exportar PDF: ' + err.message);
-      } finally {
-        btn.disabled = false;
-        btn.innerHTML = originalHtml;
-      }
-    }
-    
-    // =========================================================================
-    // EXPORTAR COMPORTAMIENTO A PDF (CON MARCA DE AGUA)
-    // =========================================================================
-    async function exportarComportamientoPDF() {
-      const asigId = document.getElementById('selectMateria').value.trim();
-      const asig = todasAsignaciones.find(a => String(a.id) === String(asigId));
-      if (!asig) return alert('Seleccione una materia.');
-
-      const btn = document.getElementById('btnDescargarCompPDF');
-      const originalHtml = btn.innerHTML;
-      btn.disabled = true;
-      btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
-
-      try {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-
-        const nomArriba = (infoInstitucion?.nombre_arriba || 'Unidad Educativa Particular').toUpperCase();
-        const nomAbajo = (infoInstitucion?.nombre_abajo || '"Vicente Rocafuerte"').toUpperCase();
-        const periodo = infoInstitucion?.periodo_lectivo || '2026-2027';
-        const amie = infoInstitucion?.amie || '13H03021';
-        const distrito = infoInstitucion?.distrito || '13D08';
-        const circuito = infoInstitucion?.circuito || '13D08C0_b';
-        const dir1 = infoInstitucion?.direccion_1 || 'Pichincha - Manabí - Ecuador';
-        const frase1 = infoInstitucion?.frase_1 ? `"${infoInstitucion.frase_1}"` : '';
-
-        const cursoEncontrado = (todosCursos && todosCursos.length > 0) ? todosCursos.find(c => c.id === asig.curso_id) : asig.cursos;
-        const nombreCursoLargo = (cursoEncontrado?.nombre_largo_mayuscula || cursoEncontrado?.nombre || asig.cursos?.nombre || '').toUpperCase();
-        const nombreMateria = (asig.materias?.nombre || '').toUpperCase();
-
-        const selectVista = document.getElementById('selectVista');
-        const nombreParcial = selectVista.options[selectVista.selectedIndex].text.toUpperCase();
-        const trimestreVal = document.getElementById('selectTrimestre').value;
-
-        // CONSULTAR DOCENTE TITULAR DE LA MATERIA
-        let nombreDocenteMateria = 'DOCENTE RESPONSABLE';
-        if (asig.docente_id) {
-          try {
-            const { data: prof } = await supabaseClient.from('perfiles').select('titulo, nombres, apellidos').eq('id', asig.docente_id).maybeSingle();
-            if (prof) {
-               nombreDocenteMateria = `${prof.titulo ? prof.titulo + ' ' : ''}${prof.nombres} ${prof.apellidos || ''}`.trim().toUpperCase();
-            }
-          } catch(e) {}
-        }
-
-        const nombreSecretaria = 'C.P.A. MERCEDES A. SALAMEA M.';
-        const nombreRector = 'ING. DÍDIMO A. SALTOS S.';
-
-        const imgLogoIzq = await obtenerBase64DesdeUrl(infoInstitucion?.logo_izquierdo || infoInstitucion?.logo_institucion);
-        const imgLogoDer = await obtenerBase64DesdeUrl(infoInstitucion?.logo_derecho || infoInstitucion?.escudo_nacional);
-
-        // CONFIGURACIÓN DE MARCA DE AGUA
-        const usuarioDescarga = usuarioActualPerfil ? `${usuarioActualPerfil.nombres} ${usuarioActualPerfil.apellidos || ''}`.trim().toUpperCase() : 'USUARIO DESCONOCIDO';
-        const fechaActual = new Date().toLocaleString('es-EC');
-
-        const bodyData = [];
-        document.querySelectorAll('#tablaCuerpoComp tr').forEach(tr => {
-            const num = tr.querySelector('.sticky-col-num').innerText;
-            const nom = tr.querySelector('.sticky-col-nombre').getAttribute('title') || tr.querySelector('.sticky-col-nombre').innerText;
-            const i1 = tr.querySelector('.c-ind1').value;
-            const i2 = tr.querySelector('.c-ind2').value;
-            const i3 = tr.querySelector('.c-ind3').value;
-            const i4 = tr.querySelector('.c-ind4').value;
-            const i5 = tr.querySelector('.c-ind5').value;
-            const i6 = tr.querySelector('.c-ind6').value;
-            const i7 = tr.querySelector('.c-ind7').value;
-            const i8 = tr.querySelector('.c-ind8').value;
-            const i9 = tr.querySelector('.c-ind9').value;
-            const i10 = tr.querySelector('.c-ind10').value;
-            const tc = tr.querySelector('.total-cuant').innerText;
-            const tcl = tr.querySelector('.total-cualit').innerText;
-            bodyData.push([num, nom, i1, i2, i3, i4, i5, i6, i7, i8, i9, i10, tc, tcl]);
-        });
-
-        const headers = [
-          [
-            { content: 'N°', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } },
-            { content: 'NÓMINA DE ESTUDIANTES', rowSpan: 2, styles: { valign: 'middle', halign: 'left' } },
-            { content: 'Puntualidad', colSpan: 1, styles: { halign: 'center', valign: 'middle' } },
-            { content: 'Limpieza', colSpan: 3, styles: { halign: 'center', valign: 'middle' } },
-            { content: 'Respeto y Consideración', colSpan: 2, styles: { halign: 'center', valign: 'middle' } },
-            { content: 'Valoración Diversidad', colSpan: 2, styles: { halign: 'center', valign: 'middle' } },
-            { content: 'Patrimonio', colSpan: 1, styles: { halign: 'center', valign: 'middle' } },
-            { content: 'Propiedad', colSpan: 1, styles: { halign: 'center', valign: 'middle' } },
-            { content: 'TOTAL\nCUANT.', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } },
-            { content: 'TOTAL\nCUALIT.', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } }
-          ],
-          [
-            { content: '1. Asiste puntual', styles: { halign: 'center', valign: 'middle' } },
-            { content: '2. Aseo personal', styles: { halign: 'center', valign: 'middle' } },
-            { content: '3. Aseo lugar trab.', styles: { halign: 'center', valign: 'middle' } },
-            { content: '4. Aseo del aula', styles: { halign: 'center', valign: 'middle' } },
-            { content: '5. Saludo cordial', styles: { halign: 'center', valign: 'middle' } },
-            { content: '6. Evita leng. soez', styles: { halign: 'center', valign: 'middle' } },
-            { content: '7. Leng. no agresivo', styles: { halign: 'center', valign: 'middle' } },
-            { content: '8. Tolerancia div.', styles: { halign: 'center', valign: 'middle' } },
-            { content: '9. Cuida infraest.', styles: { halign: 'center', valign: 'middle' } },
-            { content: '10. Respeta objeto', styles: { halign: 'center', valign: 'middle' } }
-          ]
-        ];
-
-        doc.autoTable({
-          head: headers,
-          body: bodyData,
-          margin: { top: 48, bottom: 32, left: 12, right: 12 },
-          theme: 'grid',
-          styles: { fontSize: 7, cellPadding: 1, lineColor: [200, 200, 200], lineWidth: 0.1, valign: 'middle' },
-          headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 6.5 },
-          columnStyles: {
-            0: { cellWidth: 9, halign: 'center' },
-            1: { cellWidth: 56, halign: 'left' },
-            2: { cellWidth: 16, halign: 'center' },
-            3: { cellWidth: 16, halign: 'center' },
-            4: { cellWidth: 16, halign: 'center' },
-            5: { cellWidth: 16, halign: 'center' },
-            6: { cellWidth: 16, halign: 'center' },
-            7: { cellWidth: 16, halign: 'center' },
-            8: { cellWidth: 16, halign: 'center' },
-            9: { cellWidth: 16, halign: 'center' },
-            10: { cellWidth: 16, halign: 'center' },
-            11: { cellWidth: 16, halign: 'center' },
-            12: { cellWidth: 22, halign: 'center', fontStyle: 'bold', fillColor: [241, 245, 249] },
-            13: { cellWidth: 26, halign: 'center', fontStyle: 'bold', fillColor: [220, 252, 231], textColor: [21, 128, 61] } 
-          },
-          didDrawPage: function (data) {
-            const pageNumber = doc.internal.getNumberOfPages();
-            const pageWidth = doc.internal.pageSize.getWidth();
-            const pageHeight = doc.internal.pageSize.getHeight();
-
-            // DIBUJAR MARCA DE AGUA (TRANSPARENTE)
-            doc.saveGraphicsState();
-            doc.setGState(new doc.GState({ opacity: 0.08 })); // Nivel de opacidad sutil
-            doc.setTextColor(50, 50, 50);
-            doc.setFontSize(45);
-            doc.setFont('helvetica', 'bold');
-            doc.text(`DESCARGADO POR: ${usuarioDescarga}`, pageWidth / 2, pageHeight / 2 - 15, { align: 'center', angle: 30 });
-            doc.text(`EL: ${fechaActual}`, pageWidth / 2, pageHeight / 2 + 15, { align: 'center', angle: 30 });
-            doc.restoreGraphicsState();
-
-            // HEADER
-            if (imgLogoIzq) { try { doc.addImage(imgLogoIzq, 'PNG', 12, 7, 22, 22); } catch(e){} }
-            if (imgLogoDer) { try { doc.addImage(imgLogoDer, 'PNG', 263, 7, 22, 22); } catch(e){} }
-
-            doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(30, 41, 59); 
-            doc.text(nomArriba, 148.5, 11, { align: 'center' });
-            doc.setFontSize(13); doc.text(nomAbajo, 148.5, 16, { align: 'center' });
-            
-            doc.setFontSize(9.5); 
-            doc.text(`REPORTE DE EVALUACIÓN DEL COMPORTAMIENTO - TRIMESTRE ${trimestreVal} - ${nombreParcial}`, 148.5, 21, { align: 'center' });
-
-            doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(71, 85, 105); 
-            doc.text(`AMIE: ${amie} | DISTRITO: ${distrito} | CIRCUITO: ${circuito} | ${dir1} | AÑO LECTIVO: ${periodo}`, 148.5, 25.5, { align: 'center' });
-            if (frase1) { doc.setFont('helvetica', 'italic'); doc.text(frase1, 148.5, 29, { align: 'center' }); }
-
-            doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(15, 23, 42); doc.setDrawColor(203, 213, 225); doc.setLineWidth(0.3); doc.line(12, 33, 285, 33);
-            doc.text(`CURSO: ${nombreCursoLargo}`, 12, 38); 
-            doc.text(`ASIGNATURA: ${nombreMateria}`, 12, 43); 
-            
-            // Ajustado a la derecha
-            doc.text(`DOCENTE RESPONSABLE: ${nombreDocenteMateria}`, 285, 43, { align: 'right' }); 
-            doc.line(12, 45, 285, 45);
-
-            // FOOTER CON FIRMAS
-            const footerY = 188; 
-            doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(30, 41, 59); doc.setLineWidth(0.2); 
-            doc.line(25, footerY, 85, footerY); doc.line(118, footerY, 178, footerY); doc.line(212, footerY, 272, footerY);
-
-            doc.setFont('helvetica', 'bold');
-            doc.text(nombreDocenteMateria, 55, footerY + 4, { align: 'center' });
-            doc.setFont('helvetica', 'normal');
-            doc.text('DOCENTE RESPONSABLE', 55, footerY + 7.5, { align: 'center' });
-
-            doc.setFont('helvetica', 'bold');
-            doc.text(nombreSecretaria, 148.5, footerY + 4, { align: 'center' });
-            doc.setFont('helvetica', 'normal');
-            doc.text('SECRETARIO/A GENERAL', 148.5, footerY + 7.5, { align: 'center' });
-
-            doc.setFont('helvetica', 'bold');
-            doc.text(nombreRector, 242, footerY + 4, { align: 'center' });
-            doc.setFont('helvetica', 'normal');
-            doc.text('RECTOR / DIRECTOR', 242, footerY + 7.5, { align: 'center' });
-
-            doc.setFontSize(7); doc.setTextColor(148, 163, 184); 
-            doc.text(`Página ${pageNumber}`, 285, 202, { align: 'right' });
-          }
-        });
-
-        doc.save(`Comportamiento_${nombreCursoLargo.replace(/\s+/g, '_')}_${nombreMateria.replace(/\s+/g, '_')}.pdf`);
-      } catch (err) {
-        alert('Error al exportar PDF: ' + err.message);
-      } finally {
-        btn.disabled = false;
-        btn.innerHTML = originalHtml;
-      }
-    }
-
-    async function exportarResumenAnualPDF() {
-      if (!datosResumenAnualActual || datosResumenAnualActual.length === 0) return alert('No hay calificaciones cargadas para exportar.');
-      const asigId = document.getElementById('selectMateria').value;
-      const asig = todasAsignaciones.find(a => String(a.id) === String(asigId));
-      if (!asig) return alert('Seleccione una materia.');
-
-      const btn = document.getElementById('btnDescargarPDF'); btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Generando PDF...';
-
-      try {
-        const { jsPDF } = window.jspdf; const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-        const nomArriba = (infoInstitucion?.nombre_arriba || 'Unidad Educativa Particular').toUpperCase(), nomAbajo = (infoInstitucion?.nombre_abajo || '"Vicente Rocafuerte"').toUpperCase(), periodo = infoInstitucion?.periodo_lectivo || '2026-2027', amie = infoInstitucion?.amie || '13H03021', distrito = infoInstitucion?.distrito || '13D08', circuito = infoInstitucion?.circuito || '13D08C0_b', dir1 = infoInstitucion?.direccion_1 || 'Pichincha - Manabí - Ecuador', frase1 = infoInstitucion?.frase_1 ? `"${infoInstitucion.frase_1}"` : '';
-        const cursoEncontrado = (todosCursos && todosCursos.length > 0) ? todosCursos.find(c => c.id === asig.curso_id) : asig.cursos, nombreCursoLargo = (cursoEncontrado?.nombre_largo_mayuscula || cursoEncontrado?.nombre || asig.cursos?.nombre || '').toUpperCase(), nombreMateria = (asig.materias?.nombre || '').toUpperCase();
-        const nombreDocenteActual = usuarioActualPerfil ? `${usuarioActualPerfil.titulo ? usuarioActualPerfil.titulo + ' ' : ''}${usuarioActualPerfil.nombres} ${usuarioActualPerfil.apellidos || ''}`.trim().toUpperCase() : 'DOCENTE RESPONSABLE', nombreSecretaria = 'C.P.A. MERCEDES A. SALAMEA M.', nombreRector = 'ING. DÍDIMO A. SALTOS S.';
-        const imgLogoIzq = await obtenerBase64DesdeUrl(infoInstitucion?.logo_izquierdo || infoInstitucion?.logo_institucion), imgLogoDer = await obtenerBase64DesdeUrl(infoInstitucion?.logo_derecho || infoInstitucion?.escudo_nacional);
-
-        const headers = [
-          [
-            { content: 'N°', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } },
-            { content: 'NÓMINA DE ESTUDIANTES', rowSpan: 2, styles: { valign: 'middle', halign: 'left' } },
-            { content: 'CALIFICACIONES ACADÉMICAS', colSpan: 3, styles: { halign: 'center', valign: 'middle' } },
-            { content: 'PROM. ANUAL', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } },
-            { content: 'EVALUACIÓN DEL COMPORTAMIENTO', colSpan: 3, styles: { halign: 'center', valign: 'middle' } },
-            { content: 'COMP. ANUAL', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } },
-            { content: 'ESTADO', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } }
-          ],
-          [
-            { content: '1er T.', styles: { halign: 'center', valign: 'middle' } }, 
-            { content: '2do T.', styles: { halign: 'center', valign: 'middle' } }, 
-            { content: '3er T.', styles: { halign: 'center', valign: 'middle' } }, 
-            { content: '1er T.', styles: { halign: 'center', valign: 'middle' } }, 
-            { content: '2do T.', styles: { halign: 'center', valign: 'middle' } }, 
-            { content: '3er T.', styles: { halign: 'center', valign: 'middle' } }
-          ]
-        ];
-        const bodyData = datosResumenAnualActual.map(d => [d.num, d.nombres, d.t1, d.t2, d.t3, d.promAnual, d.ct1, d.ct2, d.ct3, d.compAnual, d.estado]);
-
-        doc.autoTable({
-          head: headers, body: bodyData, margin: { top: 48, bottom: 32, left: 12, right: 12 }, theme: 'grid', styles: { fontSize: 7.5, cellPadding: 1.5, lineColor: [200, 200, 200], lineWidth: 0.1, valign: 'middle' }, headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255], fontStyle: 'bold' },
-          columnStyles: { 0: { cellWidth: 10, halign: 'center' }, 1: { cellWidth: 68, halign: 'left' }, 2: { cellWidth: 17, halign: 'center' }, 3: { cellWidth: 17, halign: 'center' }, 4: { cellWidth: 17, halign: 'center' }, 5: { cellWidth: 22, halign: 'center', fontStyle: 'bold', fillColor: [241, 245, 249] }, 6: { cellWidth: 24, halign: 'center' }, 7: { cellWidth: 24, halign: 'center' }, 8: { cellWidth: 24, halign: 'center' }, 9: { cellWidth: 24, halign: 'center', fontStyle: 'bold' }, 10: { cellWidth: 26, halign: 'center', fontStyle: 'bold' } },
-          didDrawPage: function () {
-            const pageNumber = doc.internal.getNumberOfPages();
-            if (imgLogoIzq) { try { doc.addImage(imgLogoIzq, 'PNG', 12, 7, 22, 22); } catch(e){} }
-            if (imgLogoDer) { try { doc.addImage(imgLogoDer, 'PNG', 263, 7, 22, 22); } catch(e){} }
-            doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(30, 41, 59); doc.text(nomArriba, 148.5, 11, { align: 'center' });
-            doc.setFontSize(13); doc.text(nomAbajo, 148.5, 16, { align: 'center' });
-            doc.setFontSize(9.5); doc.text('CUADRO CONSOLIDADO GENERAL DE CALIFICACIONES ANUALES', 148.5, 21, { align: 'center' });
-            doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(71, 85, 105); doc.text(`AMIE: ${amie} | DISTRITO: ${distrito} | CIRCUITO: ${circuito} | ${dir1} | AÑO LECTIVO: ${periodo}`, 148.5, 25.5, { align: 'center' });
-            if (frase1) { doc.setFont('helvetica', 'italic'); doc.text(frase1, 148.5, 29, { align: 'center' }); }
-            doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(15, 23, 42); doc.setDrawColor(203, 213, 225); doc.setLineWidth(0.3); doc.line(12, 33, 285, 33);
-            doc.text(`CURSO: ${nombreCursoLargo}`, 12, 38); doc.text(`ASIGNATURA: ${nombreMateria}`, 12, 43); doc.text(`DOCENTE: ${nombreDocenteActual}`, 180, 43); doc.line(12, 45, 285, 45);
-            const footerY = 188;
-            doc.setFont('helvetica', 'normal');
-            doc.setFontSize(7.5);
-            doc.setTextColor(30, 41, 59);
-            doc.setLineWidth(0.2);
-            doc.line(25, footerY, 85, footerY);
-            doc.line(118, footerY, 178, footerY);
-            doc.line(212, footerY, 272, footerY);
-
-            // Docente
-            doc.setFont('helvetica', 'normal');
-            doc.text(nombreDocenteActual, 55, footerY + 4, { align: 'center' });
-            doc.setFont('helvetica', 'bold');
-            doc.text('DOCENTE RESPONSABLE', 55, footerY + 7.5, { align: 'center' });
-
-            // Secretaria
-            doc.setFont('helvetica', 'normal');
-            doc.text(nombreSecretaria, 148.5, footerY + 4, { align: 'center' });
-            doc.setFont('helvetica', 'bold');
-            doc.text('SECRETARIO/A GENERAL', 148.5, footerY + 7.5, { align: 'center' });
-
-            // Rector
-            doc.setFont('helvetica', 'normal');
-            doc.text(nombreRector, 242, footerY + 4, { align: 'center' });
-            doc.setFont('helvetica', 'bold');
-            doc.text('RECTOR / DIRECTOR', 242, footerY + 7.5, { align: 'center' });
-
-            doc.setFontSize(7);
-            doc.setTextColor(148, 163, 184);
-            doc.text(`Página ${pageNumber}`, 285, 202, { align: 'right' });
-          }
-        });
-
-        doc.save(`Sabana_Anual_${nombreCursoLargo.replace(/\s+/g, '_')}_${nombreMateria.replace(/\s+/g, '_')}.pdf`);
-      } catch (err) { alert('Error al exportar PDF: ' + err.message); } finally { btn.disabled = false; btn.innerHTML = '📄 Descargar PDF'; }
-    }
-
-    function alternarEstadoAsistencia(input) {
-      const actual = input.value.toUpperCase();
-      let siguiente = actual === '' ? 'A' : (actual === 'A' ? 'F' : (actual === 'F' ? 'J' : ''));
-      input.value = siguiente;
-      input.className = 'cell-asig-input';
-      if (siguiente === 'A') input.classList.add('asig-a');
-      else if (siguiente === 'F') input.classList.add('asig-f');
-      else if (siguiente === 'J') input.classList.add('asig-j');
-      calcularFilaAsistencia(input.closest('tr'));
-    }
-
-    function calcularFilaAsistencia(tr) {
-      const inputs = Array.from(tr.querySelectorAll('.cell-asig-input'));
-      let a = 0, f = 0, j = 0;
-      inputs.forEach(inp => {
-        const v = inp.value.toUpperCase();
-        if (v === 'A') a++; else if (v === 'F') f++; else if (v === 'J') j++;
-      });
-
-      const trimestre = parseInt(document.getElementById('selectTrimestre').value);
-      const parcial = parseInt(document.getElementById('selectParcialAsistencia').value);
-      const per = periodosAsistencia.find(p => p.trimestre === trimestre && p.parcial === parcial);
-      const metaDias = per ? per.total_dias_laborados : diasHabilesParcialActual.length;
-      
-      const faltasRealesF = Math.max(metaDias - a - j, 0);
-
-      tr.querySelector('.sum-a').innerText = a;
-      tr.querySelector('.sum-f').innerText = faltasRealesF;
-      tr.querySelector('.sum-j').innerText = j;
-      tr.querySelector('.total-asist').innerText = a;
-      tr.querySelector('.dias-faltantes').innerText = faltasRealesF;
-    }
-
-    function llenarDiaColumna(fechaIso, tipo) {
-      document.querySelectorAll(`#tablaCuerpoAsistencia .cell-asig-input[data-iso="${fechaIso}"]`).forEach(inp => {
-        inp.value = tipo;
-        inp.className = 'cell-asig-input';
-        if (tipo === 'A') inp.classList.add('asig-a');
-        else if (tipo === 'F') inp.classList.add('asig-f');
-        else if (tipo === 'J') inp.classList.add('asig-j');
-      });
-      document.querySelectorAll('#tablaCuerpoAsistencia tr').forEach(fila => calcularFilaAsistencia(fila));
-    }
-
-    function llenarTodoConAsistencia() {
-      document.querySelectorAll('#tablaCuerpoAsistencia .cell-asig-input').forEach(inp => {
-        inp.value = 'A';
-        inp.className = 'cell-asig-input asig-a';
-      });
-      document.querySelectorAll('#tablaCuerpoAsistencia tr').forEach(fila => calcularFilaAsistencia(fila));
-    }
-
-    function limpiarTodaAsistencia() {
-      if (!confirm('¿Desea poner en blanco todas las casillas de este parcial?')) return;
-      document.querySelectorAll('#tablaCuerpoAsistencia .cell-asig-input').forEach(inp => {
-        inp.value = '';
-        inp.className = 'cell-asig-input';
-      });
-      document.querySelectorAll('#tablaCuerpoAsistencia tr').forEach(fila => calcularFilaAsistencia(fila));
-    }
-
-    async function guardarAsistencia() {
-      const cursoId = parseInt(document.getElementById('selectCurso').value);
-      const trimestre = parseInt(document.getElementById('selectTrimestre').value);
-      const parcial = parseInt(document.getElementById('selectParcialAsistencia').value);
-      const btn = document.getElementById('btnGuardarAsist');
-
-      btn.disabled = true;
-      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Guardando...';
-
-      try {
-        const filas = document.querySelectorAll('#tablaCuerpoAsistencia tr');
-        const payload = [];
-
-        filas.forEach(tr => {
-          const estId = parseInt(tr.getAttribute('data-est-id'));
-          if (estId) {
-            const regDiario = {};
-            tr.querySelectorAll('.cell-asig-input').forEach(inp => {
-              const iso = inp.getAttribute('data-iso');
-              if (inp.value) regDiario[iso] = inp.value.toUpperCase();
-            });
-
-            payload.push({
-              curso_id: cursoId,
-              estudiante_id: estId,
-              trimestre: trimestre,
-              parcial: parcial,
-              registro_diario: regDiario,
-              total_asistencias: parseInt(tr.querySelector('.sum-a').innerText) || 0,
-              total_faltas: parseInt(tr.querySelector('.sum-f').innerText) || 0,
-              total_justificadas: parseInt(tr.querySelector('.sum-j').innerText) || 0,
-              total_dias: parseInt(tr.querySelector('.total-asist').innerText) || 0,
-              dias_faltantes: parseInt(tr.querySelector('.dias-faltantes').innerText) || 0
-            });
-          }
-        });
-
-        const { error } = await supabaseClient.from('asistencia_estudiantes').upsert(payload, { onConflict: 'curso_id,estudiante_id,trimestre,parcial' });
-        if (error) throw error;
-        alert('¡Control de Asistencia guardado con éxito!');
-      } catch (err) {
-        alert('Error al guardar asistencia: ' + err.message);
-      } finally {
-        btn.disabled = false;
-        btn.innerText = '💾 Guardar';
-      }
-    }
-
     async function guardarDatos() {
       const asigId = document.getElementById('selectMateria').value.trim();
       const trimestreVal = document.getElementById('selectTrimestre').value;
       const vistaVal = document.getElementById('selectVista').value;
 
-      if (vistaVal === 'comp1' || vistaVal === 'comp2') {
-        const parcialNum = vistaVal === 'comp1' ? 1 : 2;
-        const trimestre = parseInt(trimestreVal);
-        const btn = document.getElementById('btnGuardarComp');
-        btn.disabled = true;
-
-        try {
-          const filas = document.querySelectorAll('#tablaCuerpoComp tr');
-          const payload = [];
-
-          filas.forEach(tr => {
-            const estId = tr.getAttribute('data-estudiante-id');
-            if (estId) {
-              payload.push({
-                asignacion_id: parseInt(asigId), estudiante_id: parseInt(estId), trimestre: trimestre, parcial: parcialNum,
-                ind1: parseFloat(tr.querySelector('.c-ind1').value) || 0, ind2: parseFloat(tr.querySelector('.c-ind2').value) || 0, ind3: parseFloat(tr.querySelector('.c-ind3').value) || 0, ind4: parseFloat(tr.querySelector('.c-ind4').value) || 0, ind5: parseFloat(tr.querySelector('.c-ind5').value) || 0, ind6: parseFloat(tr.querySelector('.c-ind6').value) || 0, ind7: parseFloat(tr.querySelector('.c-ind7').value) || 0, ind8: parseFloat(tr.querySelector('.c-ind8').value) || 0, ind9: parseFloat(tr.querySelector('.c-ind9').value) || 0, ind10: parseFloat(tr.querySelector('.c-ind10').value) || 0,
-                total_cuantitativo: parseFloat(tr.querySelector('.total-cuant').innerText) || 0, total_cualitativo: tr.querySelector('.total-cualit').innerText
-              });
-            }
-          });
-
-          const { error } = await supabaseClient.from('comportamiento_parcial').upsert(payload, { onConflict: 'asignacion_id,estudiante_id,trimestre,parcial' });
-          if (error) throw error;
-          alert('¡Comportamiento guardado con éxito!');
-        } catch (err) { alert('Error: ' + err.message); } finally { btn.disabled = false; }
-
-      } else if (trimestreVal !== 'anual' && (vistaVal === 'p1' || vistaVal === 'p2')) {
+      if (trimestreVal !== 'anual' && (vistaVal === 'p1' || vistaVal === 'p2')) {
         const parcialNum = vistaVal === 'p1' ? 1 : 2;
         const trimestre = parseInt(trimestreVal);
         const btn = document.getElementById('btnGuardarParcial');
@@ -2626,1164 +1727,21 @@
         }
       });
     });
-    // =========================================================================
-    // EXPORTAR SÁBANA GENERAL DE TUTORÍA EN PDF
-    // =========================================================================
-    // =========================================================================
-    // EXPORTAR SÁBANA GENERAL DE TUTORÍA EN PDF
-    // =========================================================================
-    async function exportarSabanaTutoriaPDF() {
-      if (!datosConsolidadoTutoria || datosConsolidadoTutoria.length === 0) return alert('No hay datos para exportar.');
 
-      const btn = document.getElementById('btnDescargarSabanaTutoria');
-      const originalHtml = btn.innerHTML;
+    async function generarAuditoriaNotas() {
+      const btn = document.getElementById('btnGenerarAuditoria');
       btn.disabled = true;
-      btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Escaneando...';
+
+      const trim = parseInt(document.getElementById('audTrimestre').value);
+      const parc = parseInt(document.getElementById('audParcial').value);
 
       try {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-
-        const cursoId = document.getElementById('selectCurso').value;
-        const trimestre = parseInt(document.getElementById('selectTrimestre').value);
-        const reporteTipo = document.getElementById('selectParcialTutoria').value;
-
-        const cursoInfo = todosCursos.find(c => String(c.id) === String(cursoId));
-        const nombreCursoLargo = (cursoInfo?.nombre_largo_mayuscula || cursoInfo?.nombre || '').toUpperCase();
-        
-        const nomArriba = (infoInstitucion?.nombre_arriba || 'Unidad Educativa Particular').toUpperCase();
-        const nomAbajo = (infoInstitucion?.nombre_abajo || '"Vicente Rocafuerte"').toUpperCase();
-        const periodo = infoInstitucion?.periodo_lectivo || '2026-2027';
-        const amie = infoInstitucion?.amie || '13H03021';
-        const distrito = infoInstitucion?.distrito || '13D08';
-        const circuito = infoInstitucion?.circuito || '13D08C0_b';
-        const dir1 = infoInstitucion?.direccion_1 || 'Pichincha - Manabí - Ecuador';
-        const frase1 = infoInstitucion?.frase_1 ? `"${infoInstitucion.frase_1}"` : '';
-
-        // OBTENER NOMBRE DEL TUTOR REAL
-        let nombreDocenteTutor = 'DOCENTE TUTOR';
-        if (cursoInfo && cursoInfo.tutor_id) {
-          try {
-            const { data: prof } = await supabaseClient.from('perfiles').select('titulo, nombres, apellidos').eq('id', cursoInfo.tutor_id).maybeSingle();
-            if (prof) {
-               nombreDocenteTutor = `${prof.titulo ? prof.titulo + ' ' : ''}${prof.nombres} ${prof.apellidos || ''}`.trim().toUpperCase();
-            }
-          } catch(e) {}
-        }
-
-        const nombreSecretaria = 'C.P.A. MERCEDES A. SALAMEA M.';
-        const nombreRector = 'ING. DÍDIMO A. SALTOS S.';
-
-        const imgLogoIzq = await obtenerBase64DesdeUrl(infoInstitucion?.logo_izquierdo || infoInstitucion?.logo_institucion);
-        const imgLogoDer = await obtenerBase64DesdeUrl(infoInstitucion?.logo_derecho || infoInstitucion?.escudo_nacional);
-
-        const usuarioDescarga = usuarioActualPerfil ? `${usuarioActualPerfil.nombres} ${usuarioActualPerfil.apellidos || ''}`.trim().toUpperCase() : 'USUARIO DESCONOCIDO';
-        const fechaActual = new Date().toLocaleString('es-EC');
-        const tituloPeriodo = reporteTipo === 'trimestre' ? `${trimestre}° TRIMESTRE (CONSOLIDADO)` : `${trimestre}° TRIMESTRE - PARCIAL ${reporteTipo}`;
-
-        const materiasInfo = datosConsolidadoTutoria[0]?.materias || [];
-        
-        // ESTRUCTURACIÓN DE DATOS A 2 DECIMALES
-        const bodyData = datosConsolidadoTutoria.map(d => {
-            const row = [d.num, d.nombres];
-            d.materias.forEach(m => row.push(parseFloat(m.notaNum).toFixed(2))); 
-            row.push(parseFloat(d.promedioGeneral).toFixed(2));
-            row.push(d.comportamientoLetra);
-            row.push(`${d.asistencia.asistidos}/${d.asistencia.totalDias}`);
-            return row;
-        });
-
-        const headerRow1 = [
-            { content: 'N°', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } },
-            { content: 'NÓMINA DE ESTUDIANTES', rowSpan: 2, styles: { valign: 'middle', halign: 'left' } },
-            { content: `CALIFICACIONES POR ASIGNATURA (${tituloPeriodo})`, colSpan: materiasInfo.length, styles: { halign: 'center', fillColor: [30, 41, 59] } },
-            { content: 'PROM.\nGEN.', rowSpan: 2, styles: { valign: 'middle', halign: 'center', fillColor: [13, 110, 253] } },
-            { content: 'COMP.', rowSpan: 2, styles: { valign: 'middle', halign: 'center', fillColor: [25, 135, 84] } },
-            { content: 'ASIST.', rowSpan: 2, styles: { valign: 'middle', halign: 'center', fillColor: [108, 117, 125] } }
-        ];
-
-        const headerRow2 = materiasInfo.map(m => ({ content: m.materiaNombre, styles: { halign: 'center', fontSize: 5.5 } }));
-
-        doc.autoTable({
-          head: [headerRow1, headerRow2],
-          body: bodyData,
-          margin: { top: 46, bottom: 32, left: 10, right: 10 },
-          theme: 'grid',
-          rowPageBreak: 'avoid', // EVITA QUE UN ESTUDIANTE SE ROMPA A LA MITAD Y PASE A OTRA HOJA
-          styles: { fontSize: 6.5, cellPadding: 1, lineColor: [200, 200, 200], lineWidth: 0.1, valign: 'middle', halign: 'center', overflow: 'linebreak' }, // EVITA CORTES RAROS EN PALABRAS
-          headStyles: { textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 6.5, halign: 'center' },
-          columnStyles: {
-            0: { cellWidth: 7, halign: 'center' },
-            1: { cellWidth: 42, halign: 'left' }
-          },
-          didDrawPage: function (data) {
-            const pageNumber = doc.internal.getNumberOfPages();
-            const pageWidth = doc.internal.pageSize.getWidth();
-            const pageHeight = doc.internal.pageSize.getHeight();
-
-            // MARCA DE AGUA (Suave y Menos visible)
-            doc.saveGraphicsState();
-            doc.setGState(new doc.GState({ opacity: 0.12 })); 
-            doc.setTextColor(150, 150, 150); 
-            doc.setFontSize(35); 
-            doc.setFont('helvetica', 'bold');
-            doc.text(`DESCARGADO POR: ${usuarioDescarga}`, pageWidth / 2, pageHeight / 2 - 15, { align: 'center', angle: 30 });
-            doc.text(`EL: ${fechaActual}`, pageWidth / 2, pageHeight / 2 + 15, { align: 'center', angle: 30 });
-            doc.restoreGraphicsState();
-
-            // HEADER
-            if (imgLogoIzq) { try { doc.addImage(imgLogoIzq, 'PNG', 12, 7, 22, 22); } catch(e){} }
-            if (imgLogoDer) { try { doc.addImage(imgLogoDer, 'PNG', 263, 7, 22, 22); } catch(e){} }
-
-            doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(30, 41, 59); 
-            doc.text(nomArriba, 148.5, 11, { align: 'center' });
-            doc.setFontSize(13); doc.text(nomAbajo, 148.5, 16, { align: 'center' });
-            
-            doc.setFontSize(9.5); 
-            doc.text(`SÁBANA DE RENDIMIENTO ACADÉMICO Y TUTORÍA`, 148.5, 21, { align: 'center' });
-
-            doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(71, 85, 105); 
-            doc.text(`AMIE: ${amie} | DISTRITO: ${distrito} | CIRCUITO: ${circuito} | ${dir1} | AÑO LECTIVO: ${periodo}`, 148.5, 25.5, { align: 'center' });
-            if (frase1) { doc.setFont('helvetica', 'italic'); doc.text(frase1, 148.5, 29, { align: 'center' }); }
-
-            doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(15, 23, 42); doc.setDrawColor(203, 213, 225); doc.setLineWidth(0.3); doc.line(12, 33, 285, 33);
-            doc.text(`CURSO: ${nombreCursoLargo}`, 12, 38); 
-            
-            doc.text(`TUTOR RESPONSABLE: ${nombreDocenteTutor}`, 285, 38, { align: 'right' }); 
-            doc.line(12, 40, 285, 40);
-
-            // FOOTER CON FIRMAS: NOMBRES NORMALES Y CARGOS NEGRITA
-            const footerY = 188; 
-            doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(30, 41, 59); doc.setLineWidth(0.2); 
-            doc.line(25, footerY, 85, footerY); doc.line(118, footerY, 178, footerY); doc.line(212, footerY, 272, footerY);
-
-            // NOMBRES NORMALES ARRIBA
-            doc.setFont('helvetica', 'normal');
-            doc.text(nombreDocenteTutor, 55, footerY + 4, { align: 'center' });
-            doc.text(nombreSecretaria, 148.5, footerY + 4, { align: 'center' });
-            doc.text(nombreRector, 242, footerY + 4, { align: 'center' });
-
-            // CARGOS NEGRITAS ABAJO
-            doc.setFont('helvetica', 'bold');
-            doc.text('DOCENTE TUTOR', 55, footerY + 7.5, { align: 'center' });
-            doc.text('SECRETARIO/A GENERAL', 148.5, footerY + 7.5, { align: 'center' });
-            doc.text('RECTOR / DIRECTOR', 242, footerY + 7.5, { align: 'center' });
-
-            doc.setFontSize(7); doc.setTextColor(148, 163, 184); 
-            doc.text(`Página ${pageNumber}`, 285, 202, { align: 'right' });
-          }
-        });
-
-        doc.save(`Sabana_Tutoria_${nombreCursoLargo.replace(/\s+/g, '_')}_${tituloPeriodo.replace(/\s+/g, '_')}.pdf`);
-      } catch (err) {
-        alert('Error al exportar PDF: ' + err.message);
-      } finally {
-        btn.disabled = false;
-        btn.innerHTML = originalHtml;
-      }
-    }
-    // =========================================================================
-    // EXPORTAR ASISTENCIA A PDF (CON MARCA DE AGUA Y FIRMAS)
-    // =========================================================================
-    async function exportarAsistenciaPDF() {
-      const cursoId = document.getElementById('selectCurso').value.trim();
-      const cursoInfo = todosCursos.find(c => String(c.id) === String(cursoId));
-      if (!cursoInfo) return alert('Seleccione un curso.');
-
-      if (!diasHabilesParcialActual || diasHabilesParcialActual.length === 0) {
-        return alert('No hay datos de asistencia cargados en pantalla.');
-      }
-
-      const btn = document.getElementById('btnDescargarAsistenciaPDF');
-      const originalHtml = btn.innerHTML;
-      btn.disabled = true;
-      btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
-
-      try {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-
-        const nomArriba = (infoInstitucion?.nombre_arriba || 'Unidad Educativa Particular').toUpperCase();
-        const nomAbajo = (infoInstitucion?.nombre_abajo || '"Vicente Rocafuerte"').toUpperCase();
-        const periodo = infoInstitucion?.periodo_lectivo || '2026-2027';
-        const amie = infoInstitucion?.amie || '13H03021';
-        const distrito = infoInstitucion?.distrito || '13D08';
-        const circuito = infoInstitucion?.circuito || '13D08C0_b';
-        const dir1 = infoInstitucion?.direccion_1 || 'Pichincha - Manabí - Ecuador';
-        const frase1 = infoInstitucion?.frase_1 ? `"${infoInstitucion.frase_1}"` : '';
-
-        const nombreCursoLargo = (cursoInfo?.nombre_largo_mayuscula || cursoInfo?.nombre || '').toUpperCase();
-        const trimestreVal = document.getElementById('selectTrimestre').value;
-        const selectParcial = document.getElementById('selectParcialAsistencia');
-        const nombreParcial = selectParcial.options[selectParcial.selectedIndex].text.toUpperCase();
-
-        // OBTENER NOMBRE DEL TUTOR REAL
-        let nombreDocenteTutor = 'DOCENTE TUTOR';
-        if (cursoInfo && cursoInfo.tutor_id) {
-          try {
-            const { data: prof } = await supabaseClient.from('perfiles').select('titulo, nombres, apellidos').eq('id', cursoInfo.tutor_id).maybeSingle();
-            if (prof) {
-               nombreDocenteTutor = `${prof.titulo ? prof.titulo + ' ' : ''}${prof.nombres} ${prof.apellidos || ''}`.trim().toUpperCase();
-            }
-          } catch(e) {}
-        }
-
-        const nombreSecretaria = 'C.P.A. MERCEDES A. SALAMEA M.';
-        const nombreRector = 'ING. DÍDIMO A. SALTOS S.';
-
-        const imgLogoIzq = await obtenerBase64DesdeUrl(infoInstitucion?.logo_izquierdo || infoInstitucion?.logo_institucion);
-        const imgLogoDer = await obtenerBase64DesdeUrl(infoInstitucion?.logo_derecho || infoInstitucion?.escudo_nacional);
-
-        const usuarioDescarga = usuarioActualPerfil ? `${usuarioActualPerfil.nombres} ${usuarioActualPerfil.apellidos || ''}`.trim().toUpperCase() : 'USUARIO DESCONOCIDO';
-        const fechaActual = new Date().toLocaleString('es-EC');
-
-        // EXTRACCIÓN DE DATOS DE LA TABLA
-        const bodyData = [];
-        document.querySelectorAll('#tablaCuerpoAsistencia tr').forEach(tr => {
-            const num = tr.querySelector('.sticky-col-num').innerText;
-            const nom = tr.querySelector('.sticky-col-nombre').getAttribute('title') || tr.querySelector('.sticky-col-nombre').innerText;
-            const rowData = [num, nom];
-            
-            // Asistencias Diarias
-            tr.querySelectorAll('.cell-asig-input').forEach(inp => rowData.push(inp.value || ''));
-            
-            // Resúmenes de Asistencia
-            rowData.push(tr.querySelector('.sum-a').innerText);
-            rowData.push(tr.querySelector('.sum-f').innerText);
-            rowData.push(tr.querySelector('.sum-j').innerText);
-            rowData.push(tr.querySelector('.total-asist').innerText);
-            rowData.push(tr.querySelector('.dias-faltantes').innerText);
-            
-            bodyData.push(rowData);
-        });
-
-        // AGRUPACIÓN DE MESES
-        const mesesColspan = {};
-        diasHabilesParcialActual.forEach(d => { mesesColspan[d.nombreMes] = (mesesColspan[d.nombreMes] || 0) + 1; });
-
-        // FILA DE CABECERA 1
-        const headerRow1 = [
-            { content: 'N°', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } },
-            { content: 'NÓMINA DE ESTUDIANTES', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } }
-        ];
-        
-        for (const [mes, span] of Object.entries(mesesColspan)) { 
-            headerRow1.push({ content: mes.toUpperCase(), colSpan: span, styles: { halign: 'center' } });
-        }
-        
-        headerRow1.push({ content: 'RESUMEN', colSpan: 3, styles: { halign: 'center', fillColor: [30, 41, 59] } });
-        headerRow1.push({ content: 'TOT.', rowSpan: 2, styles: { valign: 'middle', halign: 'center', fillColor: [25, 135, 84] } });
-        headerRow1.push({ content: 'FALT.', rowSpan: 2, styles: { valign: 'middle', halign: 'center', fillColor: [108, 117, 125] } });
-
-        // FILA DE CABECERA 2
-        const headerRow2 = [];
-        diasHabilesParcialActual.forEach(d => {
-            headerRow2.push({ content: `${d.diaNum}\n${d.nombreDia.substring(0,2)}`, styles: { halign: 'center', fontSize: 5, cellPadding: 0.5 } });
-        });
-        
-        headerRow2.push({ content: 'A', styles: { halign: 'center', fillColor: [220, 252, 231], textColor: [21, 128, 61] } });
-        headerRow2.push({ content: 'F', styles: { halign: 'center', fillColor: [254, 226, 226], textColor: [220, 38, 38] } });
-        headerRow2.push({ content: 'J', styles: { halign: 'center', fillColor: [219, 234, 254], textColor: [29, 78, 216] } });
-
-        doc.autoTable({
-          head: [headerRow1, headerRow2],
-          body: bodyData,
-          margin: { top: 46, bottom: 32, left: 10, right: 10 },
-          theme: 'grid',
-          rowPageBreak: 'avoid',
-          styles: { fontSize: 5.5, cellPadding: 0.8, lineColor: [200, 200, 200], lineWidth: 0.1, valign: 'middle', halign: 'center', overflow: 'linebreak' },
-          headStyles: { textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 6, halign: 'center', fillColor: [30, 41, 59] },
-          columnStyles: {
-            0: { cellWidth: 6, halign: 'center' },
-            1: { cellWidth: 42, halign: 'left' }
-          },
-          didParseCell: function(data) {
-            if (data.section === 'body') {
-              const startDaysIdx = 2;
-              const endDaysIdx = 2 + diasHabilesParcialActual.length;
-              
-              // Pintar letras A, F, J en las columnas de días (tal cual la web)
-              if (data.column.index >= startDaysIdx && data.column.index < endDaysIdx) {
-                const val = data.cell.raw;
-                if (val === 'A') { data.cell.styles.textColor = [21, 128, 61]; data.cell.styles.fontStyle = 'bold'; }
-                else if (val === 'F') { data.cell.styles.textColor = [220, 38, 38]; data.cell.styles.fontStyle = 'bold'; }
-                else if (val === 'J') { data.cell.styles.textColor = [29, 78, 216]; data.cell.styles.fontStyle = 'bold'; }
-              }
-            }
-          },
-          didDrawPage: function (data) {
-            const pageNumber = doc.internal.getNumberOfPages();
-            const pageWidth = doc.internal.pageSize.getWidth();
-            const pageHeight = doc.internal.pageSize.getHeight();
-
-            // MARCA DE AGUA
-            doc.saveGraphicsState();
-            doc.setGState(new doc.GState({ opacity: 0.12 })); 
-            doc.setTextColor(150, 150, 150); 
-            doc.setFontSize(35); 
-            doc.setFont('helvetica', 'bold');
-            doc.text(`DESCARGADO POR: ${usuarioDescarga}`, pageWidth / 2, pageHeight / 2 - 15, { align: 'center', angle: 30 });
-            doc.text(`EL: ${fechaActual}`, pageWidth / 2, pageHeight / 2 + 15, { align: 'center', angle: 30 });
-            doc.restoreGraphicsState();
-
-            // HEADER
-            if (imgLogoIzq) { try { doc.addImage(imgLogoIzq, 'PNG', 12, 7, 22, 22); } catch(e){} }
-            if (imgLogoDer) { try { doc.addImage(imgLogoDer, 'PNG', 263, 7, 22, 22); } catch(e){} }
-
-            doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(30, 41, 59); 
-            doc.text(nomArriba, 148.5, 11, { align: 'center' });
-            doc.setFontSize(13); doc.text(nomAbajo, 148.5, 16, { align: 'center' });
-            
-            doc.setFontSize(9.5); 
-            doc.text(`CONTROL DIARIO DE ASISTENCIA - TRIMESTRE ${trimestreVal} - ${nombreParcial}`, 148.5, 21, { align: 'center' });
-
-            doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(71, 85, 105); 
-            doc.text(`AMIE: ${amie} | DISTRITO: ${distrito} | CIRCUITO: ${circuito} | ${dir1} | AÑO LECTIVO: ${periodo}`, 148.5, 25.5, { align: 'center' });
-            if (frase1) { doc.setFont('helvetica', 'italic'); doc.text(frase1, 148.5, 29, { align: 'center' }); }
-
-            doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(15, 23, 42); doc.setDrawColor(203, 213, 225); doc.setLineWidth(0.3); doc.line(12, 33, 285, 33);
-            doc.text(`CURSO: ${nombreCursoLargo}`, 12, 38); 
-            
-            doc.text(`TUTOR RESPONSABLE: ${nombreDocenteTutor}`, 285, 38, { align: 'right' }); 
-            doc.line(12, 40, 285, 40);
-
-            // FOOTER CON FIRMAS INVERSAS
-            const footerY = 188; 
-            doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(30, 41, 59); doc.setLineWidth(0.2); 
-            doc.line(25, footerY, 85, footerY); doc.line(118, footerY, 178, footerY); doc.line(212, footerY, 272, footerY);
-
-            doc.setFont('helvetica', 'normal');
-            doc.text(nombreDocenteTutor, 55, footerY + 4, { align: 'center' });
-            doc.text(nombreSecretaria, 148.5, footerY + 4, { align: 'center' });
-            doc.text(nombreRector, 242, footerY + 4, { align: 'center' });
-
-            doc.setFont('helvetica', 'bold');
-            doc.text('DOCENTE TUTOR', 55, footerY + 7.5, { align: 'center' });
-            doc.text('SECRETARIO/A GENERAL', 148.5, footerY + 7.5, { align: 'center' });
-            doc.text('RECTOR / DIRECTOR', 242, footerY + 7.5, { align: 'center' });
-
-            doc.setFontSize(7); doc.setTextColor(148, 163, 184); 
-            doc.text(`Página ${pageNumber}`, 285, 202, { align: 'right' });
-          }
-        });
-
-        doc.save(`Asistencia_${nombreCursoLargo.replace(/\s+/g, '_')}_T${trimestreVal}_${nombreParcial.replace(/\s+/g, '_')}.pdf`);
-      } catch (err) {
-        alert('Error al exportar PDF: ' + err.message);
-      } finally {
-        btn.disabled = false;
-        btn.innerHTML = originalHtml;
-      }
-    }
-    // =========================================================================
-    // NUEVO MÓDULO: REPORTE TOTAL POR ESTUDIANTE (VISTA MÓVIL Y PDF)
-    // =========================================================================
-    let datosEstudianteActualReporte = null; // Variable global para pasar datos al PDF
-
-    async function cargarVistaListaEstudiantesReporte() {
-      const reqId = ++currentViewRequestId;
-      const cursoId = document.getElementById('selectCurso').value;
-      const contenedor = document.getElementById('contenedorTabla');
-      contenedor.innerHTML = '<div class="py-4 text-center"><div class="spinner-border text-primary me-2"></div>Cargando nómina de estudiantes...</div>';
-
-      try {
-        const { data: estData } = await supabaseClient.from('estudiantes').select('*').eq('curso_id', parseInt(cursoId)).order('nombres');
-        if (reqId !== currentViewRequestId) return;
-        
-        if (!estData || estData.length === 0) {
-          contenedor.innerHTML = '<div class="py-4 text-warning text-center fw-bold">No hay estudiantes en este curso.</div>';
-          return;
-        }
-
-        let html = `
-          <div class="p-3 bg-light border-bottom">
-            <h6 class="mb-0 text-primary fw-bold"><i class="bi bi-people-fill me-2"></i>Seleccione un estudiante para ver su historial:</h6>
-          </div>
-          <div class="list-group list-group-flush">
-            ${estData.map((est, idx) => `
-              <button type="button" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3" onclick="verDetalleEstudiante(${est.id}, '${est.nombres.replace(/'/g, "\\'")}', ${cursoId})">
-                <div>
-                  <span class="badge bg-secondary me-2">${idx + 1}</span>
-                  <span class="fw-bold text-dark" style="font-size:0.85rem;">${est.nombres}</span>
-                </div>
-                <i class="bi bi-chevron-right text-primary"></i>
-              </button>
-            `).join('')}
-          </div>
-        `;
-        contenedor.innerHTML = html;
-      } catch (err) {
-        if (reqId === currentViewRequestId) contenedor.innerHTML = `<div class="py-4 text-danger text-center fw-bold">Error: ${err.message}</div>`;
-      }
-    }
-
-    async function verDetalleEstudiante(estId, nombresEst, cursoId) {
-      const reqId = ++currentViewRequestId;
-      const contenedor = document.getElementById('contenedorTabla');
-      contenedor.innerHTML = '<div class="py-5 text-center"><div class="spinner-border text-primary" style="width: 3rem; height: 3rem;"></div><div class="mt-3 fw-bold text-muted">Recopilando el historial completo...</div></div>';
-
-      try {
-        // 1. Obtener materias del curso
-        const { data: asigCurso } = await supabaseClient.from('curso_materia_docente').select(`id, materia_id, es_optativa, materias(nombre)`).eq('curso_id', cursoId);
-        if (reqId !== currentViewRequestId) return;
-        let asignaciones = asigCurso || [];
-        asignaciones.sort((a, b) => a.es_optativa === b.es_optativa ? (a.materias?.nombre || '').localeCompare(b.materias?.nombre || '') : (a.es_optativa ? 1 : -1));
-        const asigIds = asignaciones.map(a => a.id);
-
-        // 2. Obtener TODAS las notas parciales, trimestrales, comportamiento y asistencia del estudiante
-        const [resNotas, resTrim, resComp, resAsist] = await Promise.all([
-          supabaseClient.from('notas_parcial_actividades').select('*').eq('estudiante_id', estId),
-          supabaseClient.from('notas_trimestre').select('*').eq('estudiante_id', estId),
-          supabaseClient.from('comportamiento_parcial').select('*').eq('estudiante_id', estId).eq('curso_id', cursoId),
-          supabaseClient.from('asistencia_estudiantes').select('*').eq('estudiante_id', estId)
-        ]);
-        if (reqId !== currentViewRequestId) return;
-
-        // 3. Procesar Asistencia (Contar SOLO las 'F' leyendo el registro diario y agrupar por trimestre)
-        const faltasDetalle = { 1: [], 2: [], 3: [] };
-        let totalFaltasInjustificadas = 0;
-        let totalDiasAsistidos = 0;
-
-        (resAsist.data || []).forEach(a => {
-            const trim = a.trimestre || 1;
-            totalDiasAsistidos += (a.total_asistencias || 0);
-
-            // Leer directamente de la base de datos el calendario diario
-            if (a.registro_diario && typeof a.registro_diario === 'object') {
-                for (const [fecha, estado] of Object.entries(a.registro_diario)) {
-                    if (String(estado).toUpperCase() === 'F') {
-                        if (!faltasDetalle[trim]) faltasDetalle[trim] = [];
-                        faltasDetalle[trim].push(fecha);
-                        totalFaltasInjustificadas++;
-                    }
-                }
-            }
-        });
-
-        // Ordenar las fechas de las faltas
-        [1, 2, 3].forEach(t => { if (faltasDetalle[t]) faltasDetalle[t].sort(); });
-
-        // 4. Estructurar Datos Académicos por Materia
-        const matrizNotas = {};
-        asignaciones.forEach(a => {
-          matrizNotas[a.id] = { nombre: a.materias?.nombre, es_optativa: a.es_optativa, t1: {p1:0, p2:0, ex:0}, t2: {p1:0, p2:0, ex:0}, t3: {p1:0, p2:0, ex:0} };
-        });
-
-        (resNotas.data || []).forEach(n => {
-          if (matrizNotas[n.asignacion_id] && matrizNotas[n.asignacion_id][`t${n.trimestre}`]) {
-             if (n.parcial === 1) matrizNotas[n.asignacion_id][`t${n.trimestre}`].p1 = n.nota_parcial || 0;
-             if (n.parcial === 2) matrizNotas[n.asignacion_id][`t${n.trimestre}`].p2 = n.nota_parcial || 0;
-          }
-        });
-
-        (resTrim.data || []).forEach(t => {
-          if (matrizNotas[t.asignacion_id] && matrizNotas[t.asignacion_id][`t${t.trimestre}`]) {
-             matrizNotas[t.asignacion_id][`t${t.trimestre}`].ex = t.examen || 0;
-          }
-        });
-
-        // 5. Procesar Comportamiento Global
-        let sumaComp = 0, cantComp = 0;
-        (resComp.data || []).forEach(c => {
-           sumaComp += (parseFloat(c.total_cuantitativo) || 10);
-           cantComp++;
-        });
-        const compGeneralNum = cantComp > 0 ? (sumaComp / cantComp) : 10;
-        const compGeneralLetra = convertirCualitativo(compGeneralNum);
-
-        // 6. Calcular Promedios y preparar HTML Acordeón
-        let sumaPromediosGlobales = 0;
-        let materiasObligatorias = 0;
-        let materiasProcesadasParaPDF = [];
-
-        let htmlAcordeon = asignaciones.map((a, idx) => {
-          const m = matrizNotas[a.id];
-          const t1_prom = (m.t1.p1 * 0.35) + (m.t1.p2 * 0.35) + (m.t1.ex * 0.30);
-          const t2_prom = (m.t2.p1 * 0.35) + (m.t2.p2 * 0.35) + (m.t2.ex * 0.30);
-          const t3_prom = (m.t3.p1 * 0.35) + (m.t3.p2 * 0.35) + (m.t3.ex * 0.30);
-          const promAnual = (t1_prom + t2_prom + t3_prom) / 3;
-          
-          if (!m.es_optativa) { sumaPromediosGlobales += promAnual; materiasObligatorias++; }
-
-          materiasProcesadasParaPDF.push({
-             nombre: m.nombre, optativa: m.es_optativa,
-             t1_p1: m.t1.p1, t1_p2: m.t1.p2, t1_ex: m.t1.ex, t1_prom,
-             t2_p1: m.t2.p1, t2_p2: m.t2.p2, t2_ex: m.t2.ex, t2_prom,
-             t3_p1: m.t3.p1, t3_p2: m.t3.p2, t3_ex: m.t3.ex, t3_prom,
-             promAnual
-          });
-
-          return `
-            <div class="accordion-item border-0 border-bottom mb-1 shadow-sm">
-              <h2 class="accordion-header" id="heading${idx}">
-                <button class="accordion-button collapsed py-2" type="button" data-bs-toggle="collapse" data-bs-target="#collapse${idx}" style="font-size:0.8rem; font-weight:600;">
-                  <div class="d-flex justify-content-between w-100 pe-3 align-items-center">
-                    <span class="text-truncate" style="max-width: 65%;">${m.nombre}</span>
-                    <span class="badge ${m.es_optativa ? 'bg-secondary' : obtenerClaseColor(promAnual, true)} fs-6">${m.es_optativa ? obtenerEscalaCualitativa(promAnual) : promAnual.toFixed(2)}</span>
-                  </div>
-                </button>
-              </h2>
-              <div id="collapse${idx}" class="accordion-collapse collapse" data-bs-parent="#acordeonMaterias">
-                <div class="accordion-body p-2 bg-light">
-                  <table class="table table-bordered table-sm text-center mb-0" style="font-size:0.7rem;">
-                    <thead class="table-dark"><tr><th>Trimestre</th><th>P1 (35%)</th><th>P2 (35%)</th><th>Ex. (30%)</th><th>Promedio</th></tr></thead>
-                    <tbody>
-                      <tr><td class="fw-bold">1er Trim.</td><td>${m.t1.p1.toFixed(2)}</td><td>${m.t1.p2.toFixed(2)}</td><td>${m.t1.ex.toFixed(2)}</td><td class="fw-bold">${t1_prom.toFixed(2)}</td></tr>
-                      <tr><td class="fw-bold">2do Trim.</td><td>${m.t2.p1.toFixed(2)}</td><td>${m.t2.p2.toFixed(2)}</td><td>${m.t2.ex.toFixed(2)}</td><td class="fw-bold">${t2_prom.toFixed(2)}</td></tr>
-                      <tr><td class="fw-bold">3er Trim.</td><td>${m.t3.p1.toFixed(2)}</td><td>${m.t3.p2.toFixed(2)}</td><td>${m.t3.ex.toFixed(2)}</td><td class="fw-bold">${t3_prom.toFixed(2)}</td></tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          `;
-        }).join('');
-
-        const promGlobal = materiasObligatorias > 0 ? (sumaPromediosGlobales / materiasObligatorias) : 0;
-
-        // 7. Guardar en memoria global para el PDF
-        datosEstudianteActualReporte = {
-           estId, nombresEst, cursoId, promGlobal, compGeneralNum, compGeneralLetra, totalFaltasInjustificadas, totalDiasAsistidos,
-           materias: materiasProcesadasParaPDF
-        };
-
-        // Función para renderizar el detalle de fechas
-        const renderFechas = (fechas) => fechas.length > 0 ? fechas.map(f => `<li class="list-group-item py-1 text-danger" style="font-size: 0.75rem;"><i class="bi bi-x-circle-fill me-2"></i>${f}</li>`).join('') : '<li class="list-group-item py-1 text-success" style="font-size: 0.75rem;"><i class="bi bi-check-circle-fill me-2"></i>Sin faltas</li>';
-
-        // 8. DIBUJAR INTERFAZ (Dashboard y Modal integrados)
-        contenedor.innerHTML = `
-          <div class="p-2 mb-2 d-flex justify-content-between align-items-center border-bottom bg-white sticky-top" style="z-index: 5;">
-             <button class="btn btn-sm btn-outline-secondary" onclick="cargarVistaListaEstudiantesReporte()"><i class="bi bi-arrow-left"></i> Volver</button>
-             <button class="btn btn-sm btn-danger fw-bold shadow-sm" onclick="exportarReporteEstudiantePDF()"><i class="bi bi-file-pdf-fill me-1"></i> Descargar PDF</button>
-          </div>
-          <div class="px-2 pb-3">
-             <div class="text-center mb-3">
-               <h5 class="fw-bold text-primary mb-0">${nombresEst}</h5>
-               <small class="text-muted">Historial de Rendimiento General</small>
-             </div>
-             
-             <div class="row g-2 mb-3 text-center">
-               <div class="col-4">
-                 <div class="p-2 border rounded bg-white shadow-sm h-100">
-                   <div style="font-size:0.65rem;" class="text-muted fw-bold text-uppercase mb-1">Prom. General</div>
-                   <h4 class="mb-0 fw-bold ${obtenerClaseColor(promGlobal, true)} p-1 rounded">${promGlobal.toFixed(2)}</h4>
-                 </div>
-               </div>
-               <div class="col-4">
-                 <div class="p-2 border rounded bg-white shadow-sm h-100">
-                   <div style="font-size:0.65rem;" class="text-muted fw-bold text-uppercase mb-1">Comportamiento</div>
-                   <h4 class="mb-0 fw-bold text-success p-1">${compGeneralLetra}</h4>
-                 </div>
-               </div>
-               <div class="col-4">
-                 <div class="p-2 border rounded bg-white shadow-sm h-100" style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#modalFaltasEstudiante">
-                   <div style="font-size:0.65rem;" class="text-muted fw-bold text-uppercase mb-1">Faltas (F)</div>
-                   <div class="d-flex justify-content-around mt-1 border-bottom pb-1">
-                     <div><small class="text-muted d-block" style="font-size:0.55rem;">T1</small><span class="fw-bold ${faltasDetalle[1].length > 0 ? 'text-danger' : 'text-success'}">${faltasDetalle[1].length}</span></div>
-                     <div><small class="text-muted d-block" style="font-size:0.55rem;">T2</small><span class="fw-bold ${faltasDetalle[2].length > 0 ? 'text-danger' : 'text-success'}">${faltasDetalle[2].length}</span></div>
-                     <div><small class="text-muted d-block" style="font-size:0.55rem;">T3</small><span class="fw-bold ${faltasDetalle[3].length > 0 ? 'text-danger' : 'text-success'}">${faltasDetalle[3].length}</span></div>
-                   </div>
-                   <div class="mt-1 text-primary fw-bold" style="font-size: 0.60rem;"><i class="bi bi-hand-index-thumb"></i> Ver Fechas</div>
-                 </div>
-               </div>
-             </div>
-
-             <h6 class="fw-bold border-bottom pb-1 text-secondary"><i class="bi bi-journal-text me-1"></i>Detalle de Asignaturas</h6>
-             <div class="accordion" id="acordeonMaterias">
-                ${htmlAcordeon}
-             </div>
-          </div>
-
-          <!-- Modal Faltas Detalladas -->
-          <div class="modal fade" id="modalFaltasEstudiante" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered modal-sm">
-              <div class="modal-content border-0 shadow">
-                <div class="modal-header bg-danger text-white py-2">
-                  <h6 class="modal-title fw-bold mb-0"><i class="bi bi-calendar-x"></i> Detalle de Faltas (F)</h6>
-                  <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body p-0">
-                  <ul class="list-group list-group-flush text-start">
-                    <li class="list-group-item bg-light fw-bold text-dark py-1" style="font-size: 0.75rem;">1er Trimestre <span class="badge bg-danger float-end">${faltasDetalle[1].length}</span></li>
-                    ${renderFechas(faltasDetalle[1])}
-                    
-                    <li class="list-group-item bg-light fw-bold text-dark py-1" style="font-size: 0.75rem;">2do Trimestre <span class="badge bg-danger float-end">${faltasDetalle[2].length}</span></li>
-                    ${renderFechas(faltasDetalle[2])}
-                    
-                    <li class="list-group-item bg-light fw-bold text-dark py-1" style="font-size: 0.75rem;">3er Trimestre <span class="badge bg-danger float-end">${faltasDetalle[3].length}</span></li>
-                    ${renderFechas(faltasDetalle[3])}
-                  </ul>
-                </div>
-              </div>
-            </div>
-          </div>
-        `;
-
-      } catch (err) {
-        if (reqId === currentViewRequestId) contenedor.innerHTML = `<div class="py-4 text-danger text-center fw-bold">Error: ${err.message}</div>`;
-      }
-    }
-
-    async function exportarReporteEstudiantePDF() {
-      if (!datosEstudianteActualReporte) return;
-      const { jsPDF } = window.jspdf; 
-      const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-      
-      const btn = document.querySelector('button[onclick="exportarReporteEstudiantePDF()"]');
-      const originalHtml = btn.innerHTML;
-      btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
-
-      try {
-        const d = datosEstudianteActualReporte;
-        const cursoInfo = todosCursos.find(c => String(c.id) === String(d.cursoId));
-        const nombreCursoLargo = (cursoInfo?.nombre_largo_mayuscula || cursoInfo?.nombre || '').toUpperCase();
-        
-        let nombreDocenteTutor = 'DOCENTE TUTOR';
-        if (cursoInfo && cursoInfo.tutor_id) {
-          try {
-            const { data: prof } = await supabaseClient.from('perfiles').select('titulo, nombres, apellidos').eq('id', cursoInfo.tutor_id).maybeSingle();
-            if (prof) nombreDocenteTutor = `${prof.titulo ? prof.titulo + ' ' : ''}${prof.nombres} ${prof.apellidos || ''}`.trim().toUpperCase();
-          } catch(e) {}
-        }
-
-        const imgLogoIzq = await obtenerBase64DesdeUrl(infoInstitucion?.logo_izquierdo || infoInstitucion?.logo_institucion);
-        const imgLogoDer = await obtenerBase64DesdeUrl(infoInstitucion?.logo_derecho || infoInstitucion?.escudo_nacional);
-        const usuarioDescarga = usuarioActualPerfil ? `${usuarioActualPerfil.nombres} ${usuarioActualPerfil.apellidos || ''}`.trim().toUpperCase() : 'USUARIO';
-        const fechaActual = new Date().toLocaleString('es-EC');
-
-        // ARMADO DE TABLA PARA PDF
-        const bodyData = d.materias.map((m, i) => [
-            i + 1, 
-            m.nombre + (m.optativa ? ' (Opt)' : ''),
-            m.t1_p1.toFixed(2), m.t1_p2.toFixed(2), m.t1_ex.toFixed(2), m.t1_prom.toFixed(2),
-            m.t2_p1.toFixed(2), m.t2_p2.toFixed(2), m.t2_ex.toFixed(2), m.t2_prom.toFixed(2),
-            m.t3_p1.toFixed(2), m.t3_p2.toFixed(2), m.t3_ex.toFixed(2), m.t3_prom.toFixed(2),
-            m.optativa ? obtenerEscalaCualitativa(m.promAnual) : m.promAnual.toFixed(2)
-        ]);
-
-        const headers = [
-          [
-            { content: 'N°', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } },
-            { content: 'ASIGNATURAS', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } },
-            { content: '1ER TRIMESTRE', colSpan: 4, styles: { halign: 'center', fillColor: [30, 41, 59] } },
-            { content: '2DO TRIMESTRE', colSpan: 4, styles: { halign: 'center', fillColor: [15, 23, 42] } },
-            { content: '3ER TRIMESTRE', colSpan: 4, styles: { halign: 'center', fillColor: [30, 41, 59] } },
-            { content: 'PROM.\nANUAL', rowSpan: 2, styles: { valign: 'middle', halign: 'center', fillColor: [13, 110, 253] } }
-          ],
-          [
-            {content:'P1'},{content:'P2'},{content:'EX'},{content:'PROM', styles:{fillColor:[241,245,249], textColor:[0,0,0]}},
-            {content:'P1'},{content:'P2'},{content:'EX'},{content:'PROM', styles:{fillColor:[241,245,249], textColor:[0,0,0]}},
-            {content:'P1'},{content:'P2'},{content:'EX'},{content:'PROM', styles:{fillColor:[241,245,249], textColor:[0,0,0]}}
-          ]
-        ];
-
-        doc.autoTable({
-          head: headers, body: bodyData,
-          margin: { top: 48, bottom: 32, left: 10, right: 10 },
-          theme: 'grid',
-          styles: { fontSize: 7, cellPadding: 1.5, lineColor: [200, 200, 200], lineWidth: 0.1, valign: 'middle', halign: 'center' },
-          headStyles: { textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 6.5, halign: 'center' },
-          columnStyles: { 0: { cellWidth: 8 }, 1: { cellWidth: 55, halign: 'left' } },
-          didDrawPage: function (data) {
-            const pageWidth = doc.internal.pageSize.getWidth();
-            const pageHeight = doc.internal.pageSize.getHeight();
-
-            // MARCA DE AGUA
-            doc.saveGraphicsState();
-            doc.setGState(new doc.GState({ opacity: 0.15 })); 
-            doc.setTextColor(150, 150, 150); 
-            doc.setFontSize(30); doc.setFont('helvetica', 'bold');
-            doc.text(`DESCARGADO POR: ${usuarioDescarga}`, pageWidth / 2, pageHeight / 2 - 12, { align: 'center', angle: 30 });
-            doc.text(`EL: ${fechaActual}`, pageWidth / 2, pageHeight / 2 + 12, { align: 'center', angle: 30 });
-            doc.restoreGraphicsState();
-
-            // HEADER
-            if (imgLogoIzq) { try { doc.addImage(imgLogoIzq, 'PNG', 10, 7, 22, 22); } catch(e){} }
-            if (imgLogoDer) { try { doc.addImage(imgLogoDer, 'PNG', 265, 7, 22, 22); } catch(e){} }
-            doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(30, 41, 59); 
-            doc.text((infoInstitucion?.nombre_arriba || 'Unidad Educativa Particular').toUpperCase(), 148.5, 11, { align: 'center' });
-            doc.setFontSize(13); doc.text((infoInstitucion?.nombre_abajo || '"Vicente Rocafuerte"').toUpperCase(), 148.5, 16, { align: 'center' });
-            doc.setFontSize(9.5); doc.text(`REPORTE ACADÉMICO INTEGRAL DEL ESTUDIANTE`, 148.5, 21, { align: 'center' });
-            
-            doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setDrawColor(203, 213, 225); doc.setLineWidth(0.3); doc.line(10, 26, 287, 26);
-            doc.text(`ESTUDIANTE: ${d.nombresEst}`, 10, 31);
-            doc.text(`CURSO: ${nombreCursoLargo}`, 10, 36);
-            
-            // Cajas de resumen a la derecha
-            doc.setFillColor(241, 245, 249); doc.rect(190, 28, 97, 13, 'F'); doc.rect(190, 28, 97, 13, 'S');
-            doc.text(`PROM. GENERAL: ${d.promGlobal.toFixed(2)}`, 195, 33);
-            doc.text(`COMPORTAMIENTO: ${d.compGeneralLetra}`, 195, 38);
-            doc.setTextColor(220, 38, 38);
-            doc.text(`FALTAS INJUSTIFICADAS: ${d.totalFaltasInjustificadas}`, 240, 36);
-            doc.setTextColor(30, 41, 59);
-
-            // FOOTER CON FIRMA DEL TUTOR REAL
-            const footerY = 188; 
-            doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setLineWidth(0.2); 
-            doc.line(90, footerY, 200, footerY);
-            doc.text(nombreDocenteTutor, 145, footerY + 4, { align: 'center' });
-            doc.setFont('helvetica', 'bold');
-            doc.text('DOCENTE TUTOR RESPONSABLE', 145, footerY + 7.5, { align: 'center' });
-            doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(148, 163, 184); 
-            doc.text(`Página ${doc.internal.getNumberOfPages()}`, 285, 202, { align: 'right' });
-          }
-        });
-
-        doc.save(`Reporte_Integral_${d.nombresEst.replace(/\s+/g, '_')}.pdf`);
-      } catch (err) {
-        alert('Error al generar PDF: ' + err.message);
-      } finally {
-        btn.disabled = false; btn.innerHTML = originalHtml;
-      }
-    }
-    // =========================================================================
-    // NUEVO MÓDULO: CERTIFICADOS DE MATRÍCULA
-    // =========================================================================
-    function formatearFechaTexto(fechaIso) {
-      if (!fechaIso) return '';
-      const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
-      const partes = fechaIso.split('-');
-      if (partes.length !== 3) return fechaIso;
-      return `${meses[parseInt(partes[1]) - 1]} ${parseInt(partes[2])} del ${partes[0]}`;
-    }
-
-    async function cargarVistaCertificados() {
-      const reqId = ++currentViewRequestId;
-      const cursoId = document.getElementById('selectCurso').value;
-      const contenedor = document.getElementById('contenedorTabla');
-      contenedor.innerHTML = '<div class="py-4 text-center"><div class="spinner-border text-primary me-2"></div>Cargando nómina de estudiantes...</div>';
-
-      try {
-        const { data: estData } = await supabaseClient.from('estudiantes').select('*').eq('curso_id', parseInt(cursoId)).order('nombres');
-        if (reqId !== currentViewRequestId) return;
-        
-        estudiantes = estData || [];
-
-        // Colocar fecha actual por defecto en el input
-        const inputFecha = document.getElementById('fechaCertificado');
-        if (inputFecha && !inputFecha.value) {
-            const hoy = new Date();
-            const mes = String(hoy.getMonth() + 1).padStart(2, '0');
-            const dia = String(hoy.getDate()).padStart(2, '0');
-            inputFecha.value = `${hoy.getFullYear()}-${mes}-${dia}`;
-        }
-
-        if (estudiantes.length === 0) {
-          contenedor.innerHTML = '<div class="py-4 text-warning text-center fw-bold">No hay estudiantes en este curso.</div>';
-          return;
-        }
-
-        let html = `
-          <table class="table table-bordered table-sm mb-0 align-middle">
-            <thead class="table-dark">
-              <tr>
-                <th class="sticky-col-num">N°</th>
-                <th class="sticky-col-nombre text-center">NÓMINA DE ESTUDIANTES</th>
-                <th>CÉDULA</th>
-                <th style="width: 140px;">ACCIÓN</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${estudiantes.map((est, idx) => `
-                <tr>
-                  <td class="sticky-col-num fw-bold text-muted">${idx + 1}</td>
-                  <td class="sticky-col-nombre text-start px-2">${est.nombres}</td>
-                  <td>${est.cedula || 'S/N'}</td>
-                  <td>
-                    <button class="btn btn-sm btn-outline-danger py-1 px-2 fw-bold" onclick="generarCertificadoIndividualPDF(${idx})">
-                      <i class="bi bi-file-pdf"></i> Certificado
-                    </button>
-                  </td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        `;
-        contenedor.innerHTML = html;
-      } catch (err) {
-        if (reqId === currentViewRequestId) contenedor.innerHTML = `<div class="py-4 text-danger text-center fw-bold">Error: ${err.message}</div>`;
-      }
-    }
-
-    // =========================================================================
-    // FUNCIÓN AUXILIAR: Dibuja texto justificado con soporte para **negritas**
-    // =========================================================================
-    function dibujarTextoEnriquecidoJustificado(doc, text, startX, startY, maxWidth, lineHeight) {
-        const tokens = text.split(/(\*\*.*?\*\*)/g);
-        let words = [];
-        tokens.forEach(token => {
-            if (token.startsWith('**') && token.endsWith('**')) {
-                const boldText = token.slice(2, -2);
-                boldText.split(/(\s+)/).forEach(w => { if (w.length > 0) words.push({ text: w, font: 'bold' }); });
-            } else if (token.length > 0) {
-                token.split(/(\s+)/).forEach(w => { if (w.length > 0) words.push({ text: w, font: 'normal' }); });
-            }
-        });
-
-        let currentY = startY;
-        let lineWords = [];
-        let currentLineWidth = 0;
-
-        const flushLine = (line, y, isLast) => {
-            while(line.length > 0 && line[line.length-1].text.trim() === '') line.pop();
-            while(line.length > 0 && line[0].text.trim() === '') line.shift();
-            if (line.length === 0) return;
-
-            let textWidth = 0;
-            let spaceTokens = [];
-            line.forEach(w => {
-                if (w.text.trim() === '') spaceTokens.push(w);
-                else textWidth += w.w;
-            });
-
-            let extraSpacePerGap = 0;
-            if (!isLast && spaceTokens.length > 0) {
-                let totalMissing = maxWidth - textWidth;
-                if (totalMissing < maxWidth * 0.4) {
-                    extraSpacePerGap = totalMissing / spaceTokens.length;
-                } else {
-                    extraSpacePerGap = doc.setFont('helvetica', 'normal').getTextWidth(' ');
-                }
-            } else {
-                extraSpacePerGap = doc.setFont('helvetica', 'normal').getTextWidth(' ');
-            }
-
-            let lx = startX;
-            line.forEach(w => {
-                if (w.text.trim() === '') {
-                    lx += extraSpacePerGap;
-                } else {
-                    doc.setFont('helvetica', w.font);
-                    doc.text(w.text, lx, y);
-                    lx += w.w;
-                }
-            });
-        };
-
-        words.forEach(w => {
-            doc.setFont('helvetica', w.font);
-            w.w = doc.getTextWidth(w.text);
-        });
-
-        words.forEach(w => {
-            if (w.text.trim() === '') {
-                if (lineWords.length > 0) {
-                    lineWords.push(w);
-                    currentLineWidth += doc.setFont('helvetica', w.font).getTextWidth(' ');
-                }
-            } else {
-                if (currentLineWidth + w.w > maxWidth && lineWords.length > 0) {
-                    flushLine(lineWords, currentY, false);
-                    currentY += lineHeight;
-                    lineWords = [w];
-                    currentLineWidth = w.w;
-                } else {
-                    lineWords.push(w);
-                    currentLineWidth += w.w;
-                }
-            }
-        });
-        if (lineWords.length > 0) flushLine(lineWords, currentY, true);
-    }
-
-    // =========================================================================
-    // CONSTRUCCIÓN DEL CERTIFICADO (MÁXIMO DETALLE Y CENTRADO)
-    // =========================================================================
-    // =========================================================================
-    // CONSTRUCCIÓN DEL CERTIFICADO (MÁXIMO DETALLE Y CENTRADO)
-    // =========================================================================
-    function construirPaginaCertificado(doc, est, cursoNombreLargo, fechaIso, imgLogoIzq, imgLogoDer) {
-        // DATOS DESDE LA BASE DE DATOS O VALORES POR DEFECTO OFICIALES
-        const periodo = infoInstitucion?.periodo_lectivo || '2026-2027';
-        const amie = infoInstitucion?.amie || '13H03021';
-        const cantonProvincia = infoInstitucion?.direccion_1 || 'Cantón Pichincha – Manabí - Ecuador';
-        const correoIns = infoInstitucion?.correo || '13h03021@educacion.gob.ec';
-        const telefonoIns = infoInstitucion?.telefono_1 || infoInstitucion?.telefono || '05 2323232';
-        
-        const nombreRector = (infoInstitucion?.rector_nombre || 'ING. DÍDIMO ABDÓN SALTOS SABANDO').toUpperCase();
-        const cedulaRector = infoInstitucion?.rector_cedula || '1304144510';
-        
-        // CABECERA INSTITUCIONAL PERFECTAMENTE CENTRADA
-        if (imgLogoIzq) { try { doc.addImage(imgLogoIzq, 'PNG', 15, 12, 30, 30); } catch(e){} }
-        if (imgLogoDer) { try { doc.addImage(imgLogoDer, 'PNG', 165, 12, 30, 30); } catch(e){} }
-
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(14);
-        doc.setTextColor(220, 38, 38); 
-        doc.text('UNIDAD EDUCATIVA', 105, 18, { align: 'center' });
-        
-        doc.setFontSize(18);
-        doc.setTextColor(30, 64, 175);
-        doc.text(`“VICENTE ROCAFUERTE”`, 105, 26, { align: 'center' });
-
-        doc.setFontSize(9);
-        doc.setTextColor(0, 0, 0);
-        doc.setFont('helvetica', 'normal');
-        doc.text(cantonProvincia, 105, 32, { align: 'center' });
-        
-        // --- FUNCIÓN INTERNA PARA CENTRAR TEXTOS COMBINADOS (Negrita + Normal) ---
-        function centrarTextoMixto(textoNegrita, textoNormal, yPos) {
-            doc.setFont('helvetica', 'bold');
-            const w1 = doc.getTextWidth(textoNegrita);
-            doc.setFont('helvetica', 'normal');
-            const w2 = doc.getTextWidth(textoNormal);
-            const totalWidth = w1 + w2;
-            const startX = 105 - (totalWidth / 2); // 105 es el centro exacto de la hoja A4 (210mm / 2)
-
-            doc.setFont('helvetica', 'bold');
-            doc.text(textoNegrita, startX, yPos);
-            doc.setFont('helvetica', 'normal');
-            doc.text(textoNormal, startX + w1, yPos);
-        }
-
-        // Aplicando la función de centrado mixto con los datos de la base de datos
-        centrarTextoMixto('Correo: ', correoIns, 37);
-        centrarTextoMixto('Código AMIE: ', amie, 42);
-        centrarTextoMixto('Teléfono: ', telefonoIns, 47);
-
-        // TÍTULO DEL DOCUMENTO
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(16);
-        doc.text('CERTIFICADO DE MATRÍCULA', 105, 70, { align: 'center' });
-
-        // CUERPO DEL CERTIFICADO (TEXTO ENRIQUECIDO Y JUSTIFICADO)
-        const nombreEstudiante = est.nombres.toUpperCase();
-        const cedulaEstudiante = est.cedula || 'S/N';
-        const nombreCurso = cursoNombreLargo.toUpperCase();
-        const textoFecha = formatearFechaTexto(fechaIso);
-
-        // Se usa **texto** para indicar a la función que esa parte va en NEGRITA
-        const parrafo1 = `Quien suscribe, **${nombreRector}**, Rector de la Unidad Educativa Particular “Vicente Rocafuerte” portador de cédula de identidad, N° **${cedulaRector}**, certifico que el/la estudiante **${nombreEstudiante}**, con cédula de identidad, N° **${cedulaEstudiante}**, previo el cumplimiento de los requisitos legales establecidos en el Reglamento General de la Ley Orgánica de Educación Intercultural vigente estuvo matriculado/a en **${nombreCurso}**, sección vespertina en el año lectivo ${periodo}.`;
-
-        doc.setFontSize(11);
-        dibujarTextoEnriquecidoJustificado(doc, parrafo1, 20, 90, 170, 7);
-
-        doc.setFont('helvetica', 'normal');
-        const parrafo2 = `Así consta en los registros de matrícula que reposan en esta institución.`;
-        
-        // AUMENTAMOS ESTA MEDIDA A 150 PARA DARLE EL ESPACIO NECESARIO
-        doc.text(parrafo2, 20, 150);
-
-        const parrafo3 = `Dado y firmado en Pichincha, ${textoFecha}`;
-        
-        // AUMENTAMOS ESTA MEDIDA A 170 PARA BAJARLA TAMBIÉN
-        doc.text(parrafo3, 20, 170);
-
-        // FIRMA DEL RECTOR (Centrada y adaptativa)
-        const footerY = 220;
-        
-        // Convertir nombre a formato "Tipo Título" (Mayúscula inicial en cada palabra)
-        const nombreRectorFormat = nombreRector.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
-
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(11);
-        doc.text(nombreRectorFormat, 105, footerY, { align: 'center' });
-        
-        doc.setFont('helvetica', 'bold');
-        doc.text('RECTOR U.E.P. VICENTE ROCAFUERTE', 105, footerY + 6, { align: 'center' });
-        doc.text(`C.I. ${cedulaRector}`, 105, footerY + 12, { align: 'center' });
-    }
-
-    async function generarCertificadoIndividualPDF(idx) {
-        const est = estudiantes[idx];
-        if (!est) return;
-        const fechaIso = document.getElementById('fechaCertificado').value;
-        const cursoId = document.getElementById('selectCurso').value;
-        const cursoInfo = todosCursos.find(c => String(c.id) === String(cursoId));
-        const nombreCursoLargo = (cursoInfo?.nombre_largo_mayuscula || cursoInfo?.nombre || '').toUpperCase();
-
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-        const imgLogoIzq = await obtenerBase64DesdeUrl(infoInstitucion?.logo_izquierdo || infoInstitucion?.logo_institucion);
-        const imgLogoDer = await obtenerBase64DesdeUrl(infoInstitucion?.logo_derecho || infoInstitucion?.escudo_nacional);
-
-        construirPaginaCertificado(doc, est, nombreCursoLargo, fechaIso, imgLogoIzq, imgLogoDer);
-        doc.save(`Certificado_Matricula_${est.nombres.replace(/\s+/g, '_')}.pdf`);
-    }
-
-    async function generarCertificadosLotePDF() {
-        if (!estudiantes || estudiantes.length === 0) return alert('No hay estudiantes.');
-        const fechaIso = document.getElementById('fechaCertificado').value;
-        const cursoId = document.getElementById('selectCurso').value;
-        const cursoInfo = todosCursos.find(c => String(c.id) === String(cursoId));
-        const nombreCursoLargo = (cursoInfo?.nombre_largo_mayuscula || cursoInfo?.nombre || '').toUpperCase();
-
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-        const imgLogoIzq = await obtenerBase64DesdeUrl(infoInstitucion?.logo_izquierdo || infoInstitucion?.logo_institucion);
-        const imgLogoDer = await obtenerBase64DesdeUrl(infoInstitucion?.logo_derecho || infoInstitucion?.escudo_nacional);
-
-        estudiantes.forEach((est, idx) => {
-            if (idx > 0) doc.addPage();
-            construirPaginaCertificado(doc, est, nombreCursoLargo, fechaIso, imgLogoIzq, imgLogoDer);
-        });
-        
-        doc.save(`Certificados_${nombreCursoLargo.replace(/\s+/g, '_')}.pdf`);
-    }
-
-    async function descargarCertificadosZip() {
-        if (!estudiantes || estudiantes.length === 0) return alert('No hay estudiantes.');
-        const fechaIso = document.getElementById('fechaCertificado').value;
-        const cursoId = document.getElementById('selectCurso').value;
-        const cursoInfo = todosCursos.find(c => String(c.id) === String(cursoId));
-        const nombreCursoLargo = (cursoInfo?.nombre_largo_mayuscula || cursoInfo?.nombre || '').toUpperCase();
-
-        const imgLogoIzq = await obtenerBase64DesdeUrl(infoInstitucion?.logo_izquierdo || infoInstitucion?.logo_institucion);
-        const imgLogoDer = await obtenerBase64DesdeUrl(infoInstitucion?.logo_derecho || infoInstitucion?.escudo_nacional);
-
-        const { jsPDF } = window.jspdf;
-        const zip = new JSZip();
-
-        for (let i = 0; i < estudiantes.length; i++) {
-            const est = estudiantes[i];
-            const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-            construirPaginaCertificado(doc, est, nombreCursoLargo, fechaIso, imgLogoIzq, imgLogoDer);
-            zip.file(`Certificado_${est.nombres.replace(/\s+/g, '_')}.pdf`, doc.output('blob'));
-        }
-
-        const zipBlob = await zip.generateAsync({ type: 'blob' });
-        saveAs(zipBlob, `Certificados_Matricula_${nombreCursoLargo.replace(/\s+/g, '_')}.zip`);
-    }
-    // =========================================================================
-    // PEGAR CALIFICACIONES Y ASISTENCIA EN BLOQUE DESDE GOOGLE SHEETS / EXCEL
-    // =========================================================================
-    document.addEventListener('paste', function(e) {
-      const target = e.target;
-      
-      // Identificar si estamos pegando en Notas o en Asistencia
-      const esNota = target.classList.contains('input-nota-app');
-      const esAsistencia = target.classList.contains('cell-asig-input');
-
-      // Si no es ninguna de las dos, no hacemos nada
-      if (!esNota && !esAsistencia) return;
-      
-      // Si el input está bloqueado por el administrador, no hacemos nada
-      if (target.disabled) return;
-
-      e.preventDefault(); // Evitamos el comportamiento por defecto
-
-      // Obtener el texto del portapapeles
-      const clipboardData = e.clipboardData || window.clipboardData;
-      const pastedData = clipboardData.getData('text/plain');
-
-      // Dividir por saltos de línea (filas)
-      const filasPegadas = pastedData.split(/\r\n|\n|\r/);
-      
-      // Encontrar la fila y tabla actual
-      const trActual = target.closest('tr');
-      const tbody = trActual.parentElement;
-      const todasLasFilas = Array.from(tbody.querySelectorAll('tr'));
-      const indiceFilaInicio = todasLasFilas.indexOf(trActual);
-      
-      // Encontrar la columna inicial basada en el tipo de input
-      const selectorClase = esNota ? '.input-nota-app' : '.cell-asig-input';
-      const inputsFilaActual = Array.from(trActual.querySelectorAll(selectorClase));
-      const indiceColInicio = inputsFilaActual.indexOf(target);
-
-      if (indiceFilaInicio === -1 || indiceColInicio === -1) return;
-
-      // Recorrer las filas pegadas
-      for (let i = 0; i < filasPegadas.length; i++) {
-        // Ignorar fila vacía al final
-        if (i === filasPegadas.length - 1 && filasPegadas[i].trim() === '') continue;
-
-        const indiceFilaDestino = indiceFilaInicio + i;
-        if (indiceFilaDestino >= todasLasFilas.length) break;
-
-        const filaDestino = todasLasFilas[indiceFilaDestino];
-        const inputsFilaDestino = Array.from(filaDestino.querySelectorAll(selectorClase));
-        
-        // Dividir por tabulaciones (columnas de Excel/Sheets)
-        const columnasPegadas = filasPegadas[i].split('\t');
-        let filaModificada = false;
-
-        for (let j = 0; j < columnasPegadas.length; j++) {
-          const indiceColDestino = indiceColInicio + j;
-          if (indiceColDestino >= inputsFilaDestino.length) break;
-
-          const inputDestino = inputsFilaDestino[indiceColDestino];
-          if (inputDestino.disabled) continue;
-
-          let valorPegado = columnasPegadas[j].trim().toUpperCase();
-
-          if (esNota) {
-            // LÓGICA PARA NOTAS (0 a 10)
-            valorPegado = valorPegado.replace(',', '.');
-            if (valorPegado !== '' && !isNaN(valorPegado)) {
-              let numVal = parseFloat(valorPegado);
-              if (numVal > 10) numVal = 10;
-              if (numVal < 0) numVal = 0;
-              inputDestino.value = numVal;
-              filaModificada = true;
-            } else if (valorPegado === '') {
-              inputDestino.value = '';
-              filaModificada = true;
-            }
-          } else if (esAsistencia) {
-            // LÓGICA PARA ASISTENCIA (A, F, J)
-            if (['A', 'F', 'J', ''].includes(valorPegado)) {
-              inputDestino.value = valorPegado;
-              
-              // Ajustar el color de la celda al pegar
-              inputDestino.className = 'cell-asig-input'; 
-              if (valorPegado === 'A') inputDestino.classList.add('asig-a');
-              else if (valorPegado === 'F') inputDestino.classList.add('asig-f');
-              else if (valorPegado === 'J') inputDestino.classList.add('asig-j');
-              
-              filaModificada = true;
-            }
-          }
-        }
-
-        // Recalcular promedios o sumas automáticamente
-        if (filaModificada) {
-          if (tbody.id === 'tablaCuerpo') {
-            calcularFilaParcial(filaDestino);
-          } else if (tbody.id === 'tablaCuerpoComp') {
-            calcularFilaComp(filaDestino);
-          } else if (tbody.id === 'tablaCuerpoTrimestre') {
-            calcularFilaTrimestre(filaDestino);
-          } else if (tbody.id === 'tablaCuerpoAsistencia') {
-            calcularFilaAsistencia(filaDestino);
-          }
-        }
-      }
-    });
-
-    // =======================================================
-    // MÓDULO: AUDITORÍA DE CALIFICACIONES EN PANTALLA
-    // =======================================================
-    async function cargarVistaAuditoria() {
-      const reqId = ++currentViewRequestId;
-      const contenedor = document.getElementById('contenedorTabla');
-      contenedor.innerHTML = '<div class="py-5 text-center"><div class="spinner-border text-primary me-2" style="width: 3rem; height: 3rem;"></div><div class="mt-3 fw-bold text-muted">Consultando bases de datos...</div></div>';
-
-      const trim = parseInt(document.getElementById('selectTrimestre').value);
-      const vistaVal = document.getElementById('selectVista').value; // 'p1', 'p2', 'resumen_trimestre'
-      const tipoAud = document.getElementById('selectTipoAuditoria').value; // 'cumplidos', 'incumplidos'
-
-      let parc = 1;
-      if (vistaVal === 'p2') parc = 2;
-      else if (vistaVal === 'resumen_trimestre') parc = 3;
-
-      try {
-        // 1. Obtener todas las asignaciones
         const { data: asignaciones } = await supabaseClient.from('curso_materia_docente').select(`
             id, curso_id, materia_id, docente_id,
             cursos(nombre), materias(nombre)
         `);
-        if (reqId !== currentViewRequestId) return;
 
-        // 2. Traer nombres de docentes
-        const { data: perfiles } = await supabaseClient.from('perfiles').select('id, titulo, nombres, apellidos');
-        const docentesMap = new Map();
-        (perfiles || []).forEach(p => {
-            const tit = p.titulo ? `${p.titulo} ` : '';
-            const ape = p.apellidos ? ` ${p.apellidos}` : '';
-            docentesMap.set(p.id, `${tit}${p.nombres}${ape}`.trim());
-        });
-
-        // 3. Ver quiénes guardaron notas en este parcial/trimestre
         let savedAsigIds = new Set();
         if (parc === 1 || parc === 2) {
             const { data: config } = await supabaseClient.from('config_parcial_cabeceras')
@@ -3795,17 +1753,14 @@
             (examen || []).forEach(e => savedAsigIds.add(e.asignacion_id));
         }
 
-        // 4. Agrupar por Docente
         const auditMap = new Map();
         (asignaciones || []).forEach(asig => {
             if (!asig.docente_id) return;
             
             if (!auditMap.has(asig.docente_id)) {
-                auditMap.set(asig.docente_id, {
-                    nombre: docentesMap.get(asig.docente_id) || 'Docente Desconocido',
-                    faltan: [],
-                    completadas: []
-                });
+                const d = docentesList.find(x => x.id === asig.docente_id);
+                const n = d ? `${d.titulo||''} ${d.nombres} ${d.apellidos||''}`.trim() : 'Docente';
+                auditMap.set(asig.docente_id, { nombre: n, faltan: [], completadas: [] });
             }
             
             const docData = auditMap.get(asig.docente_id);
@@ -3818,94 +1773,42 @@
             }
         });
 
-        // 5. Separar en Cumplidos vs Incumplidos
         const cumplidos = [];
         const incumplidos = [];
-
         for (const [id, data] of auditMap.entries()) {
-            if (data.faltan.length > 0) {
-                incumplidos.push(data); // Si le falta aunque sea UNA materia, es incumplido
-            } else if (data.completadas.length > 0) {
-                cumplidos.push(data); // Solo entra si completó el 100% de lo que da
-            }
+            if (data.faltan.length > 0) incumplidos.push(data);
+            else if (data.completadas.length > 0) cumplidos.push(data);
         }
-
         cumplidos.sort((a,b) => a.nombre.localeCompare(b.nombre));
         incumplidos.sort((a,b) => a.nombre.localeCompare(b.nombre));
 
-        // 6. Dibujar en la interfaz (Lista Simple o Acordeón)
-        let html = '';
-        
-        if (tipoAud === 'cumplidos') {
-            if (cumplidos.length === 0) {
-                html = '<div class="py-5 text-center text-muted fw-bold">Aún no hay docentes que hayan completado el 100% de sus calificaciones.</div>';
-            } else {
-                html = `
-                <div class="list-group shadow-sm mt-2 mx-auto" style="max-width: 800px;">
-                    <div class="list-group-item list-group-item-success fw-bold p-3 text-center fs-5">
-                        <i class="bi bi-check-circle-fill me-2"></i>DOCENTES CON 100% DE CALIFICACIONES INGRESADAS (${cumplidos.length})
-                    </div>
-                    ${cumplidos.map((d, i) => `
-                        <div class="list-group-item d-flex justify-content-between align-items-center py-3 px-4">
-                            <div><span class="badge bg-secondary me-3">${i+1}</span> <span class="fw-bold fs-6">${d.nombre}</span></div>
-                            <span class="badge bg-success rounded-pill px-3 py-2"><i class="bi bi-check2-all me-1"></i> ${d.completadas.length} Materias Completadas</span>
-                        </div>
-                    `).join('')}
-                </div>`;
-            }
-        } else {
-            // INCUMPLIDOS (Con Acordeón Desplegable)
-            if (incumplidos.length === 0) {
-                html = '<div class="py-5 text-center text-success fs-5 fw-bold"><i class="bi bi-stars me-2 fs-3 d-block mb-2"></i>¡Excelente! Ningún docente tiene calificaciones pendientes.</div>';
-            } else {
-                html = `
-                <div class="accordion shadow-sm mt-2 mx-auto" id="accordionIncumplidos" style="max-width: 800px;">
-                    <div class="list-group-item list-group-item-danger fw-bold p-3 text-center fs-5 border-bottom rounded-top">
-                        <i class="bi bi-x-circle-fill me-2"></i>DOCENTES CON CALIFICACIONES PENDIENTES (${incumplidos.length})
-                    </div>
-                    ${incumplidos.map((d, i) => `
-                        <div class="accordion-item border-0 border-bottom">
-                            <h2 class="accordion-header" id="headingAud${i}">
-                                <button class="accordion-button collapsed fw-bold text-danger bg-white py-3 px-4" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAud${i}">
-                                    <span class="badge bg-danger me-3">${i+1}</span> 
-                                    <span class="fs-6">${d.nombre}</span>
-                                    <span class="ms-auto badge bg-warning text-dark rounded-pill px-3 me-3"><i class="bi bi-exclamation-triangle-fill me-1"></i> ${d.faltan.length} Pendientes</span>
-                                </button>
-                            </h2>
-                            <div id="collapseAud${i}" class="accordion-collapse collapse" data-bs-parent="#accordionIncumplidos">
-                                <div class="accordion-body bg-light p-0">
-                                    <ul class="list-group list-group-flush">
-                                        ${d.faltan.map(f => `
-                                            <li class="list-group-item bg-transparent text-dark py-2 px-5" style="font-size: 0.85rem;">
-                                                <i class="bi bi-arrow-return-right me-2 text-muted"></i><strong>${f.curso}</strong> — ${f.materia}
-                                            </li>
-                                        `).join('')}
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                    `).join('')}
-                </div>`;
-            }
-        }
-        
-        contenedor.innerHTML = `<div class="p-2">${html}</div>`;
+        document.getElementById('countFaltan').innerText = incumplidos.length;
+        document.getElementById('countCompletados').innerText = cumplidos.length;
+
+        document.getElementById('tablaAudFaltan').innerHTML = incumplidos.map(x => `<tr><td class="fw-bold text-danger">${x.nombre}</td><td>${x.faltan.length} Pendientes</td><td>-</td></tr>`).join('') || '<tr><td colspan="3" class="text-success text-center">Todo completo</td></tr>';
+        document.getElementById('tablaAudCompletados').innerHTML = cumplidos.map(x => `<tr><td class="fw-bold text-success">${x.nombre}</td><td>Completo</td><td>-</td></tr>`).join('') || '<tr><td colspan="3" class="text-muted text-center">Nadie completo</td></tr>';
 
       } catch (err) {
-        if (reqId === currentViewRequestId) contenedor.innerHTML = `<div class="py-4 text-danger text-center fw-bold">Error: ${err.message}</div>`;
+        alert('Error: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerText = 'Generar Reporte';
       }
     }
+
+    async function cargarVistaAuditoria() {
+        const contenedor = document.getElementById('contenedorTabla');
+        contenedor.innerHTML = '<div class="py-4 text-center"><button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalAuditoria">Abrir Auditoría Detallada</button></div>';
+    }
+
     // =========================================================================
     // MÓDULO: REGISTRO E HISTORIAL DE INCIDENCIAS
     // =========================================================================
-    let historialIncidenciasGlobal = [];
-
     async function cargarVistaIncidencias() {
       const cursoId = document.getElementById('selectCurso').value;
       const contenedor = document.getElementById('contenedorTabla');
       
       const hoy = new Date();
-      // Formato para input datetime-local: YYYY-MM-DDThh:mm
       const tzOffset = hoy.getTimezoneOffset() * 60000;
       const localISOTime = (new Date(hoy - tzOffset)).toISOString().slice(0,16);
 
@@ -3994,7 +1897,7 @@
                       <tr><th>Fecha y Hora</th><th>Tipo</th><th>Contexto</th><th>Estudiantes Involucrados</th><th>Observaciones</th><th>Reportado por</th></tr>
                     </thead>
                     <tbody id="tablaHistorialIncidencias">
-                      <tr><td colspan="6" class="text-center py-4">Cargando historial...</td></tr>
+                      <tr><td colspan="6" class="text-center py-4">Haga clic en 'Historial Global' para cargar...</td></tr>
                     </tbody>
                   </table>
                 </div>
@@ -4029,7 +1932,7 @@
 
       const payload = {
         curso_id: parseInt(cursoId),
-        docente_id: usuarioActualPerfil.id, // <--- AQUÍ ESTABA EL ERROR
+        docente_id: usuarioActualPerfil.id, 
         trimestre: parseInt(trimestre),
         parcial: parcial,
         tipo_incidencia: document.getElementById('incTipo').value,
@@ -4044,7 +1947,7 @@
         const { error } = await supabaseClient.from('incidencias').insert([payload]);
         if (error) throw error;
         alert('Reporte de incidencia guardado correctamente.');
-        cargarVistaIncidencias(); // Recargar para limpiar
+        cargarVistaIncidencias(); 
       } catch (err) {
         alert('Error al guardar: ' + err.message);
       } finally {
@@ -4054,11 +1957,11 @@
 
     async function cargarHistorialIncidencias() {
       const tbody = document.getElementById('tablaHistorialIncidencias');
+      tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4"><div class="spinner-border text-primary spinner-border-sm"></div> Cargando...</td></tr>';
       try {
         const esAdmin = usuarioActualPerfil?.rol === 'admin';
         const puedeVerAsistencia = usuarioActualPerfil?.puede_gestionar_asistencia === true;
         
-        // CORRECCIÓN: Pedimos solo la tabla incidencias para evitar el bloqueo de Supabase
         let query = supabaseClient.from('incidencias').select('*').order('fecha_hora', { ascending: false });
         
         if (!esAdmin && !puedeVerAsistencia) {
@@ -4066,7 +1969,7 @@
         }
 
         const { data, error } = await query;
-        if (error) throw error; // Si hay error, ahora sí nos avisará
+        if (error) throw error; 
 
         historialIncidenciasGlobal = data || [];
         renderizarTablaHistorial(historialIncidenciasGlobal);
@@ -4082,7 +1985,6 @@
         return;
       }
       tbody.innerHTML = datos.map(inc => {
-        // CORRECCIÓN: Enlazamos los nombres del docente y curso usando la memoria JavaScript
         const docInfo = docentesList.find(d => d.id === inc.docente_id);
         const docName = docInfo ? `${docInfo.titulo || ''} ${docInfo.nombres} ${docInfo.apellidos || ''}`.trim() : 'Docente';
         const cursoInfo = todosCursos.find(c => String(c.id) === String(inc.curso_id));
@@ -4109,7 +2011,7 @@
     }
 
     // =========================================================================
-    // INYECCIÓN DE ALERTAS EN EL MÓDULO DE COMPORTAMIENTO
+    // COMPORTAMIENTO GENERAL CON ALERTAS DE INCIDENCIAS INYECTADAS
     // =========================================================================
     async function cargarVistaComportamientoGeneral() {
       const reqId = ++currentViewRequestId;
@@ -4132,160 +2034,6 @@
         const { data: compData } = await supabaseClient.from('comportamiento_parcial').select('*').eq('curso_id', parseInt(cursoId)).eq('trimestre', trimestre).eq('parcial', parcialNum);
         const compMap = {}; (compData || []).forEach(c => { compMap[c.estudiante_id] = c; });
 
-        // --- CORRECCIÓN: QUITAR EL JOIN QUE CAUSABA EL BLOQUEO ---
-        const { data: incData, error: incError } = await supabaseClient.from('incidencias')
-            .select('*')
-            .eq('curso_id', parseInt(cursoId)).eq('trimestre', trimestre).eq('parcial', parcialNum);
-        
-        if (incError) throw incError;
-
-        incidenciasActivasMemoria = {};
-        (incData || []).forEach(inc => {
-            const ids = inc.estudiantes_ids || [];
-            ids.forEach(eid => {
-                if(!incidenciasActivasMemoria[eid]) incidenciasActivasMemoria[eid] = [];
-                incidenciasActivasMemoria[eid].push(inc);
-            });
-        });
-
-        if (reqId !== currentViewRequestId) return;
-
-        let html = `
-          <table class="table table-bordered table-sm mb-0 align-middle">
-            <thead>
-              <tr>
-                <th rowspan="2" class="sticky-col-num">N°</th>
-                <th rowspan="2" class="sticky-col-nombre text-center">NÓMINA / INDICADORES</th>
-                <th>Puntualidad</th><th colspan="3">Limpieza</th><th colspan="2">Respeto y Consideración</th><th colspan="2">Valoración Diversidad</th><th>Patrimonio</th><th>Propiedad</th>
-                <th rowspan="2" class="bg-prom-ins" style="width: 75px;">TOTAL CUANT.</th><th rowspan="2" class="bg-nota-final" style="width: 75px;">TOTAL CUALIT.</th>
-              </tr>
-              <tr class="bg-light">
-                <th class="th-comp-ind">1. Asiste puntual</th><th class="th-comp-ind">2. Aseo personal</th><th class="th-comp-ind">3. Aseo lugar trab.</th><th class="th-comp-ind">4. Aseo del aula</th><th class="th-comp-ind">5. Saludo cordial</th><th class="th-comp-ind">6. Evita leng. soez</th><th class="th-comp-ind">7. Leng. no agresivo</th><th class="th-comp-ind">8. Tolerancia div.</th><th class="th-comp-ind">9. Cuida infraest.</th><th class="th-comp-ind">10. Respeta objeto</th>
-              </tr>
-            </thead>
-            <tbody id="tablaCuerpoComp">
-              ${estudiantes.map((est, idx) => {
-                const c = compMap[est.id] || {}, v = (val) => val !== undefined && val !== null ? val : '10';
-                
-                const incs = incidenciasActivasMemoria[est.id] || [];
-                const badgeInc = incs.length > 0 ? `<span class="badge bg-danger shadow ms-2 blink" style="cursor:pointer;" onclick="verModalDetalleIncidencias(${est.id}, '${est.nombres.replace(/'/g, "\\'")}')" title="Ver detalles"><i class="bi bi-exclamation-triangle-fill"></i> ${incs.length} Reportes</span>` : '';
-
-                return `<tr data-estudiante-id="${est.id}">
-                  <td class="sticky-col-num fw-bold text-muted">${idx + 1}</td>
-                  <td class="sticky-col-nombre" title="${est.nombres}">${formatearNombreVisual(est.nombres)} ${badgeInc}</td>
-                  <td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind1" value="${v(c.ind1)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind2" value="${v(c.ind2)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind3" value="${v(c.ind3)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind4" value="${v(c.ind4)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind5" value="${v(c.ind5)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind6" value="${v(c.ind6)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind7" value="${v(c.ind7)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind8" value="${v(c.ind8)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind9" value="${v(c.ind9)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind10" value="${v(c.ind10)}" oninput="validarYCalcularComp(this)"></td><td class="total-cuant fw-bold">10.00</td><td class="total-cualit fw-bold">A</td>
-                </tr>`;
-              }).join('')}
-            </tbody>
-          </table>
-        `;
-        if (reqId === currentViewRequestId) { 
-            contenedor.innerHTML = html; 
-            document.querySelectorAll('#tablaCuerpoComp tr').forEach(fila => calcularFilaComp(fila)); 
-            const estadoBloqueo = await verificarBloqueoCalificaciones(0, trimestre, parcialNum);
-            aplicarCierreVisual(estadoBloqueo, 'btnGuardarComp');
-        }
-      } catch (err) {
-        if (reqId === currentViewRequestId) contenedor.innerHTML = `<div class="py-4 text-danger text-center fw-bold">Error: ${err.message}</div>`;
-      }
-    }
-
-    }
-      modalIncidenciasInst.show();
-    }
-
-    async function exportarHistorialIncidenciasPDF() {
-      if (!historialIncidenciasGlobal || historialIncidenciasGlobal.length === 0) return alert('No hay incidencias para exportar.');
-      try {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-        
-        doc.setFontSize(14); doc.setFont('helvetica', 'bold');
-        doc.text('HISTORIAL GLOBAL DE INCIDENCIAS', 148.5, 15, { align: 'center' });
-        
-        const bodyData = historialIncidenciasGlobal.map(inc => {
-            // CORRECCIÓN: Nombres de memoria para PDF
-            const docInfo = docentesList.find(d => d.id === inc.docente_id);
-            const docName = docInfo ? `${docInfo.nombres} ${docInfo.apellidos || ''}`.trim() : 'Docente';
-            const cursoInfo = todosCursos.find(c => String(c.id) === String(inc.curso_id));
-            const nombreCurso = cursoInfo ? cursoInfo.nombre : '';
-
-            return [
-                new Date(inc.fecha_hora).toLocaleString('es-EC', { dateStyle: 'short', timeStyle: 'short' }),
-                inc.tipo_incidencia,
-                inc.contexto,
-                `${inc.nombres_estudiantes}\n(${nombreCurso})`,
-                inc.observaciones,
-                docName
-            ];
-        });
-
-        doc.autoTable({
-          head: [['Fecha y Hora', 'Tipo', 'Contexto', 'Estudiantes (Curso)', 'Observaciones', 'Reportado por']],
-          body: bodyData,
-          startY: 25,
-          theme: 'grid',
-          styles: { fontSize: 7, cellPadding: 1.5, valign: 'middle' },
-          headStyles: { fillColor: [220, 53, 69], textColor: [255, 255, 255] },
-          columnStyles: { 4: { cellWidth: 80 } }
-        });
-        doc.save('Reporte_Incidencias.pdf');
-      } catch (e) { alert('Error al exportar: ' + e.message); }
-    }
-
-    function renderizarTablaHistorial(datos) {
-      const tbody = document.getElementById('tablaHistorialIncidencias');
-      if (datos.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted fw-bold">No se encontraron incidencias.</td></tr>';
-        return;
-      }
-      tbody.innerHTML = datos.map(inc => {
-        const docName = inc.perfiles ? `${inc.perfiles.titulo || ''} ${inc.perfiles.nombres} ${inc.perfiles.apellidos || ''}` : 'Docente';
-        const fechaFormat = new Date(inc.fecha_hora).toLocaleString('es-EC', { dateStyle: 'short', timeStyle: 'short' });
-        return `
-          <tr>
-            <td class="fw-bold text-nowrap">${fechaFormat}</td>
-            <td><span class="badge bg-danger">${inc.tipo_incidencia}</span></td>
-            <td>${inc.contexto}</td>
-            <td class="fw-bold text-primary">${inc.nombres_estudiantes}<br><small class="text-muted fw-normal">${inc.cursos?.nombre || ''}</small></td>
-            <td>${inc.observaciones}</td>
-            <td><small>${docName}</small></td>
-          </tr>
-        `;
-      }).join('');
-    }
-
-    function filtrarHistorialIncidencias(termino) {
-      const lowerTerm = termino.toLowerCase();
-      const filtrados = historialIncidenciasGlobal.filter(inc => inc.nombres_estudiantes.toLowerCase().includes(lowerTerm) || inc.tipo_incidencia.toLowerCase().includes(lowerTerm));
-      renderizarTablaHistorial(filtrados);
-    }
-
-    // =========================================================================
-    // INYECCIÓN DE ALERTAS EN EL MÓDULO DE COMPORTAMIENTO
-    // =========================================================================
-    async function cargarVistaComportamientoGeneral() {
-      const reqId = ++currentViewRequestId;
-      const cursoId = document.getElementById('selectCurso').value;
-      const trimestre = parseInt(document.getElementById('selectTrimestre').value);
-      
-      const vVal = document.getElementById('selectVista').value;
-      let parcialNum = 1;
-      if (vVal === 'p2') parcialNum = 2;
-      else if (vVal === 'resumen_trimestre') parcialNum = 3;
-
-      const contenedor = document.getElementById('contenedorTabla');
-      contenedor.innerHTML = `<div class="py-4 text-center"><div class="spinner-border text-primary me-2"></div>Cargando comportamiento e incidencias...</div>`;
-
-      try {
-        const { data: estData } = await supabaseClient.from('estudiantes').select('*').eq('curso_id', parseInt(cursoId)).order('nombres');
-        if (reqId !== currentViewRequestId) return;
-        estudiantes = estData || [];
-
-        const { data: compData } = await supabaseClient.from('comportamiento_parcial').select('*').eq('curso_id', parseInt(cursoId)).eq('trimestre', trimestre).eq('parcial', parcialNum);
-        const compMap = {}; (compData || []).forEach(c => { compMap[c.estudiante_id] = c; });
-
-        // --- CORRECCIÓN: QUITAR EL JOIN QUE CAUSABA EL BLOQUEO ---
         const { data: incData, error: incError } = await supabaseClient.from('incidencias')
             .select('*')
             .eq('curso_id', parseInt(cursoId)).eq('trimestre', trimestre).eq('parcial', parcialNum);
@@ -4344,6 +2092,8 @@
     }
 
     function verModalDetalleIncidencias(estId, nombres) {
+      if (!modalIncidenciasInst) modalIncidenciasInst = new bootstrap.Modal(document.getElementById('modalVerIncidencias'));
+      
       const incs = incidenciasActivasMemoria[estId] || [];
       document.getElementById('tituloModalIncidencias').innerHTML = `<i class="bi bi-exclamation-triangle-fill me-2"></i>Incidencias: ${nombres}`;
       
@@ -4352,7 +2102,8 @@
           body.innerHTML = '<p class="text-muted text-center py-3">No hay registros detallados.</p>';
       } else {
           body.innerHTML = incs.map((inc, i) => {
-              const docName = inc.perfiles ? `${inc.perfiles.titulo || ''} ${inc.perfiles.nombres} ${inc.perfiles.apellidos || ''}` : 'Docente';
+              const docInfo = docentesList.find(d => d.id === inc.docente_id);
+              const docName = docInfo ? `${docInfo.titulo || ''} ${docInfo.nombres} ${docInfo.apellidos || ''}`.trim() : 'Docente';
               const dFormat = new Date(inc.fecha_hora).toLocaleString('es-EC', { dateStyle: 'long', timeStyle: 'short' });
               return `
                 <div class="card mb-3 border-danger shadow-sm">
@@ -4384,14 +2135,21 @@
         doc.setFontSize(14); doc.setFont('helvetica', 'bold');
         doc.text('HISTORIAL GLOBAL DE INCIDENCIAS', 148.5, 15, { align: 'center' });
         
-        const bodyData = historialIncidenciasGlobal.map(inc => [
-            new Date(inc.fecha_hora).toLocaleString('es-EC', { dateStyle: 'short', timeStyle: 'short' }),
-            inc.tipo_incidencia,
-            inc.contexto,
-            `${inc.nombres_estudiantes}\n(${inc.cursos?.nombre || ''})`,
-            inc.observaciones,
-            inc.perfiles ? `${inc.perfiles.nombres} ${inc.perfiles.apellidos || ''}` : 'Docente'
-        ]);
+        const bodyData = historialIncidenciasGlobal.map(inc => {
+            const docInfo = docentesList.find(d => d.id === inc.docente_id);
+            const docName = docInfo ? `${docInfo.nombres} ${docInfo.apellidos || ''}`.trim() : 'Docente';
+            const cursoInfo = todosCursos.find(c => String(c.id) === String(inc.curso_id));
+            const nombreCurso = cursoInfo ? cursoInfo.nombre : '';
+
+            return [
+                new Date(inc.fecha_hora).toLocaleString('es-EC', { dateStyle: 'short', timeStyle: 'short' }),
+                inc.tipo_incidencia,
+                inc.contexto,
+                `${inc.nombres_estudiantes}\n(${nombreCurso})`,
+                inc.observaciones,
+                docName
+            ];
+        });
 
         doc.autoTable({
           head: [['Fecha y Hora', 'Tipo', 'Contexto', 'Estudiantes (Curso)', 'Observaciones', 'Reportado por']],
@@ -4405,7 +2163,6 @@
         doc.save('Reporte_Incidencias.pdf');
       } catch (e) { alert('Error al exportar: ' + e.message); }
     }
-    
   </script>
 </body>
 </html>
