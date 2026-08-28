@@ -4058,19 +4058,179 @@
         const esAdmin = usuarioActualPerfil?.rol === 'admin';
         const puedeVerAsistencia = usuarioActualPerfil?.puede_gestionar_asistencia === true;
         
-        let query = supabaseClient.from('incidencias').select('*, perfiles(titulo, nombres, apellidos), cursos(nombre)').order('fecha_hora', { ascending: false });
+        // CORRECCIÓN: Pedimos solo la tabla incidencias para evitar el bloqueo de Supabase
+        let query = supabaseClient.from('incidencias').select('*').order('fecha_hora', { ascending: false });
         
-        // Si no es admin ni inspector, solo puede ver las incidencias que él mismo reportó
         if (!esAdmin && !puedeVerAsistencia) {
-            query = query.eq('docente_id', usuarioActualPerfil.id); // <--- AQUÍ TAMBIÉN ESTABA EL ERROR
+            query = query.eq('docente_id', usuarioActualPerfil.id);
         }
 
-        const { data } = await query;
+        const { data, error } = await query;
+        if (error) throw error; // Si hay error, ahora sí nos avisará
+
         historialIncidenciasGlobal = data || [];
         renderizarTablaHistorial(historialIncidenciasGlobal);
       } catch (err) {
         tbody.innerHTML = `<tr><td colspan="6" class="text-danger text-center fw-bold">Error: ${err.message}</td></tr>`;
       }
+    }
+
+    function renderizarTablaHistorial(datos) {
+      const tbody = document.getElementById('tablaHistorialIncidencias');
+      if (datos.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted fw-bold">No se encontraron incidencias.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = datos.map(inc => {
+        // CORRECCIÓN: Enlazamos los nombres del docente y curso usando la memoria JavaScript
+        const docInfo = docentesList.find(d => d.id === inc.docente_id);
+        const docName = docInfo ? `${docInfo.titulo || ''} ${docInfo.nombres} ${docInfo.apellidos || ''}`.trim() : 'Docente';
+        const cursoInfo = todosCursos.find(c => String(c.id) === String(inc.curso_id));
+        const nombreCurso = cursoInfo ? cursoInfo.nombre : '';
+
+        const fechaFormat = new Date(inc.fecha_hora).toLocaleString('es-EC', { dateStyle: 'short', timeStyle: 'short' });
+        return `
+          <tr>
+            <td class="fw-bold text-nowrap">${fechaFormat}</td>
+            <td><span class="badge bg-danger">${inc.tipo_incidencia}</span></td>
+            <td>${inc.contexto}</td>
+            <td class="fw-bold text-primary">${inc.nombres_estudiantes}<br><small class="text-muted fw-normal">${nombreCurso}</small></td>
+            <td>${inc.observaciones}</td>
+            <td><small>${docName}</small></td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function filtrarHistorialIncidencias(termino) {
+      const lowerTerm = termino.toLowerCase();
+      const filtrados = historialIncidenciasGlobal.filter(inc => inc.nombres_estudiantes.toLowerCase().includes(lowerTerm) || inc.tipo_incidencia.toLowerCase().includes(lowerTerm));
+      renderizarTablaHistorial(filtrados);
+    }
+
+    // =========================================================================
+    // INYECCIÓN DE ALERTAS EN EL MÓDULO DE COMPORTAMIENTO
+    // =========================================================================
+    async function cargarVistaComportamientoGeneral() {
+      const reqId = ++currentViewRequestId;
+      const cursoId = document.getElementById('selectCurso').value;
+      const trimestre = parseInt(document.getElementById('selectTrimestre').value);
+      
+      const vVal = document.getElementById('selectVista').value;
+      let parcialNum = 1;
+      if (vVal === 'p2') parcialNum = 2;
+      else if (vVal === 'resumen_trimestre') parcialNum = 3;
+
+      const contenedor = document.getElementById('contenedorTabla');
+      contenedor.innerHTML = `<div class="py-4 text-center"><div class="spinner-border text-primary me-2"></div>Cargando comportamiento e incidencias...</div>`;
+
+      try {
+        const { data: estData } = await supabaseClient.from('estudiantes').select('*').eq('curso_id', parseInt(cursoId)).order('nombres');
+        if (reqId !== currentViewRequestId) return;
+        estudiantes = estData || [];
+
+        const { data: compData } = await supabaseClient.from('comportamiento_parcial').select('*').eq('curso_id', parseInt(cursoId)).eq('trimestre', trimestre).eq('parcial', parcialNum);
+        const compMap = {}; (compData || []).forEach(c => { compMap[c.estudiante_id] = c; });
+
+        // --- CORRECCIÓN: QUITAR EL JOIN QUE CAUSABA EL BLOQUEO ---
+        const { data: incData, error: incError } = await supabaseClient.from('incidencias')
+            .select('*')
+            .eq('curso_id', parseInt(cursoId)).eq('trimestre', trimestre).eq('parcial', parcialNum);
+        
+        if (incError) throw incError;
+
+        incidenciasActivasMemoria = {};
+        (incData || []).forEach(inc => {
+            const ids = inc.estudiantes_ids || [];
+            ids.forEach(eid => {
+                if(!incidenciasActivasMemoria[eid]) incidenciasActivasMemoria[eid] = [];
+                incidenciasActivasMemoria[eid].push(inc);
+            });
+        });
+
+        if (reqId !== currentViewRequestId) return;
+
+        let html = `
+          <table class="table table-bordered table-sm mb-0 align-middle">
+            <thead>
+              <tr>
+                <th rowspan="2" class="sticky-col-num">N°</th>
+                <th rowspan="2" class="sticky-col-nombre text-center">NÓMINA / INDICADORES</th>
+                <th>Puntualidad</th><th colspan="3">Limpieza</th><th colspan="2">Respeto y Consideración</th><th colspan="2">Valoración Diversidad</th><th>Patrimonio</th><th>Propiedad</th>
+                <th rowspan="2" class="bg-prom-ins" style="width: 75px;">TOTAL CUANT.</th><th rowspan="2" class="bg-nota-final" style="width: 75px;">TOTAL CUALIT.</th>
+              </tr>
+              <tr class="bg-light">
+                <th class="th-comp-ind">1. Asiste puntual</th><th class="th-comp-ind">2. Aseo personal</th><th class="th-comp-ind">3. Aseo lugar trab.</th><th class="th-comp-ind">4. Aseo del aula</th><th class="th-comp-ind">5. Saludo cordial</th><th class="th-comp-ind">6. Evita leng. soez</th><th class="th-comp-ind">7. Leng. no agresivo</th><th class="th-comp-ind">8. Tolerancia div.</th><th class="th-comp-ind">9. Cuida infraest.</th><th class="th-comp-ind">10. Respeta objeto</th>
+              </tr>
+            </thead>
+            <tbody id="tablaCuerpoComp">
+              ${estudiantes.map((est, idx) => {
+                const c = compMap[est.id] || {}, v = (val) => val !== undefined && val !== null ? val : '10';
+                
+                const incs = incidenciasActivasMemoria[est.id] || [];
+                const badgeInc = incs.length > 0 ? `<span class="badge bg-danger shadow ms-2 blink" style="cursor:pointer;" onclick="verModalDetalleIncidencias(${est.id}, '${est.nombres.replace(/'/g, "\\'")}')" title="Ver detalles"><i class="bi bi-exclamation-triangle-fill"></i> ${incs.length} Reportes</span>` : '';
+
+                return `<tr data-estudiante-id="${est.id}">
+                  <td class="sticky-col-num fw-bold text-muted">${idx + 1}</td>
+                  <td class="sticky-col-nombre" title="${est.nombres}">${formatearNombreVisual(est.nombres)} ${badgeInc}</td>
+                  <td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind1" value="${v(c.ind1)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind2" value="${v(c.ind2)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind3" value="${v(c.ind3)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind4" value="${v(c.ind4)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind5" value="${v(c.ind5)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind6" value="${v(c.ind6)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind7" value="${v(c.ind7)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind8" value="${v(c.ind8)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind9" value="${v(c.ind9)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind10" value="${v(c.ind10)}" oninput="validarYCalcularComp(this)"></td><td class="total-cuant fw-bold">10.00</td><td class="total-cualit fw-bold">A</td>
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        `;
+        if (reqId === currentViewRequestId) { 
+            contenedor.innerHTML = html; 
+            document.querySelectorAll('#tablaCuerpoComp tr').forEach(fila => calcularFilaComp(fila)); 
+            const estadoBloqueo = await verificarBloqueoCalificaciones(0, trimestre, parcialNum);
+            aplicarCierreVisual(estadoBloqueo, 'btnGuardarComp');
+        }
+      } catch (err) {
+        if (reqId === currentViewRequestId) contenedor.innerHTML = `<div class="py-4 text-danger text-center fw-bold">Error: ${err.message}</div>`;
+      }
+    }
+
+    }
+      modalIncidenciasInst.show();
+    }
+
+    async function exportarHistorialIncidenciasPDF() {
+      if (!historialIncidenciasGlobal || historialIncidenciasGlobal.length === 0) return alert('No hay incidencias para exportar.');
+      try {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+        
+        doc.setFontSize(14); doc.setFont('helvetica', 'bold');
+        doc.text('HISTORIAL GLOBAL DE INCIDENCIAS', 148.5, 15, { align: 'center' });
+        
+        const bodyData = historialIncidenciasGlobal.map(inc => {
+            // CORRECCIÓN: Nombres de memoria para PDF
+            const docInfo = docentesList.find(d => d.id === inc.docente_id);
+            const docName = docInfo ? `${docInfo.nombres} ${docInfo.apellidos || ''}`.trim() : 'Docente';
+            const cursoInfo = todosCursos.find(c => String(c.id) === String(inc.curso_id));
+            const nombreCurso = cursoInfo ? cursoInfo.nombre : '';
+
+            return [
+                new Date(inc.fecha_hora).toLocaleString('es-EC', { dateStyle: 'short', timeStyle: 'short' }),
+                inc.tipo_incidencia,
+                inc.contexto,
+                `${inc.nombres_estudiantes}\n(${nombreCurso})`,
+                inc.observaciones,
+                docName
+            ];
+        });
+
+        doc.autoTable({
+          head: [['Fecha y Hora', 'Tipo', 'Contexto', 'Estudiantes (Curso)', 'Observaciones', 'Reportado por']],
+          body: bodyData,
+          startY: 25,
+          theme: 'grid',
+          styles: { fontSize: 7, cellPadding: 1.5, valign: 'middle' },
+          headStyles: { fillColor: [220, 53, 69], textColor: [255, 255, 255] },
+          columnStyles: { 4: { cellWidth: 80 } }
+        });
+        doc.save('Reporte_Incidencias.pdf');
+      } catch (e) { alert('Error al exportar: ' + e.message); }
     }
 
     function renderizarTablaHistorial(datos) {
@@ -4104,13 +4264,16 @@
     // =========================================================================
     // INYECCIÓN DE ALERTAS EN EL MÓDULO DE COMPORTAMIENTO
     // =========================================================================
-    // Esta función REEMPLAZA a la existente `cargarVistaComportamientoGeneral` 
-    // Busca tu `async function cargarVistaComportamientoGeneral()` anterior y REEMPLÁZALA completa por esta:
     async function cargarVistaComportamientoGeneral() {
       const reqId = ++currentViewRequestId;
       const cursoId = document.getElementById('selectCurso').value;
       const trimestre = parseInt(document.getElementById('selectTrimestre').value);
-      const parcialNum = parseInt(document.getElementById('selectParcialAsistencia').value) || 1;
+      
+      const vVal = document.getElementById('selectVista').value;
+      let parcialNum = 1;
+      if (vVal === 'p2') parcialNum = 2;
+      else if (vVal === 'resumen_trimestre') parcialNum = 3;
+
       const contenedor = document.getElementById('contenedorTabla');
       contenedor.innerHTML = `<div class="py-4 text-center"><div class="spinner-border text-primary me-2"></div>Cargando comportamiento e incidencias...</div>`;
 
@@ -4122,11 +4285,13 @@
         const { data: compData } = await supabaseClient.from('comportamiento_parcial').select('*').eq('curso_id', parseInt(cursoId)).eq('trimestre', trimestre).eq('parcial', parcialNum);
         const compMap = {}; (compData || []).forEach(c => { compMap[c.estudiante_id] = c; });
 
-        // --- NUEVO: EXTRAER INCIDENCIAS ---
-        const { data: incData } = await supabaseClient.from('incidencias')
-            .select('*, perfiles(titulo, nombres, apellidos)')
+        // --- CORRECCIÓN: QUITAR EL JOIN QUE CAUSABA EL BLOQUEO ---
+        const { data: incData, error: incError } = await supabaseClient.from('incidencias')
+            .select('*')
             .eq('curso_id', parseInt(cursoId)).eq('trimestre', trimestre).eq('parcial', parcialNum);
         
+        if (incError) throw incError;
+
         incidenciasActivasMemoria = {};
         (incData || []).forEach(inc => {
             const ids = inc.estudiantes_ids || [];
@@ -4135,7 +4300,6 @@
                 incidenciasActivasMemoria[eid].push(inc);
             });
         });
-        // ----------------------------------
 
         if (reqId !== currentViewRequestId) return;
 
@@ -4156,7 +4320,6 @@
               ${estudiantes.map((est, idx) => {
                 const c = compMap[est.id] || {}, v = (val) => val !== undefined && val !== null ? val : '10';
                 
-                // --- PINTAR ALERTA DE INCIDENCIAS ---
                 const incs = incidenciasActivasMemoria[est.id] || [];
                 const badgeInc = incs.length > 0 ? `<span class="badge bg-danger shadow ms-2 blink" style="cursor:pointer;" onclick="verModalDetalleIncidencias(${est.id}, '${est.nombres.replace(/'/g, "\\'")}')" title="Ver detalles"><i class="bi bi-exclamation-triangle-fill"></i> ${incs.length} Reportes</span>` : '';
 
