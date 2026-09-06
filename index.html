@@ -936,7 +936,14 @@
         const asigIds = listaAsignaciones.map(a => a.id);
         let notasP1 = {}, notasP2 = {};
         if (asigIds.length > 0) {
-          const { data: nData } = await supabaseClient.from('notas_parcial_actividades').select('asignacion_id, estudiante_id, parcial, nota_parcial').in('asignacion_id', asigIds).eq('trimestre', trimestre).limit(10000);
+          // SOLUCIÓN: Ciclo materia por materia para evitar límite de 1000 registros
+          let nData = [];
+          for (let id of asigIds) {
+            const { data } = await supabaseClient.from('notas_parcial_actividades')
+              .select('asignacion_id, estudiante_id, parcial, nota_parcial')
+              .eq('asignacion_id', id).eq('trimestre', trimestre);
+            if (data) nData.push(...data);
+          }
           if (reqId !== currentViewRequestId) return;
           (nData || []).forEach(n => {
             if (n.parcial === 1) { if (!notasP1[n.estudiante_id]) notasP1[n.estudiante_id] = {}; notasP1[n.estudiante_id][n.asignacion_id] = n.nota_parcial; }
@@ -946,7 +953,14 @@
 
         let examenesMap = {};
         if (reporteTipo === 'trimestre' && asigIds.length > 0) {
-          const { data: tData } = await supabaseClient.from('notas_trimestre').select('asignacion_id, estudiante_id, examen').in('asignacion_id', asigIds).eq('trimestre', trimestre).limit(10000);
+          // SOLUCIÓN: Ciclo para exámenes
+          let tData = [];
+          for (let id of asigIds) {
+            const { data } = await supabaseClient.from('notas_trimestre')
+              .select('asignacion_id, estudiante_id, examen')
+              .eq('asignacion_id', id).eq('trimestre', trimestre);
+            if (data) tData.push(...data);
+          }
           if (reqId !== currentViewRequestId) return;
           (tData || []).forEach(t => { if (!examenesMap[t.estudiante_id]) examenesMap[t.estudiante_id] = {}; examenesMap[t.estudiante_id][t.asignacion_id] = parseFloat(t.examen) || 0; });
         }
