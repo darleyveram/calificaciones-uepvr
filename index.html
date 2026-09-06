@@ -160,6 +160,15 @@
             </select>
           </div>
 
+          <!-- NUEVO: FILTRO DISTANCIA (SOLO ADMIN) -->
+          <div class="col-6 col-md-2 d-none" id="boxFiltroDistancia">
+            <label class="form-label mb-1 fw-bold small text-primary">Modalidad:</label>
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="toggleDistancia" onchange="cambiarFiltro()">
+              <label class="form-check-label fw-bold small text-muted" for="toggleDistancia">Ver A Distancia</label>
+            </div>
+          </div>
+          
           <div class="col-6 col-md-3 d-none" id="boxTipoAuditoria">
             <label class="form-label mb-1 fw-bold small">Estado del Docente:</label>
             <select id="selectTipoAuditoria" class="form-select form-select-sm fw-bold text-dark" onchange="cambiarFiltro()">
@@ -372,6 +381,25 @@
     let incidenciasActivasMemoria = {};
     let modalIncidenciasInst = null;
 
+    // === LÓGICA DE ESTUDIANTES A DISTANCIA ===
+    function procesarEstudiantesModalidad(estDataBruto) {
+      const esAdmin = usuarioActualPerfil?.rol === 'admin';
+      const toggle = document.getElementById('toggleDistancia');
+      const verDistancia = toggle ? toggle.checked : false;
+      
+      // Si es docente o si es admin pero el botón está apagado -> Solo ve Presenciales
+      if (!esAdmin || !verDistancia) {
+        return estDataBruto.filter(e => !e.modalidad || e.modalidad === 'PRESENCIAL');
+      }
+      // Si es Admin y el botón está encendido -> Ve a todos
+      return estDataBruto;
+    }
+
+    function badgeDistancia(modalidad) {
+      return modalidad === 'DISTANCIA' ? ' <span class="badge bg-info text-dark shadow-sm ms-1" style="font-size:0.6rem;"><i class="bi bi-wifi"></i> Distancia</span>' : '';
+    }
+    // =========================================
+
     function generarDiasHabilesRango(fInicioStr, fFinStr) {
       const dias = [];
       const nombresDias = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
@@ -521,6 +549,9 @@
 
           const optAud = document.getElementById('optModoAuditoria');
           if (optAud) optAud.classList.remove('d-none');
+
+          const boxDist = document.getElementById('boxFiltroDistancia');
+          if (boxDist) boxDist.classList.remove('d-none');
         }
         // -----------------------------------------------
 
@@ -809,7 +840,7 @@
 
         if (reqId !== currentViewRequestId) return;
         if (estErr) throw estErr;
-        estudiantes = estData || [];
+        estudiantes = procesarEstudiantesModalidad(estData || []);
 
         if (estudiantes.length === 0) {
           contenedor.innerHTML = '<div class="py-4 text-warning text-center fw-bold">Este curso aún no tiene estudiantes registrados.</div>';
@@ -887,7 +918,7 @@
                 return `
                   <tr data-est-id="${est.id}">
                     <td class="sticky-col-num fw-bold text-muted">${idx + 1}</td>
-                    <td class="sticky-col-nombre" title="${est.nombres}">${formatearNombreVisual(est.nombres)}</td>
+                    <td class="sticky-col-nombre" title="${est.nombres}">${formatearNombreVisual(est.nombres)}${badgeDistancia(est.modalidad)}</td>
                     ${celdasDias}
                     <td class="sum-a fw-bold text-success">0</td>
                     <td class="sum-f fw-bold text-danger">0</td>
@@ -923,7 +954,7 @@
       try {
         const { data: estData } = await supabaseClient.from('estudiantes').select('*').eq('curso_id', parseInt(cursoId)).order('nombres');
         if (reqId !== currentViewRequestId) return;
-        estudiantes = estData || [];
+        estudiantes = procesarEstudiantesModalidad(estData || []);
 
         const { data: asigCurso } = await supabaseClient.from('curso_materia_docente').select(`id, curso_id, materia_id, es_optativa, materias(id, nombre)`).eq('curso_id', parseInt(cursoId));
         if (reqId !== currentViewRequestId) return;
@@ -1015,7 +1046,7 @@
 
           let finalAsist = (reporteTipo === '1') ? { asistidos: a1, faltasInjust: f1, faltasJust: j1, totalDias: t1 } : (reporteTipo === '2') ? { asistidos: a2, faltasInjust: f2, faltasJust: j2, totalDias: t2 } : { asistidos: a1 + a2, faltasInjust: f1 + f2, faltasJust: j1 + j2, totalDias: t1 + t2 };
 
-          return { num: idx + 1, estudianteId: est.id, nombres: est.nombres, cedula: est.cedula || 'S/N', representanteNombre: est.representante_nombres || `${est.rep_apellidos || ''} ${est.rep_nombres || ''}`.trim() || 'REPRESENTANTE LEGAL', representanteCedula: est.rep_cedula ? `C.I.: ${est.rep_cedula}` : '', materias: materiasDetalle, promedioGeneral: promGeneral.toFixed(2), promedioCualitativo: promCualit, comportamientoNum: compFinalNum.toFixed(2), comportamientoLetra: compObj.letra, comportamientoDesc: compObj.desc, asistencia: finalAsist };
+          return { num: idx + 1, estudianteId: est.id, nombres: est.nombres, modalidad: est.modalidad, cedula: est.cedula || 'S/N', representanteNombre: est.representante_nombres || `${est.rep_apellidos || ''} ${est.rep_nombres || ''}`.trim() || 'REPRESENTANTE LEGAL', representanteCedula: est.rep_cedula ? `C.I.: ${est.rep_cedula}` : '', materias: materiasDetalle, promedioGeneral: promGeneral.toFixed(2), promedioCualitativo: promCualit, comportamientoNum: compFinalNum.toFixed(2), comportamientoLetra: compObj.letra, comportamientoDesc: compObj.desc, asistencia: finalAsist };
         });
 
         const esAdmin = usuarioActualPerfil?.rol === 'admin';
@@ -1041,7 +1072,7 @@
                 let celdasNotas = d.materias.map(m => `<td class="${obtenerClaseColor(m.notaNum, false)}" style="white-space: nowrap;"><span class="fw-bold">${m.notaCualit}</span> <small class="text-muted">(${m.notaNum})</small></td>`).join('');
                 return `<tr>
                   <td class="sticky-col-num fw-bold text-muted">${d.num}</td>
-                  <td class="sticky-col-nombre" title="${d.nombres}">${formatearNombreVisual(d.nombres)}</td>
+                  <td class="sticky-col-nombre" title="${d.nombres}">${${formatearNombreVisual(d.nombres)}${badgeDistancia(d.modalidad)}</td>
                   ${celdasNotas}
                   <td class="fw-bold fs-6 ${obtenerClaseColor(d.promedioGeneral, true)}" style="white-space: nowrap;">${d.promedioGeneral} <small>(${d.promedioCualitativo})</small></td>
                   <td class="fw-bold" style="white-space: nowrap;">${d.comportamientoLetra} <small>(${d.comportamientoNum})</small></td>
@@ -1277,7 +1308,7 @@
 
         const { data: estData } = await supabaseClient.from('estudiantes').select('*').eq('curso_id', parseInt(asig.curso_id)).order('nombres');
         if (reqId !== currentViewRequestId) return;
-        estudiantes = estData || [];
+        estudiantes = procesarEstudiantesModalidad(estData || []);
 
         const { data: notasData } = await supabaseClient.from('notas_parcial_actividades').select('*').eq('asignacion_id', parseInt(asigId)).eq('trimestre', trimestre).eq('parcial', parcialNum);
         if (reqId !== currentViewRequestId) return;
@@ -1326,7 +1357,7 @@
               const memData = notasActualesMemoria[est.id] || { i1: [], i2: [] }, i1Notas = memData.i1 || [], i2Notas = memData.i2 || [];
               const inp1 = configActividades.insumo1.length === 0 ? '<td class="text-muted">-</td>' : configActividades.insumo1.map((_, i) => `<td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app nota-i1 col-act-i1-${i}" value="${i1Notas[i] !== undefined && i1Notas[i] !== null ? i1Notas[i] : ''}" oninput="validarYCalcularParcial(this)" onkeydown="moverFocoVertical(event, 1, ${i}, ${idx})"></td>`).join('');
               const inp2 = configActividades.insumo2.length === 0 ? '<td class="text-muted">-</td>' : configActividades.insumo2.map((_, i) => `<td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app nota-i2 col-act-i2-${i}" value="${i2Notas[i] !== undefined && i2Notas[i] !== null ? i2Notas[i] : ''}" oninput="validarYCalcularParcial(this)" onkeydown="moverFocoVertical(event, 2, ${i}, ${idx})"></td>`).join('');
-              return `<tr data-estudiante-id="${est.id}"><td class="sticky-col-num fw-bold text-muted">${idx + 1}</td><td class="sticky-col-nombre" title="${est.nombres}">${formatearNombreVisual(est.nombres)}</td>${inp1}<td class="prom-i1">0.00</td>${inp2}<td class="prom-i2">0.00</td><td class="nota-parcial">0.00</td></tr>`;
+              return `<tr data-estudiante-id="${est.id}"><td class="sticky-col-num fw-bold text-muted">${idx + 1}</td><td class="sticky-col-nombre" title="${est.nombres}">${formatearNombreVisual(est.nombres)}${badgeDistancia(est.modalidad)}</td>${inp1}<td class="prom-i1">0.00</td>${inp2}<td class="prom-i2">0.00</td><td class="nota-parcial">0.00</td></tr>`;
             }).join('')}
           </tbody>
         </table>
@@ -1428,7 +1459,7 @@
       try {
         const { data: estData } = await supabaseClient.from('estudiantes').select('*').eq('curso_id', parseInt(asig.curso_id)).order('nombres');
         if (reqId !== currentViewRequestId) return;
-        estudiantes = estData || [];
+        estudiantes = procesarEstudiantesModalidad(estData || []);
 
         const { data: compData } = await supabaseClient.from('comportamiento_parcial').select('*').eq('asignacion_id', parseInt(asigId)).eq('trimestre', trimestre).eq('parcial', parcialNum);
         if (reqId !== currentViewRequestId) return;
@@ -1450,7 +1481,7 @@
             <tbody id="tablaCuerpoComp">
               ${estudiantes.map((est, idx) => {
                 const c = compMap[est.id] || {}, v = (val) => val !== undefined && val !== null ? val : '10';
-                return `<tr data-estudiante-id="${est.id}"><td class="sticky-col-num fw-bold text-muted">${idx + 1}</td><td class="sticky-col-nombre" title="${est.nombres}">${formatearNombreVisual(est.nombres)}</td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind1" value="${v(c.ind1)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind2" value="${v(c.ind2)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind3" value="${v(c.ind3)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind4" value="${v(c.ind4)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind5" value="${v(c.ind5)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind6" value="${v(c.ind6)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind7" value="${v(c.ind7)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind8" value="${v(c.ind8)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind9" value="${v(c.ind9)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind10" value="${v(c.ind10)}" oninput="validarYCalcularComp(this)"></td><td class="total-cuant fw-bold">10.00</td><td class="total-cualit fw-bold">A</td></tr>`;
+                return `<tr data-estudiante-id="${est.id}"><td class="sticky-col-num fw-bold text-muted">${idx + 1}</td><td class="sticky-col-nombre" title="${est.nombres}">${formatearNombreVisual(est.nombres)}${badgeDistancia(est.modalidad)}</td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind1" value="${v(c.ind1)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind2" value="${v(c.ind2)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind3" value="${v(c.ind3)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind4" value="${v(c.ind4)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind5" value="${v(c.ind5)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind6" value="${v(c.ind6)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind7" value="${v(c.ind7)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind8" value="${v(c.ind8)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind9" value="${v(c.ind9)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind10" value="${v(c.ind10)}" oninput="validarYCalcularComp(this)"></td><td class="total-cuant fw-bold">10.00</td><td class="total-cualit fw-bold">A</td></tr>`;
               }).join('')}
             </tbody>
           </table>
@@ -1504,7 +1535,7 @@
       try {
         const { data: estData } = await supabaseClient.from('estudiantes').select('*').eq('curso_id', parseInt(asig.curso_id)).order('nombres');
         if (reqId !== currentViewRequestId) return;
-        estudiantes = estData || [];
+        estudiantes = procesarEstudiantesModalidad(estData || []);
 
         const { data: pData } = await supabaseClient.from('notas_parcial_actividades').select('*').eq('asignacion_id', parseInt(asigId)).eq('trimestre', trimestre);
         if (reqId !== currentViewRequestId) return;
@@ -1550,7 +1581,7 @@
                 return `
                   <tr data-estudiante-id="${est.id}" data-comp-num="${compPromNum.toFixed(2)}" data-comp-letra="${compCualit}">
                     <td class="sticky-col-num fw-bold text-muted">${idx + 1}</td>
-                    <td class="sticky-col-nombre" title="${est.nombres}">${formatearNombreVisual(est.nombres)}</td>
+                    <td class="sticky-col-nombre" title="${est.nombres}">${formatearNombreVisual(est.nombres)}${badgeDistancia(est.modalidad)}</td>
                     <td class="p1-val">${p1.toFixed(2)}</td>
                     <td class="p2-val">${p2.toFixed(2)}</td>
                     <td><input type="number" step="0.5" min="0" max="10" class="form-control form-control-sm input-nota-app nota-examen" value="${ex}" oninput="validarYCalcularTrimestre(this)"></td>
@@ -1603,7 +1634,7 @@
       try {
         const { data: estData } = await supabaseClient.from('estudiantes').select('*').eq('curso_id', parseInt(asig.curso_id)).order('nombres');
         if (reqId !== currentViewRequestId) return;
-        estudiantes = estData || [];
+        estudiantes = procesarEstudiantesModalidad(estData || []);
 
         const { data: pData } = await supabaseClient.from('notas_parcial_actividades').select('*').eq('asignacion_id', parseInt(asigId));
         const { data: tData } = await supabaseClient.from('notas_trimestre').select('*').eq('asignacion_id', parseInt(asigId));
@@ -1671,7 +1702,7 @@
                 return `
                   <tr>
                     <td class="sticky-col-num fw-bold text-muted">${idx + 1}</td>
-                    <td class="sticky-col-nombre" title="${est.nombres}">${formatearNombreVisual(est.nombres)}</td>
+                    <td class="sticky-col-nombre" title="${est.nombres}">${formatearNombreVisual(est.nombres)}${badgeDistancia(est.modalidad)}</td>
                     <td class="${obtenerClaseColor(t1, false)}">${t1.toFixed(2)}</td>
                     <td class="${obtenerClaseColor(t2, false)}">${t2.toFixed(2)}</td>
                     <td class="${obtenerClaseColor(t3, false)}">${t3.toFixed(2)}</td>
@@ -1781,7 +1812,7 @@
       try {
         const { data: estData } = await supabaseClient.from('estudiantes').select('*').eq('curso_id', parseInt(cursoId)).order('nombres');
         if (reqId !== currentViewRequestId) return;
-        estudiantes = estData || [];
+        estudiantes = procesarEstudiantesModalidad(estData || []);
 
         // Ahora buscamos por curso_id, no por asignacion_id
         const { data: compData } = await supabaseClient.from('comportamiento_parcial').select('*').eq('curso_id', parseInt(cursoId)).eq('trimestre', trimestre).eq('parcial', parcialNum);
@@ -1804,7 +1835,7 @@
             <tbody id="tablaCuerpoComp">
               ${estudiantes.map((est, idx) => {
                 const c = compMap[est.id] || {}, v = (val) => val !== undefined && val !== null ? val : '10';
-                return `<tr data-estudiante-id="${est.id}"><td class="sticky-col-num fw-bold text-muted">${idx + 1}</td><td class="sticky-col-nombre" title="${est.nombres}">${formatearNombreVisual(est.nombres)}</td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind1" value="${v(c.ind1)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind2" value="${v(c.ind2)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind3" value="${v(c.ind3)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind4" value="${v(c.ind4)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind5" value="${v(c.ind5)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind6" value="${v(c.ind6)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind7" value="${v(c.ind7)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind8" value="${v(c.ind8)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind9" value="${v(c.ind9)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind10" value="${v(c.ind10)}" oninput="validarYCalcularComp(this)"></td><td class="total-cuant fw-bold">10.00</td><td class="total-cualit fw-bold">A</td></tr>`;
+                return `<tr data-estudiante-id="${est.id}"><td class="sticky-col-num fw-bold text-muted">${idx + 1}</td><td class="sticky-col-nombre" title="${est.nombres}">${formatearNombreVisual(est.nombres)}${badgeDistancia(est.modalidad)}</td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind1" value="${v(c.ind1)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind2" value="${v(c.ind2)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind3" value="${v(c.ind3)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind4" value="${v(c.ind4)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind5" value="${v(c.ind5)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind6" value="${v(c.ind6)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind7" value="${v(c.ind7)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind8" value="${v(c.ind8)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind9" value="${v(c.ind9)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind10" value="${v(c.ind10)}" oninput="validarYCalcularComp(this)"></td><td class="total-cuant fw-bold">10.00</td><td class="total-cualit fw-bold">A</td></tr>`;
               }).join('')}
             </tbody>
           </table>
@@ -3388,7 +3419,7 @@
         const { data: estData } = await supabaseClient.from('estudiantes').select('*').eq('curso_id', parseInt(cursoId)).order('nombres');
         if (reqId !== currentViewRequestId) return;
         
-        estudiantes = estData || [];
+        estudiantes = procesarEstudiantesModalidad(estData || []);
 
         // Colocar fecha actual por defecto en el input
         const inputFecha = document.getElementById('fechaCertificado');
@@ -3947,7 +3978,7 @@
       try {
         const { data: estData } = await supabaseClient.from('estudiantes').select('id, nombres').eq('curso_id', parseInt(cursoId)).order('nombres');
         if (reqId !== currentViewRequestId) return;
-        const listaEstudiantes = estData || [];
+        const listaEstudiantes = procesarEstudiantesModalidad(estData || []);
 
         let html = `
           <div class="p-2">
@@ -3973,7 +4004,7 @@
                             ${listaEstudiantes.map(e => `
                               <div class="form-check">
                                 <input class="form-check-input check-incidencia-est" type="checkbox" value="${e.id}" data-nombre="${e.nombres}" id="estInc${e.id}">
-                                <label class="form-check-label small fw-semibold" for="estInc${e.id}">${e.nombres}</label>
+                                <label class="form-check-label small fw-semibold" for="estInc${e.id}">${e.nombres}${badgeDistancia(e.modalidad)}</label>
                               </div>
                             `).join('')}
                           </div>
@@ -4194,7 +4225,7 @@
       try {
         const { data: estData } = await supabaseClient.from('estudiantes').select('*').eq('curso_id', parseInt(cursoId)).order('nombres');
         if (reqId !== currentViewRequestId) return;
-        estudiantes = estData || [];
+        estudiantes = procesarEstudiantesModalidad(estData || []);
 
         const { data: compData } = await supabaseClient.from('comportamiento_parcial').select('*').eq('curso_id', parseInt(cursoId)).eq('trimestre', trimestre).eq('parcial', parcialNum);
         const compMap = {}; (compData || []).forEach(c => { compMap[c.estudiante_id] = c; });
@@ -4239,7 +4270,7 @@
 
                 return `<tr data-estudiante-id="${est.id}">
                   <td class="sticky-col-num fw-bold text-muted">${idx + 1}</td>
-                  <td class="sticky-col-nombre" title="${est.nombres}">${formatearNombreVisual(est.nombres)} ${badgeInc}</td>
+                  <td class="sticky-col-nombre" title="${est.nombres}">${formatearNombreVisual(est.nombres)} ${badgeInc}${badgeDistancia(est.modalidad)}</td>
                   <td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind1" value="${v(c.ind1)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind2" value="${v(c.ind2)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind3" value="${v(c.ind3)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind4" value="${v(c.ind4)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind5" value="${v(c.ind5)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind6" value="${v(c.ind6)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind7" value="${v(c.ind7)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind8" value="${v(c.ind8)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind9" value="${v(c.ind9)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind10" value="${v(c.ind10)}" oninput="validarYCalcularComp(this)"></td><td class="total-cuant fw-bold">10.00</td><td class="total-cualit fw-bold">A</td>
                 </tr>`;
               }).join('')}
