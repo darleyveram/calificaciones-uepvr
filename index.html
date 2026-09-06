@@ -936,7 +936,7 @@
         const asigIds = listaAsignaciones.map(a => a.id);
         let notasP1 = {}, notasP2 = {};
         if (asigIds.length > 0) {
-          const { data: nData } = await supabaseClient.from('notas_parcial_actividades').select('asignacion_id, estudiante_id, parcial, nota_parcial').in('asignacion_id', asigIds).eq('trimestre', trimestre);
+          const { data: nData } = await supabaseClient.from('notas_parcial_actividades').select('asignacion_id, estudiante_id, parcial, nota_parcial').in('asignacion_id', asigIds).eq('trimestre', trimestre).limit(10000);
           if (reqId !== currentViewRequestId) return;
           (nData || []).forEach(n => {
             if (n.parcial === 1) { if (!notasP1[n.estudiante_id]) notasP1[n.estudiante_id] = {}; notasP1[n.estudiante_id][n.asignacion_id] = n.nota_parcial; }
@@ -946,13 +946,13 @@
 
         let examenesMap = {};
         if (reporteTipo === 'trimestre' && asigIds.length > 0) {
-          const { data: tData } = await supabaseClient.from('notas_trimestre').select('asignacion_id, estudiante_id, examen').in('asignacion_id', asigIds).eq('trimestre', trimestre);
+          const { data: tData } = await supabaseClient.from('notas_trimestre').select('asignacion_id, estudiante_id, examen').in('asignacion_id', asigIds).eq('trimestre', trimestre).limit(10000);
           if (reqId !== currentViewRequestId) return;
           (tData || []).forEach(t => { if (!examenesMap[t.estudiante_id]) examenesMap[t.estudiante_id] = {}; examenesMap[t.estudiante_id][t.asignacion_id] = parseFloat(t.examen) || 0; });
         }
 
         // AHORA BUSCAMOS EL COMPORTAMIENTO POR CURSO (NO POR MATERIA)
-        const { data: cData } = await supabaseClient.from('comportamiento_parcial').select('estudiante_id, parcial, total_cuantitativo').eq('curso_id', parseInt(cursoId)).eq('trimestre', trimestre);
+        const { data: cData } = await supabaseClient.from('comportamiento_parcial').select('estudiante_id, parcial, total_cuantitativo').eq('curso_id', parseInt(cursoId)).eq('trimestre', trimestre).limit(10000);
         if (reqId !== currentViewRequestId) return;
         let compMapP1 = {}, compMapP2 = {};
         (cData || []).forEach(c => {
@@ -960,7 +960,7 @@
           if (c.parcial === 2) compMapP2[c.estudiante_id] = parseFloat(c.total_cuantitativo) || 0;
         });
 
-        const { data: asistData } = await supabaseClient.from('asistencia_estudiantes').select('*').eq('curso_id', parseInt(cursoId)).eq('trimestre', trimestre);
+        const { data: asistData } = await supabaseClient.from('asistencia_estudiantes').select('*').eq('curso_id', parseInt(cursoId)).eq('trimestre', trimestre).limit(10000);
         if (reqId !== currentViewRequestId) return;
         const asistMapP1 = {}, asistMapP2 = {};
         (asistData || []).forEach(a => {
