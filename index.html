@@ -1072,7 +1072,7 @@
                 let celdasNotas = d.materias.map(m => `<td class="${obtenerClaseColor(m.notaNum, false)}" style="white-space: nowrap;"><span class="fw-bold">${m.notaCualit}</span> <small class="text-muted">(${m.notaNum})</small></td>`).join('');
                 return `<tr>
                   <td class="sticky-col-num fw-bold text-muted">${d.num}</td>
-                  <td class="sticky-col-nombre" title="${d.nombres}">${${formatearNombreVisual(d.nombres)}${badgeDistancia(d.modalidad)}</td>
+                  <td class="sticky-col-nombre" title="${d.nombres}">${formatearNombreVisual(d.nombres)}${badgeDistancia(d.modalidad)}</td>
                   ${celdasNotas}
                   <td class="fw-bold fs-6 ${obtenerClaseColor(d.promedioGeneral, true)}" style="white-space: nowrap;">${d.promedioGeneral} <small>(${d.promedioCualitativo})</small></td>
                   <td class="fw-bold" style="white-space: nowrap;">${d.comportamientoLetra} <small>(${d.comportamientoNum})</small></td>
