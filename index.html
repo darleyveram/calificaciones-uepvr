@@ -4458,81 +4458,88 @@
       const idB = parseInt(document.getElementById('swapEstB').value);
 
       if (idA === idB) return alert('¡Debe seleccionar dos estudiantes diferentes!');
-
-      if (!confirm(`¿Está completamente seguro de realizar este intercambio en el Trimestre ${trimestre}? Se cruzarán todas las materias.`)) return;
+      if (!confirm(`¿Está completamente seguro de realizar este intercambio en el Trimestre ${trimestre}? Se cruzarán todas las materias de forma secuencial.`)) return;
 
       const btn = document.getElementById('btnSwap');
       btn.disabled = true;
-      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Cruzando base de datos...';
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Procesando tabla por tabla...';
 
       try {
-        // 1. Conseguir materias del curso
-        const { data: asigData, error: errAsig } = await supabaseClient.from('curso_materia_docente').select('id').eq('curso_id', cursoId);
-        if (errAsig) throw errAsig;
-        
+        // 1. Obtener el ID de todas las materias de este curso
+        const { data: asigData } = await supabaseClient.from('curso_materia_docente').select('id').eq('curso_id', cursoId);
         const asigIds = (asigData || []).map(a => a.id);
-        if (asigIds.length === 0) throw new Error("No hay materias en este curso.");
 
-        // 2. Extraer datos actuales de A y B
-        const [resParcial, resTrim, resComp, resAsist] = await Promise.all([
-          supabaseClient.from('notas_parcial_actividades').select('*').in('asignacion_id', asigIds).eq('trimestre', trimestre).in('estudiante_id', [idA, idB]),
-          supabaseClient.from('notas_trimestre').select('*').in('asignacion_id', asigIds).eq('trimestre', trimestre).in('estudiante_id', [idA, idB]),
-          supabaseClient.from('comportamiento_parcial').select('*').eq('curso_id', cursoId).eq('trimestre', trimestre).in('estudiante_id', [idA, idB]),
-          supabaseClient.from('asistencia_estudiantes').select('*').eq('curso_id', cursoId).eq('trimestre', trimestre).in('estudiante_id', [idA, idB])
-        ]);
+        // 2. FUNCIÓN SECUENCIAL: Procesa una tabla a la vez para no saturar Supabase
+        async function procesarTablaSegura(tabla, esMateria) {
+            // A) Extraer datos de A
+            let queryA = supabaseClient.from(tabla).select('*').eq('estudiante_id', idA).eq('trimestre', trimestre);
+            if (esMateria && asigIds.length > 0) queryA = queryA.in('asignacion_id', asigIds);
+            else if (!esMateria) queryA = queryA.eq('curso_id', cursoId);
+            const { data: dataA, error: errA } = await queryA;
+            if (errA) throw new Error(`Error leyendo ${tabla} (A): ${errA.message}`);
 
-        // 3. Lógica para cruzar los IDs limpiando columnas del sistema
-        const prepararCruce = (arr) => {
-            return (arr || []).map(row => {
-                let newRow = { ...row };
-                // Limpiar columnas internas que bloquean la inserción en Supabase
-                delete newRow.id; 
-                delete newRow.created_at;
-                delete newRow.updated_at;
-                
-                // Cruzar los IDs
-                newRow.estudiante_id = (row.estudiante_id === idA) ? idB : idA; 
-                return newRow;
-            });
-        };
+            // B) Extraer datos de B
+            let queryB = supabaseClient.from(tabla).select('*').eq('estudiante_id', idB).eq('trimestre', trimestre);
+            if (esMateria && asigIds.length > 0) queryB = queryB.in('asignacion_id', asigIds);
+            else if (!esMateria) queryB = queryB.eq('curso_id', cursoId);
+            const { data: dataB, error: errB } = await queryB;
+            if (errB) throw new Error(`Error leyendo ${tabla} (B): ${errB.message}`);
 
-        const insertParcial = prepararCruce(resParcial.data);
-        const insertTrim = prepararCruce(resTrim.data);
-        const insertComp = prepararCruce(resComp.data);
-        const insertAsist = prepararCruce(resAsist.data);
+            // C) Borrar datos originales de A
+            let delA = supabaseClient.from(tabla).delete().eq('estudiante_id', idA).eq('trimestre', trimestre);
+            if (esMateria && asigIds.length > 0) delA = delA.in('asignacion_id', asigIds);
+            else if (!esMateria) delA = delA.eq('curso_id', cursoId);
+            await delA;
 
-        // 4. Borramos los registros originales
-        await Promise.all([
-          supabaseClient.from('notas_parcial_actividades').delete().in('asignacion_id', asigIds).eq('trimestre', trimestre).in('estudiante_id', [idA, idB]),
-          supabaseClient.from('notas_trimestre').delete().in('asignacion_id', asigIds).eq('trimestre', trimestre).in('estudiante_id', [idA, idB]),
-          supabaseClient.from('comportamiento_parcial').delete().eq('curso_id', cursoId).eq('trimestre', trimestre).in('estudiante_id', [idA, idB]),
-          supabaseClient.from('asistencia_estudiantes').delete().eq('curso_id', cursoId).eq('trimestre', trimestre).in('estudiante_id', [idA, idB])
-        ]);
+            // D) Borrar datos originales de B
+            let delB = supabaseClient.from(tabla).delete().eq('estudiante_id', idB).eq('trimestre', trimestre);
+            if (esMateria && asigIds.length > 0) delB = delB.in('asignacion_id', asigIds);
+            else if (!esMateria) delB = delB.eq('curso_id', cursoId);
+            await delB;
 
-        // 5. Insertamos los registros cruzados CON ALERTA DE ERRORES ESTRICTA
-        if (insertParcial.length > 0) {
-            const { error } = await supabaseClient.from('notas_parcial_actividades').insert(insertParcial);
-            if (error) throw new Error("Error en Parciales: " + error.message);
-        }
-        if (insertTrim.length > 0) {
-            const { error } = await supabaseClient.from('notas_trimestre').insert(insertTrim);
-            if (error) throw new Error("Error en Exámenes: " + error.message);
-        }
-        if (insertComp.length > 0) {
-            const { error } = await supabaseClient.from('comportamiento_parcial').insert(insertComp);
-            if (error) throw new Error("Error en Comportamiento: " + error.message);
-        }
-        if (insertAsist.length > 0) {
-            const { error } = await supabaseClient.from('asistencia_estudiantes').insert(insertAsist);
-            if (error) throw new Error("Error en Asistencia: " + error.message);
+            // E) Limpiador de metadatos internos de Supabase
+            const cleanRow = (row, newId) => {
+                let r = { ...row };
+                delete r.id; 
+                delete r.created_at; 
+                delete r.updated_at;
+                r.estudiante_id = newId; // Magia: Se invierte el ID
+                return r;
+            };
+
+            const insertA_to_B = (dataA || []).map(r => cleanRow(r, idB));
+            const insertB_to_A = (dataB || []).map(r => cleanRow(r, idA));
+
+            // F) Insertar cruzados individualmente
+            if (insertA_to_B.length > 0) {
+                const { error } = await supabaseClient.from(tabla).insert(insertA_to_B);
+                if (error) throw new Error(`Error insertando en ${tabla} (B): ${error.message}`);
+            }
+            if (insertB_to_A.length > 0) {
+                const { error } = await supabaseClient.from(tabla).insert(insertB_to_A);
+                if (error) throw new Error(`Error insertando en ${tabla} (A): ${error.message}`);
+            }
         }
 
-        alert('¡Éxito! Las calificaciones, los exámenes, el comportamiento y la asistencia han sido intercambiados de forma segura.');
+        // 3. EJECUCIÓN 100% SECUENCIAL (Espera a que termine una para seguir con la otra)
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Cruzando Parciales...';
+        await procesarTablaSegura('notas_parcial_actividades', true);
+
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Cruzando Exámenes...';
+        await procesarTablaSegura('notas_trimestre', true);
+
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Cruzando Comportamiento...';
+        await procesarTablaSegura('comportamiento_parcial', false);
+
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Cruzando Asistencia...';
+        await procesarTablaSegura('asistencia_estudiantes', false);
+
+        alert('¡Éxito total! Intercambio de calificaciones, comportamiento y asistencia completado al 100%.');
         document.getElementById('swapEstA').value = '';
         document.getElementById('swapEstB').value = '';
 
       } catch (err) {
-        alert('La operación se detuvo por seguridad. Motivo: ' + err.message);
+        alert('Se detuvo la operación. ' + err.message);
       } finally {
         btn.disabled = false;
         btn.innerHTML = '<i class="bi bi-exclamation-triangle-fill me-2"></i> EJECUTAR INTERCAMBIO';
