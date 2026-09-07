@@ -124,6 +124,8 @@
               <option value="auditoria" id="optModoAuditoria" class="d-none">🔍 Auditoría de Calificaciones</option>
               <!-- NUEVO MÓDULO -->
               <option value="incidencias" id="optModoIncidencias" class="text-danger fw-bold">⚠️ Registro de Incidencias</option>
+              <!-- MÓDULO INTERCAMBIO -->
+              <option value="intercambio" id="optModoIntercambio" class="d-none text-warning fw-bold">🔄 Intercambiar Calificaciones</option>
             </select>
           </div>
 
@@ -552,6 +554,10 @@
 
           const boxDist = document.getElementById('boxFiltroDistancia');
           if (boxDist) boxDist.classList.remove('d-none');
+
+          // --- NUEVO LÍNEA DE INTERCAMBIO ---
+          const optInter = document.getElementById('optModoIntercambio');
+          if (optInter) optInter.classList.remove('d-none');
         }
         // -----------------------------------------------
 
@@ -681,6 +687,15 @@
         cambiarFiltro();
         return; 
       }
+        // === NUEVO: MÓDULO DE INTERCAMBIO ===
+      else if (modo === 'intercambio') {
+        boxCurso.classList.remove('d-none'); boxMateria.classList.add('d-none'); boxVista.classList.add('d-none'); boxParcialAsist.classList.add('d-none'); boxParcialTut.classList.add('d-none'); optAnual.classList.add('d-none');
+        boxTrimestre.classList.remove('d-none'); 
+        if (document.getElementById('selectTrimestre').value === 'anual') document.getElementById('selectTrimestre').value = '1';
+        let cursosDisponibles = esAdmin ? todosCursos : []; // Seguridad extra: solo admin
+        selectCurso.innerHTML = '<option value="">Seleccione curso...</option>' + cursosDisponibles.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
+      }
+      // ===================================
       else {
         boxCurso.classList.remove('d-none'); boxMateria.classList.remove('d-none'); boxVista.classList.remove('d-none'); boxParcialAsist.classList.add('d-none'); boxParcialTut.classList.add('d-none'); optAnual.classList.remove('d-none');
         boxTrimestre.classList.remove('d-none'); 
@@ -751,6 +766,15 @@
         if (!cursoId) { controles.forEach(b => b.disabled = true); document.getElementById('contenedorTabla').innerHTML = '<div class="py-4 text-muted text-center">Seleccione un Curso para gestionar la Asistencia.</div>'; return; }
         controles.forEach(b => b.disabled = false);
         cargarVistaAsistencia(); return;
+      }
+
+      if (modo === 'intercambio') {
+        if (!cursoId) { 
+          document.getElementById('contenedorTabla').innerHTML = '<div class="py-4 text-muted text-center">Seleccione un Curso para realizar el intercambio.</div>'; 
+          return; 
+        }
+        cargarVistaIntercambio(); 
+        return;
       }
 
       if (modo === 'comportamiento') {
@@ -4361,7 +4385,141 @@
         doc.save('Reporte_Incidencias.pdf');
       } catch (e) { alert('Error al exportar: ' + e.message); }
     }
-    
+    // =========================================================================
+    // NUEVO MÓDULO: INTERCAMBIO DE CALIFICACIONES (ADMIN)
+    // =========================================================================
+    async function cargarVistaIntercambio() {
+      const cursoId = document.getElementById('selectCurso').value;
+      const trimestre = document.getElementById('selectTrimestre').value;
+      const contenedor = document.getElementById('contenedorTabla');
+
+      contenedor.innerHTML = '<div class="py-4 text-center"><div class="spinner-border text-primary me-2"></div>Cargando estudiantes...</div>';
+
+      try {
+        const { data: estData } = await supabaseClient.from('estudiantes')
+            .select('id, nombres, modalidad').eq('curso_id', parseInt(cursoId)).order('nombres');
+
+        const estudiantesCurso = estData || [];
+
+        if (estudiantesCurso.length < 2) {
+          contenedor.innerHTML = '<div class="py-4 text-warning text-center fw-bold">No hay suficientes estudiantes en este curso.</div>';
+          return;
+        }
+
+        const opciones = estudiantesCurso.map(e => `<option value="${e.id}">${e.nombres} ${e.modalidad === 'DISTANCIA' ? '(A Distancia)' : ''}</option>`).join('');
+
+        let html = `
+          <div class="card border-warning shadow mx-auto mt-4" style="max-width: 600px;">
+            <div class="card-header bg-warning text-dark fw-bold text-center fs-5">
+              <i class="bi bi-arrow-left-right me-2"></i>Intercambiar Calificaciones
+            </div>
+            <div class="card-body bg-light p-4">
+              <div class="alert alert-info text-center shadow-sm" style="font-size: 0.85rem;">
+                <i class="bi bi-info-circle-fill me-1"></i> Se trasladarán <b>TODAS las notas</b> (Parciales, Exámenes, Comportamiento y Asistencia) del Trimestre ${trimestre} entre estos dos estudiantes.
+              </div>
+              <form onsubmit="ejecutarIntercambio(event, ${cursoId}, ${trimestre})">
+                <div class="mb-3">
+                  <label class="form-label fw-bold text-primary">Estudiante A (Cederá sus notas al B):</label>
+                  <select id="swapEstA" class="form-select border-primary fw-bold text-dark shadow-sm" required>
+                    <option value="">Seleccione el Estudiante A...</option>
+                    ${opciones}
+                  </select>
+                </div>
+                
+                <div class="text-center my-3">
+                  <i class="bi bi-arrow-down-up fs-2 text-warning"></i>
+                </div>
+                
+                <div class="mb-4">
+                  <label class="form-label fw-bold text-danger">Estudiante B (Cederá sus notas al A):</label>
+                  <select id="swapEstB" class="form-select border-danger fw-bold text-dark shadow-sm" required>
+                    <option value="">Seleccione el Estudiante B...</option>
+                    ${opciones}
+                  </select>
+                </div>
+                
+                <button type="submit" class="btn btn-warning w-100 fw-bold py-2 shadow-sm" id="btnSwap">
+                  <i class="bi bi-exclamation-triangle-fill me-2"></i> EJECUTAR INTERCAMBIO
+                </button>
+              </form>
+            </div>
+          </div>
+        `;
+        contenedor.innerHTML = html;
+
+      } catch (err) {
+        contenedor.innerHTML = `<div class="py-4 text-danger text-center fw-bold">Error: ${err.message}</div>`;
+      }
+    }
+
+    async function ejecutarIntercambio(e, cursoId, trimestre) {
+      e.preventDefault();
+      const idA = parseInt(document.getElementById('swapEstA').value);
+      const idB = parseInt(document.getElementById('swapEstB').value);
+
+      if (idA === idB) return alert('¡Debe seleccionar dos estudiantes diferentes!');
+
+      if (!confirm(`¿Está completamente seguro de realizar este intercambio en el Trimestre ${trimestre}? Se cruzarán todas las materias.`)) return;
+
+      const btn = document.getElementById('btnSwap');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Cruzando base de datos...';
+
+      try {
+        // 1. Conseguir materias del curso
+        const { data: asigData } = await supabaseClient.from('curso_materia_docente').select('id').eq('curso_id', cursoId);
+        const asigIds = (asigData || []).map(a => a.id);
+        if (asigIds.length === 0) throw new Error("No hay materias en este curso.");
+
+        // 2. Extraer datos actuales de A y B
+        const [resParcial, resTrim, resComp, resAsist] = await Promise.all([
+          supabaseClient.from('notas_parcial_actividades').select('*').in('asignacion_id', asigIds).eq('trimestre', trimestre).in('estudiante_id', [idA, idB]),
+          supabaseClient.from('notas_trimestre').select('*').in('asignacion_id', asigIds).eq('trimestre', trimestre).in('estudiante_id', [idA, idB]),
+          supabaseClient.from('comportamiento_parcial').select('*').eq('curso_id', cursoId).eq('trimestre', trimestre).in('estudiante_id', [idA, idB]),
+          supabaseClient.from('asistencia_estudiantes').select('*').eq('curso_id', cursoId).eq('trimestre', trimestre).in('estudiante_id', [idA, idB])
+        ]);
+
+        // 3. Lógica para cruzar los IDs (Borrar campo 'id' original para evitar conflicto de llaves)
+        const prepararCruce = (arr) => {
+            return (arr || []).map(row => {
+                let newRow = { ...row };
+                delete newRow.id; // Remover ID único de Supabase
+                // Si la nota era de A, ahora es de B. Si era de B, ahora es de A.
+                newRow.estudiante_id = (row.estudiante_id === idA) ? idB : idA; 
+                return newRow;
+            });
+        };
+
+        const insertParcial = prepararCruce(resParcial.data);
+        const insertTrim = prepararCruce(resTrim.data);
+        const insertComp = prepararCruce(resComp.data);
+        const insertAsist = prepararCruce(resAsist.data);
+
+        // 4. Borramos los registros originales para liberar el espacio
+        await Promise.all([
+          supabaseClient.from('notas_parcial_actividades').delete().in('asignacion_id', asigIds).eq('trimestre', trimestre).in('estudiante_id', [idA, idB]),
+          supabaseClient.from('notas_trimestre').delete().in('asignacion_id', asigIds).eq('trimestre', trimestre).in('estudiante_id', [idA, idB]),
+          supabaseClient.from('comportamiento_parcial').delete().eq('curso_id', cursoId).eq('trimestre', trimestre).in('estudiante_id', [idA, idB]),
+          supabaseClient.from('asistencia_estudiantes').delete().eq('curso_id', cursoId).eq('trimestre', trimestre).in('estudiante_id', [idA, idB])
+        ]);
+
+        // 5. Insertamos los registros cruzados
+        if (insertParcial.length > 0) await supabaseClient.from('notas_parcial_actividades').insert(insertParcial);
+        if (insertTrim.length > 0) await supabaseClient.from('notas_trimestre').insert(insertTrim);
+        if (insertComp.length > 0) await supabaseClient.from('comportamiento_parcial').insert(insertComp);
+        if (insertAsist.length > 0) await supabaseClient.from('asistencia_estudiantes').insert(insertAsist);
+
+        alert('¡Éxito! Las calificaciones, el comportamiento y la asistencia han sido intercambiados de forma segura.');
+        document.getElementById('swapEstA').value = '';
+        document.getElementById('swapEstB').value = '';
+
+      } catch (err) {
+        alert('Ocurrió un error en el cruce: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-exclamation-triangle-fill me-2"></i> EJECUTAR INTERCAMBIO';
+      }
+    }
   </script>
 </body>
 </html>
