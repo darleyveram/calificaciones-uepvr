@@ -120,6 +120,7 @@
               <option value="tutoria" id="optModoTutoria" class="d-none">📊 Reportes y Libretas de Tutoría</option>
               <option value="reporte_estudiante" id="optModoReporteEstudiante" class="d-none">🧑‍🎓 Reporte Total por Estudiante</option>
               <option value="certificados" id="optModoCertificados" class="d-none">📜 Certificados de Matrícula</option>
+              <option value="nomina">📋 Nóminas de Estudiantes</option>
               <!-- NUEVO MÓDULO DE AUDITORÍA -->
               <option value="auditoria" id="optModoAuditoria" class="d-none">🔍 Auditoría de Calificaciones</option>
               <!-- NUEVO MÓDULO -->
@@ -239,6 +240,13 @@
             <!-- Botón exclusivo Sábana (Admin y Tutor) -->
             <button class="btn btn-danger btn-sm px-2 fw-bold d-none" id="btnDescargarSabanaTutoria" onclick="exportarSabanaTutoriaPDF()">
               <i class="bi bi-file-earmark-spreadsheet-fill me-1"></i>Sábana PDF
+            </button>
+          </div>
+
+          <!-- BOTÓN NÓMINAS -->
+          <div class="col-12 col-md-3 text-end pt-2 pt-md-3 d-none" id="accionesNomina">
+            <button class="btn btn-danger btn-sm px-3 fw-bold" onclick="exportarNominaPDF()">
+              <i class="bi bi-file-pdf me-1"></i> Descargar Nómina
             </button>
           </div>
 
@@ -696,6 +704,17 @@
         selectCurso.innerHTML = '<option value="">Seleccione curso...</option>' + cursosDisponibles.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
       }
       // ===================================
+
+        // === NUEVO MÓDULO: NÓMINAS ===
+      else if (modo === 'nomina') {
+        boxCurso.classList.remove('d-none'); boxMateria.classList.add('d-none'); boxVista.classList.add('d-none'); boxParcialAsist.classList.add('d-none'); boxParcialTut.classList.add('d-none'); optAnual.classList.add('d-none');
+        boxTrimestre.classList.add('d-none'); 
+        let cursosDisponibles = esAdmin ? todosCursos : Array.from(new Map([...cursosTutor.map(c => [c.id, c]), ...todasAsignaciones.map(a => [a.cursos.id, a.cursos])]).values());
+        cursosDisponibles.sort((a,b) => a.nombre.localeCompare(b.nombre)); // Ordenar alfabéticamente
+        selectCurso.innerHTML = '<option value="TODOS">👉 TODOS MIS CURSOS (Consolidado)</option>' + cursosDisponibles.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
+      }
+      // =============================
+        
       else {
         boxCurso.classList.remove('d-none'); boxMateria.classList.remove('d-none'); boxVista.classList.remove('d-none'); boxParcialAsist.classList.add('d-none'); boxParcialTut.classList.add('d-none'); optAnual.classList.remove('d-none');
         boxTrimestre.classList.remove('d-none'); 
@@ -741,6 +760,8 @@
       const accTutoria = document.getElementById('accionesTutoria');
       const accCertificados = document.getElementById('accionesCertificados');
       const accIncidencias = document.getElementById('accionesIncidencias');
+      const accNomina = document.getElementById('accionesNomina');
+if (accNomina) accNomina.classList.add('d-none');
 
       accParcial.classList.add('d-none'); accComp.classList.add('d-none'); accResumen.classList.add('d-none'); accAnual.classList.add('d-none'); accAsist.classList.add('d-none'); accTutoria.classList.add('d-none');
       if (accCertificados) accCertificados.classList.add('d-none');
@@ -751,6 +772,12 @@
         cargarVistaAuditoria();
         return;
       }
+
+      if (modo === 'nomina') {
+     if (accNomina) accNomina.classList.remove('d-none');
+     cargarVistaNomina(); 
+     return;
+   }
 
       if (modo === 'tutoria') {
         accTutoria.classList.remove('d-none');
@@ -4543,6 +4570,180 @@
       } finally {
         btn.disabled = false;
         btn.innerHTML = '<i class="bi bi-exclamation-triangle-fill me-2"></i> EJECUTAR INTERCAMBIO';
+      }
+    }
+    // =========================================================================
+    // NUEVO MÓDULO: NÓMINAS DE ESTUDIANTES
+    // =========================================================================
+    let nominasGlobales = []; // Guarda las nóminas en memoria para el PDF
+
+    async function cargarVistaNomina() {
+      const reqId = ++currentViewRequestId;
+      const cursoId = document.getElementById('selectCurso').value;
+      const contenedor = document.getElementById('contenedorTabla');
+      contenedor.innerHTML = '<div class="py-4 text-center"><div class="spinner-border text-primary me-2"></div>Cargando nóminas...</div>';
+
+      try {
+        const esAdmin = usuarioActualPerfil?.rol === 'admin';
+        let cursosDisponibles = esAdmin ? todosCursos : Array.from(new Map([...cursosTutor.map(c => [c.id, c]), ...todasAsignaciones.map(a => [a.cursos.id, a.cursos])]).values());
+        
+        let cursosAConsultar = [];
+        if (cursoId === 'TODOS') {
+            cursosAConsultar = cursosDisponibles.map(c => c.id);
+        } else {
+            cursosAConsultar = [parseInt(cursoId)];
+        }
+
+        if (cursosAConsultar.length === 0) {
+            contenedor.innerHTML = '<div class="py-4 text-warning text-center fw-bold">No tiene cursos asignados para generar nóminas.</div>';
+            return;
+        }
+
+        const { data: estData, error } = await supabaseClient.from('estudiantes')
+            .select('id, nombres, cedula, modalidad, curso_id')
+            .in('curso_id', cursosAConsultar)
+            .order('nombres');
+
+        if (error) throw error;
+        if (reqId !== currentViewRequestId) return;
+
+        // ESTA LÍNEA APLICA EL FILTRO AUTOMÁTICO DE PRESENCIAL/DISTANCIA
+        const todosEst = procesarEstudiantesModalidad(estData || []);
+        
+        // Agrupar por curso
+        nominasGlobales = [];
+        cursosAConsultar.forEach(cId => {
+            const infoC = cursosDisponibles.find(c => String(c.id) === String(cId));
+            const estCurso = todosEst.filter(e => String(e.curso_id) === String(cId));
+            if (estCurso.length > 0) {
+                nominasGlobales.push({
+                    cursoId: cId,
+                    cursoNombre: infoC ? infoC.nombre : 'Curso Desconocido',
+                    estudiantes: estCurso
+                });
+            }
+        });
+
+        if (nominasGlobales.length === 0) {
+            contenedor.innerHTML = '<div class="py-4 text-warning text-center fw-bold">No se encontraron estudiantes en estos cursos.</div>';
+            return;
+        }
+
+        // Ordenar los cursos por nombre
+        nominasGlobales.sort((a,b) => a.cursoNombre.localeCompare(b.cursoNombre));
+
+        let html = '';
+        nominasGlobales.forEach(nom => {
+            html += `
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-dark text-white fw-bold d-flex justify-content-between">
+                    <span><i class="bi bi-people-fill me-2"></i>${nom.cursoNombre}</span>
+                    <span class="badge bg-light text-dark">${nom.estudiantes.length} Estudiantes</span>
+                </div>
+                <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                    <table class="table table-sm table-hover mb-0 align-middle">
+                        <thead class="table-secondary sticky-top">
+                            <tr>
+                                <th style="width: 50px;">N°</th>
+                                <th class="text-start">Nómina de Estudiantes</th>
+                                <th style="width: 120px;">Cédula</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${nom.estudiantes.map((e, i) => `
+                                <tr>
+                                    <td class="fw-bold text-muted">${i + 1}</td>
+                                    <td class="text-start fw-bold text-primary">${e.nombres} ${badgeDistancia(e.modalidad)}</td>
+                                    <td>${e.cedula || 'S/N'}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>`;
+        });
+
+        contenedor.innerHTML = `<div class="p-2">${html}</div>`;
+
+      } catch (err) {
+        if (reqId === currentViewRequestId) contenedor.innerHTML = `<div class="py-4 text-danger text-center fw-bold">Error: ${err.message}</div>`;
+      }
+    }
+
+    async function exportarNominaPDF() {
+      if (!nominasGlobales || nominasGlobales.length === 0) return alert('No hay nóminas para exportar.');
+      const btn = document.querySelector('#accionesNomina button');
+      const originalHtml = btn.innerHTML;
+      btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Generando PDF...';
+
+      try {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+        const nomArriba = (infoInstitucion?.nombre_arriba || 'Unidad Educativa Particular').toUpperCase();
+        const nomAbajo = (infoInstitucion?.nombre_abajo || '"Vicente Rocafuerte"').toUpperCase();
+        const periodo = infoInstitucion?.periodo_lectivo || '2026-2027';
+
+        const imgLogoIzq = await obtenerBase64DesdeUrl(infoInstitucion?.logo_izquierdo || infoInstitucion?.logo_institucion);
+        const imgLogoDer = await obtenerBase64DesdeUrl(infoInstitucion?.logo_derecho || infoInstitucion?.escudo_nacional);
+
+        const usuarioDescarga = usuarioActualPerfil ? `${usuarioActualPerfil.nombres} ${usuarioActualPerfil.apellidos || ''}`.trim().toUpperCase() : 'DOCENTE';
+        const fechaActual = new Date().toLocaleString('es-EC');
+
+        nominasGlobales.forEach((nomina, index) => {
+            if (index > 0) doc.addPage(); // Una página nueva por cada curso
+
+            // Cabecera de la página
+            if (imgLogoIzq) { try { doc.addImage(imgLogoIzq, 'PNG', 12, 10, 20, 20); } catch(e){} }
+            if (imgLogoDer) { try { doc.addImage(imgLogoDer, 'PNG', 178, 10, 20, 20); } catch(e){} }
+
+            doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.setTextColor(30, 41, 59);
+            doc.text(nomArriba, 105, 14, { align: 'center' });
+            doc.setFontSize(14); doc.text(nomAbajo, 105, 20, { align: 'center' });
+            doc.setFontSize(10); doc.text(`NÓMINA DE ESTUDIANTES - PERIODO ${periodo}`, 105, 26, { align: 'center' });
+
+            doc.setDrawColor(200, 200, 200); doc.line(12, 32, 198, 32);
+            doc.setFontSize(10);
+            doc.text(`CURSO: ${nomina.cursoNombre}`, 12, 38);
+            doc.text(`DOCENTE: ${usuarioDescarga}`, 198, 38, { align: 'right' });
+
+            const bodyData = nomina.estudiantes.map((e, i) => [
+                i + 1, 
+                e.nombres + (e.modalidad === 'DISTANCIA' ? ' (A Distancia)' : ''), 
+                e.cedula || 'S/N'
+            ]);
+
+            doc.autoTable({
+                head: [['N°', 'APELLIDOS Y NOMBRES', 'CÉDULA']],
+                body: bodyData,
+                startY: 42,
+                theme: 'grid',
+                styles: { fontSize: 9, cellPadding: 2, valign: 'middle' },
+                headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255], halign: 'center' },
+                columnStyles: { 
+                    0: { cellWidth: 15, halign: 'center' }, 
+                    1: { cellWidth: 130, halign: 'left', fontStyle: 'bold' }, 
+                    2: { cellWidth: 41, halign: 'center' } 
+                },
+                didDrawPage: function() {
+                    // Footer
+                    doc.setFontSize(7); doc.setTextColor(150, 150, 150); doc.setFont('helvetica', 'normal');
+                    doc.text(`Generado por: ${usuarioDescarga} el ${fechaActual}`, 12, 285);
+                    doc.text(`Página ${doc.internal.getNumberOfPages()}`, 198, 285, { align: 'right' });
+                }
+            });
+        });
+
+        const nombreArchivo = nominasGlobales.length === 1 
+            ? `Nomina_${nominasGlobales[0].cursoNombre.replace(/\s+/g, '_')}.pdf` 
+            : `Nominas_Todos_Cursos_${usuarioDescarga.replace(/\s+/g, '_')}.pdf`;
+            
+        doc.save(nombreArchivo);
+
+      } catch (err) {
+        alert('Error al exportar PDF: ' + err.message);
+      } finally {
+        btn.disabled = false; btn.innerHTML = originalHtml;
       }
     }
   </script>
