@@ -4467,7 +4467,9 @@
 
       try {
         // 1. Conseguir materias del curso
-        const { data: asigData } = await supabaseClient.from('curso_materia_docente').select('id').eq('curso_id', cursoId);
+        const { data: asigData, error: errAsig } = await supabaseClient.from('curso_materia_docente').select('id').eq('curso_id', cursoId);
+        if (errAsig) throw errAsig;
+        
         const asigIds = (asigData || []).map(a => a.id);
         if (asigIds.length === 0) throw new Error("No hay materias en este curso.");
 
@@ -4479,12 +4481,16 @@
           supabaseClient.from('asistencia_estudiantes').select('*').eq('curso_id', cursoId).eq('trimestre', trimestre).in('estudiante_id', [idA, idB])
         ]);
 
-        // 3. Lógica para cruzar los IDs (Borrar campo 'id' original para evitar conflicto de llaves)
+        // 3. Lógica para cruzar los IDs limpiando columnas del sistema
         const prepararCruce = (arr) => {
             return (arr || []).map(row => {
                 let newRow = { ...row };
-                delete newRow.id; // Remover ID único de Supabase
-                // Si la nota era de A, ahora es de B. Si era de B, ahora es de A.
+                // Limpiar columnas internas que bloquean la inserción en Supabase
+                delete newRow.id; 
+                delete newRow.created_at;
+                delete newRow.updated_at;
+                
+                // Cruzar los IDs
                 newRow.estudiante_id = (row.estudiante_id === idA) ? idB : idA; 
                 return newRow;
             });
@@ -4495,7 +4501,7 @@
         const insertComp = prepararCruce(resComp.data);
         const insertAsist = prepararCruce(resAsist.data);
 
-        // 4. Borramos los registros originales para liberar el espacio
+        // 4. Borramos los registros originales
         await Promise.all([
           supabaseClient.from('notas_parcial_actividades').delete().in('asignacion_id', asigIds).eq('trimestre', trimestre).in('estudiante_id', [idA, idB]),
           supabaseClient.from('notas_trimestre').delete().in('asignacion_id', asigIds).eq('trimestre', trimestre).in('estudiante_id', [idA, idB]),
@@ -4503,18 +4509,30 @@
           supabaseClient.from('asistencia_estudiantes').delete().eq('curso_id', cursoId).eq('trimestre', trimestre).in('estudiante_id', [idA, idB])
         ]);
 
-        // 5. Insertamos los registros cruzados
-        if (insertParcial.length > 0) await supabaseClient.from('notas_parcial_actividades').insert(insertParcial);
-        if (insertTrim.length > 0) await supabaseClient.from('notas_trimestre').insert(insertTrim);
-        if (insertComp.length > 0) await supabaseClient.from('comportamiento_parcial').insert(insertComp);
-        if (insertAsist.length > 0) await supabaseClient.from('asistencia_estudiantes').insert(insertAsist);
+        // 5. Insertamos los registros cruzados CON ALERTA DE ERRORES ESTRICTA
+        if (insertParcial.length > 0) {
+            const { error } = await supabaseClient.from('notas_parcial_actividades').insert(insertParcial);
+            if (error) throw new Error("Error en Parciales: " + error.message);
+        }
+        if (insertTrim.length > 0) {
+            const { error } = await supabaseClient.from('notas_trimestre').insert(insertTrim);
+            if (error) throw new Error("Error en Exámenes: " + error.message);
+        }
+        if (insertComp.length > 0) {
+            const { error } = await supabaseClient.from('comportamiento_parcial').insert(insertComp);
+            if (error) throw new Error("Error en Comportamiento: " + error.message);
+        }
+        if (insertAsist.length > 0) {
+            const { error } = await supabaseClient.from('asistencia_estudiantes').insert(insertAsist);
+            if (error) throw new Error("Error en Asistencia: " + error.message);
+        }
 
-        alert('¡Éxito! Las calificaciones, el comportamiento y la asistencia han sido intercambiados de forma segura.');
+        alert('¡Éxito! Las calificaciones, los exámenes, el comportamiento y la asistencia han sido intercambiados de forma segura.');
         document.getElementById('swapEstA').value = '';
         document.getElementById('swapEstB').value = '';
 
       } catch (err) {
-        alert('Ocurrió un error en el cruce: ' + err.message);
+        alert('La operación se detuvo por seguridad. Motivo: ' + err.message);
       } finally {
         btn.disabled = false;
         btn.innerHTML = '<i class="bi bi-exclamation-triangle-fill me-2"></i> EJECUTAR INTERCAMBIO';
