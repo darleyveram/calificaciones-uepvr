@@ -78,7 +78,7 @@
       </div>
       <div class="card-footer bg-light text-center py-2 text-muted small">
         <span class="header-dir-inst">Pichincha - Manabí - Ecuador</span><br>
-        <span style="font-size: 0.6rem; opacity: 0.5;">v1.0.3</span>
+        <span style="font-size: 0.6rem; opacity: 0.5;">v1.0.4</span>
       </div>
     </div>
   </div>
@@ -165,6 +165,15 @@
               <option value="p2">Parcial 2 (Insumos 1 y 2)</option>
               <option value="resumen_trimestre">Examen y Resumen Trimestral</option>
             </select>
+          </div>
+
+          <!-- NUEVO: FILTRO DISTANCIA (SOLO ADMIN) -->
+          <div class="col-6 col-md-2 d-none" id="boxFiltroDistancia">
+            <label class="form-label mb-1 fw-bold small text-primary">Modalidad:</label>
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="toggleDistancia" onchange="cambiarFiltro()">
+              <label class="form-check-label fw-bold small text-muted" for="toggleDistancia">Ver A Distancia</label>
+            </div>
           </div>
 
           <!-- NUEVO: FILTRO RETIRADOS (SOLO ADMIN) -->
