@@ -33,7 +33,7 @@
   <div class="container" id="seccionLogin" style="max-width: 420px; margin-top: 80px;">
     <div class="card shadow">
       <div class="card-header bg-dark text-white text-center py-3">
-        <h5 class="mb-0 fw-bold"><i class="bi bi-shield-lock me-2"></i>Acceso Administrativo V2.0</h5>
+        <h5 class="mb-0 fw-bold"><i class="bi bi-shield-lock me-2"></i>Acceso Administrativo V2.1</h5>
         <small class="text-secondary header-nombre-inst">UEP Vicente Rocafuerte</small>
       </div>
       <div class="card-body p-4">
@@ -1023,11 +1023,67 @@
 
     function cargarImagenBase64(input, previewId) {
       if (input.files && input.files[0]) {
+        const file = input.files[0];
+        
+        // Verificamos que sea una imagen
+        if (!file.type.match('image.*')) {
+            alert('Por favor, seleccione un archivo de imagen válido.');
+            input.value = '';
+            return;
+        }
+
         const reader = new FileReader();
         reader.onload = function(e) {
-          document.getElementById(previewId).src = e.target.result;
+          const img = new Image();
+          img.onload = function() {
+            // --- CONFIGURACIÓN DE COMPRESIÓN ---
+            const MAX_WIDTH = 500; // Ancho máximo
+            const MAX_HEIGHT = 500; // Alto máximo
+            let width = img.width;
+            let height = img.height;
+
+            // Calcular las nuevas proporciones
+            if (width > height) {
+              if (width > MAX_WIDTH) {
+                height *= MAX_WIDTH / width;
+                width = MAX_WIDTH;
+              }
+            } else {
+              if (height > MAX_HEIGHT) {
+                width *= MAX_HEIGHT / height;
+                height = MAX_HEIGHT;
+              }
+            }
+
+            // Crear un canvas para dibujar y comprimir la imagen
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            
+            // Dibujar la imagen redimensionada en el canvas
+            ctx.drawImage(img, 0, 0, width, height);
+
+            // Exportar a Base64 (Comprimimos a formato JPEG con calidad del 80%)
+            // Si necesitas transparencia (ej. logos PNG sin fondo), cambia 'image/jpeg' por 'image/png' y quita el 0.8
+            // PERO ten en cuenta que PNG no soporta el parámetro de calidad y será un poco más pesado.
+            // Para logos con transparencia, te recomiendo dejarlo en PNG. Si no, usa JPEG para máxima compresión.
+            
+            // Opción 1: Mantener transparencia (PNG)
+            const compressedBase64 = canvas.toDataURL('image/png');
+            
+            // Opción 2: Máxima compresión, fondo blanco (JPEG)
+            // ctx.fillStyle = '#FFF'; // Fondo blanco para evitar fondos negros
+            // ctx.fillRect(0, 0, width, height);
+            // ctx.drawImage(img, 0, 0, width, height);
+            // const compressedBase64 = canvas.toDataURL('image/jpeg', 0.8); 
+
+            // Mostrar en la vista previa
+            document.getElementById(previewId).src = compressedBase64;
+          };
+          img.src = e.target.result;
         };
-        reader.readAsDataURL(input.files[0]);
+        reader.readAsDataURL(file);
       }
     }
 
