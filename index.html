@@ -78,7 +78,7 @@
       </div>
       <div class="card-footer bg-light text-center py-2 text-muted small">
         <span class="header-dir-inst">Pichincha - Manabí - Ecuador</span><br>
-        <span style="font-size: 0.6rem; opacity: 0.5;">v1.0.7</span>
+        <span style="font-size: 0.6rem; opacity: 0.5;">v1.0.8</span>
       </div>
     </div>
   </div>
@@ -4010,24 +4010,22 @@ if (accNomina) accNomina.classList.add('d-none');
       
       contenedor.innerHTML = '<div class="py-5 text-center"><div class="spinner-border text-primary me-2" style="width: 3rem; height: 3rem;"></div><div class="mt-3 fw-bold text-muted">Consultando bases de datos...</div></div>';
 
-      // AHORA LEE DIRECTAMENTE DE LA BARRA SUPERIOR
+      // 1. LEER CORRECTAMENTE LOS FILTROS DE LA BARRA SUPERIOR
       const trim = parseInt(document.getElementById('selectTrimestre').value);
-      const vistaVal = document.getElementById('selectVista').value; // 'p1', 'p2', 'resumen_trimestre'
-      const tipoAud = document.getElementById('selectTipoAuditoria').value; // 'cumplidos', 'incumplidos'
+      const vistaVal = document.getElementById('selectVista').value; 
+      const tipoAud = document.getElementById('selectTipoAuditoria').value;
 
       let parc = 1;
       if (vistaVal === 'p2') parc = 2;
       else if (vistaVal === 'resumen_trimestre') parc = 3;
 
       try {
-        // 1. Obtener todas las asignaciones
         const { data: asignaciones } = await supabaseClient.from('curso_materia_docente').select(`
             id, curso_id, materia_id, docente_id,
             cursos(nombre), materias(nombre)
         `);
         if (reqId !== currentViewRequestId) return;
 
-        // 2. Traer nombres de docentes
         const { data: perfiles } = await supabaseClient.from('perfiles').select('id, titulo, nombres, apellidos');
         const docentesMap = new Map();
         (perfiles || []).forEach(p => {
@@ -4036,25 +4034,47 @@ if (accNomina) accNomina.classList.add('d-none');
             docentesMap.set(p.id, `${tit}${p.nombres}${ape}`.trim());
         });
 
-        // 3. Ver quiénes guardaron notas en este parcial/trimestre
         let savedAsigIds = new Set();
+        
+        // 2. SOLUCIÓN AL LÍMITE DE 1000 REGISTROS (PAGINACIÓN EN BLOQUES)
         if (parc === 1 || parc === 2) {
-            const { data: config } = await supabaseClient.from('config_parcial_cabeceras')
-                .select('asignacion_id').eq('trimestre', trim).eq('parcial', parc);
-            (config || []).forEach(c => savedAsigIds.add(c.asignacion_id));
-        } else if (parc === 3) {
-            // LÓGICA MEJORADA PARA EXÁMENES
-            const { data: examen } = await supabaseClient.from('notas_trimestre')
-                .select('asignacion_id, examen').eq('trimestre', trim);
-            (examen || []).forEach(e => {
-                // Solo lo marcamos completado si la nota de examen NO está en blanco
-                if (e.examen !== null && e.examen !== undefined && e.examen !== '') {
-                    savedAsigIds.add(e.asignacion_id);
+            let fetchMore = true;
+            let start = 0;
+            while (fetchMore) {
+                const { data: config } = await supabaseClient.from('config_parcial_cabeceras')
+                    .select('asignacion_id').eq('trimestre', trim).eq('parcial', parc).range(start, start + 999);
+                
+                if (config && config.length > 0) {
+                    config.forEach(c => savedAsigIds.add(c.asignacion_id));
+                    start += 1000;
+                    if (config.length < 1000) fetchMore = false;
+                } else {
+                    fetchMore = false;
                 }
-            });
+            }
+        } else if (parc === 3) {
+            let fetchMore = true;
+            let start = 0;
+            while (fetchMore) {
+                const { data: examen } = await supabaseClient.from('notas_trimestre')
+                    .select('asignacion_id, examen').eq('trimestre', trim).range(start, start + 999);
+                
+                if (examen && examen.length > 0) {
+                    examen.forEach(e => {
+                        // Solo marcar completado si la nota de examen NO está vacía
+                        if (e.examen !== null && e.examen !== undefined && e.examen !== '') {
+                            savedAsigIds.add(e.asignacion_id);
+                        }
+                    });
+                    start += 1000;
+                    if (examen.length < 1000) fetchMore = false;
+                } else {
+                    fetchMore = false;
+                }
+            }
         }
 
-        // 4. Agrupar por Docente
+        // 3. AGRUPAR LA INFORMACIÓN POR DOCENTE
         const auditMap = new Map();
         (asignaciones || []).forEach(asig => {
             if (!asig.docente_id) return;
@@ -4077,22 +4097,22 @@ if (accNomina) accNomina.classList.add('d-none');
             }
         });
 
-        // 5. Separar en Cumplidos vs Incumplidos
+        // 4. SEPARAR CUMPLIDOS E INCUMPLIDOS
         const cumplidos = [];
         const incumplidos = [];
 
         for (const [id, data] of auditMap.entries()) {
             if (data.faltan.length > 0) {
-                incumplidos.push(data); // Si le falta aunque sea UNA materia, es incumplido
+                incumplidos.push(data);
             } else if (data.completadas.length > 0) {
-                cumplidos.push(data); // Solo entra si completó el 100% de lo que da
+                cumplidos.push(data);
             }
         }
 
         cumplidos.sort((a,b) => a.nombre.localeCompare(b.nombre));
         incumplidos.sort((a,b) => a.nombre.localeCompare(b.nombre));
 
-        // 6. Dibujar en la interfaz
+        // 5. RENDERIZAR EN PANTALLA
         let html = '';
         
         if (tipoAud === 'cumplidos') {
