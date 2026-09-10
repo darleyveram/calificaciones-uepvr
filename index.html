@@ -78,7 +78,7 @@
       </div>
       <div class="card-footer bg-light text-center py-2 text-muted small">
         <span class="header-dir-inst">Pichincha - Manabí - Ecuador</span><br>
-        <span style="font-size: 0.6rem; opacity: 0.5;">v1.0.2</span>
+        <span style="font-size: 0.6rem; opacity: 0.5;">v1.0.3</span>
       </div>
     </div>
   </div>
@@ -167,12 +167,12 @@
             </select>
           </div>
 
-          <!-- NUEVO: FILTRO DISTANCIA (SOLO ADMIN) -->
-          <div class="col-6 col-md-2 d-none" id="boxFiltroDistancia">
-            <label class="form-label mb-1 fw-bold small text-primary">Modalidad:</label>
+          <!-- NUEVO: FILTRO RETIRADOS (SOLO ADMIN) -->
+          <div class="col-6 col-md-2 d-none" id="boxFiltroRetirados">
+            <label class="form-label mb-1 fw-bold small text-danger">Estado:</label>
             <div class="form-check form-switch">
-              <input class="form-check-input" type="checkbox" id="toggleDistancia" onchange="cambiarFiltro()">
-              <label class="form-check-label fw-bold small text-muted" for="toggleDistancia">Ver A Distancia</label>
+              <input class="form-check-input bg-danger border-danger" type="checkbox" id="toggleRetirados" onchange="cambiarFiltro()">
+              <label class="form-check-label fw-bold small text-muted" for="toggleRetirados">Ver Retirados</label>
             </div>
           </div>
           
@@ -484,22 +484,35 @@
     }
     // ======================================
 
-    // === LÓGICA DE ESTUDIANTES A DISTANCIA ===
+    // === LÓGICA DE FILTROS (DISTANCIA Y RETIRADOS) ===
     function procesarEstudiantesModalidad(estDataBruto) {
       const esAdmin = usuarioActualPerfil?.rol === 'admin';
-      const toggle = document.getElementById('toggleDistancia');
-      const verDistancia = toggle ? toggle.checked : false;
+      const toggleDist = document.getElementById('toggleDistancia');
+      const toggleRet = document.getElementById('toggleRetirados');
+      const verDistancia = toggleDist ? toggleDist.checked : false;
+      const verRetirados = toggleRet ? toggleRet.checked : false;
       
-      // Si es docente o si es admin pero el botón está apagado -> Solo ve Presenciales
-      if (!esAdmin || !verDistancia) {
-        return estDataBruto.filter(e => !e.modalidad || e.modalidad === 'PRESENCIAL');
-      }
-      // Si es Admin y el botón está encendido -> Ve a todos
-      return estDataBruto;
+      return estDataBruto.filter(e => {
+        let pasaModalidad = true;
+        if (!esAdmin || !verDistancia) {
+          if (e.modalidad === 'DISTANCIA') pasaModalidad = false;
+        }
+        
+        let pasaEstado = true;
+        if (!esAdmin || !verRetirados) {
+          if (e.estado === 'RETIRADO') pasaEstado = false;
+        }
+        
+        return pasaModalidad && pasaEstado;
+      });
     }
 
     function badgeDistancia(modalidad) {
       return modalidad === 'DISTANCIA' ? ' <span class="badge bg-info text-dark shadow-sm ms-1" style="font-size:0.6rem;"><i class="bi bi-wifi"></i> Distancia</span>' : '';
+    }
+
+    function badgeEstado(estado) {
+      return estado === 'RETIRADO' ? ' <span class="badge bg-danger shadow-sm ms-1 text-white" style="font-size:0.6rem;"><i class="bi bi-person-x-fill"></i> Retirado</span>' : '';
     }
     // =========================================
 
@@ -661,6 +674,9 @@
 
           const boxDist = document.getElementById('boxFiltroDistancia');
           if (boxDist) boxDist.classList.remove('d-none');
+
+          const boxRet = document.getElementById('boxFiltroRetirados');
+          if (boxRet) boxRet.classList.remove('d-none');
 
           // --- NUEVO LÍNEA DE INTERCAMBIO ---
           const optInter = document.getElementById('optModoIntercambio');
@@ -1068,7 +1084,7 @@ if (accNomina) accNomina.classList.add('d-none');
                 return `
                   <tr data-est-id="${est.id}">
                     <td class="sticky-col-num fw-bold text-muted">${idx + 1}</td>
-                    <td class="sticky-col-nombre" title="${est.nombres}">${formatearNombreVisual(est.nombres)}${badgeDistancia(est.modalidad)}</td>
+                    <td class="sticky-col-nombre" title="${est.nombres}">${formatearNombreVisual(est.nombres)}${badgeDistancia(est.modalidad)}${badgeEstado(est.estado)}${badgeEstado(est.estado)}</td>
                     ${celdasDias}
                     <td class="sum-a fw-bold text-success">0</td>
                     <td class="sum-f fw-bold text-danger">0</td>
@@ -1196,7 +1212,7 @@ if (accNomina) accNomina.classList.add('d-none');
 
           let finalAsist = (reporteTipo === '1') ? { asistidos: a1, faltasInjust: f1, faltasJust: j1, totalDias: t1 } : (reporteTipo === '2') ? { asistidos: a2, faltasInjust: f2, faltasJust: j2, totalDias: t2 } : { asistidos: a1 + a2, faltasInjust: f1 + f2, faltasJust: j1 + j2, totalDias: t1 + t2 };
 
-          return { num: idx + 1, estudianteId: est.id, nombres: est.nombres, modalidad: est.modalidad, cedula: est.cedula || 'S/N', representanteNombre: est.representante_nombres || `${est.rep_apellidos || ''} ${est.rep_nombres || ''}`.trim() || 'REPRESENTANTE LEGAL', representanteCedula: est.rep_cedula ? `C.I.: ${est.rep_cedula}` : '', materias: materiasDetalle, promedioGeneral: promGeneral.toFixed(2), promedioCualitativo: promCualit, comportamientoNum: compFinalNum.toFixed(2), comportamientoLetra: compObj.letra, comportamientoDesc: compObj.desc, asistencia: finalAsist };
+          return { num: idx + 1, estudianteId: est.id, nombres: est.nombres, modalidad: est.modalidad, estado: est.estado, cedula: est.cedula || 'S/N', representanteNombre: est.representante_nombres || `${est.rep_apellidos || ''} ${est.rep_nombres || ''}`.trim() || 'REPRESENTANTE LEGAL', representanteCedula: est.rep_cedula ? `C.I.: ${est.rep_cedula}` : '', materias: materiasDetalle, promedioGeneral: promGeneral.toFixed(2), promedioCualitativo: promCualit, comportamientoNum: compFinalNum.toFixed(2), comportamientoLetra: compObj.letra, comportamientoDesc: compObj.desc, asistencia: finalAsist };
         });
 
         const esAdmin = usuarioActualPerfil?.rol === 'admin';
@@ -1222,7 +1238,7 @@ if (accNomina) accNomina.classList.add('d-none');
                 let celdasNotas = d.materias.map(m => `<td class="${obtenerClaseColor(m.notaNum, false)}" style="white-space: nowrap;"><span class="fw-bold">${m.notaCualit}</span> <small class="text-muted">(${m.notaNum})</small></td>`).join('');
                 return `<tr>
                   <td class="sticky-col-num fw-bold text-muted">${d.num}</td>
-                  <td class="sticky-col-nombre" title="${d.nombres}">${formatearNombreVisual(d.nombres)}${badgeDistancia(d.modalidad)}</td>
+                  <td class="sticky-col-nombre" title="${d.nombres}">${formatearNombreVisual(d.nombres)}${badgeDistancia(d.modalidad)}${badgeEstado(d.estado)}${badgeEstado(d.estado)}${badgeEstado(d.estado)}</td>
                   ${celdasNotas}
                   <td class="fw-bold fs-6 ${obtenerClaseColor(d.promedioGeneral, true)}" style="white-space: nowrap;">${d.promedioGeneral} <small>(${d.promedioCualitativo})</small></td>
                   <td class="fw-bold" style="white-space: nowrap;">${d.comportamientoLetra} <small>(${d.comportamientoNum})</small></td>
@@ -1507,7 +1523,7 @@ if (accNomina) accNomina.classList.add('d-none');
               const memData = notasActualesMemoria[est.id] || { i1: [], i2: [] }, i1Notas = memData.i1 || [], i2Notas = memData.i2 || [];
               const inp1 = configActividades.insumo1.length === 0 ? '<td class="text-muted">-</td>' : configActividades.insumo1.map((_, i) => `<td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app nota-i1 col-act-i1-${i}" value="${i1Notas[i] !== undefined && i1Notas[i] !== null ? i1Notas[i] : ''}" oninput="validarYCalcularParcial(this)" onkeydown="moverFocoVertical(event, 1, ${i}, ${idx})"></td>`).join('');
               const inp2 = configActividades.insumo2.length === 0 ? '<td class="text-muted">-</td>' : configActividades.insumo2.map((_, i) => `<td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app nota-i2 col-act-i2-${i}" value="${i2Notas[i] !== undefined && i2Notas[i] !== null ? i2Notas[i] : ''}" oninput="validarYCalcularParcial(this)" onkeydown="moverFocoVertical(event, 2, ${i}, ${idx})"></td>`).join('');
-              return `<tr data-estudiante-id="${est.id}"><td class="sticky-col-num fw-bold text-muted">${idx + 1}</td><td class="sticky-col-nombre" title="${est.nombres}">${formatearNombreVisual(est.nombres)}${badgeDistancia(est.modalidad)}</td>${inp1}<td class="prom-i1">0.00</td>${inp2}<td class="prom-i2">0.00</td><td class="nota-parcial">0.00</td></tr>`;
+              return `<tr data-estudiante-id="${est.id}"><td class="sticky-col-num fw-bold text-muted">${idx + 1}</td><td class="sticky-col-nombre" title="${est.nombres}">${formatearNombreVisual(est.nombres)}${badgeDistancia(est.modalidad)}${badgeEstado(est.estado)}${badgeEstado(est.estado)}</td>${inp1}<td class="prom-i1">0.00</td>${inp2}<td class="prom-i2">0.00</td><td class="nota-parcial">0.00</td></tr>`;
             }).join('')}
           </tbody>
         </table>
@@ -1631,7 +1647,7 @@ if (accNomina) accNomina.classList.add('d-none');
             <tbody id="tablaCuerpoComp">
               ${estudiantes.map((est, idx) => {
                 const c = compMap[est.id] || {}, v = (val) => val !== undefined && val !== null ? val : '10';
-                return `<tr data-estudiante-id="${est.id}"><td class="sticky-col-num fw-bold text-muted">${idx + 1}</td><td class="sticky-col-nombre" title="${est.nombres}">${formatearNombreVisual(est.nombres)}${badgeDistancia(est.modalidad)}</td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind1" value="${v(c.ind1)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind2" value="${v(c.ind2)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind3" value="${v(c.ind3)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind4" value="${v(c.ind4)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind5" value="${v(c.ind5)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind6" value="${v(c.ind6)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind7" value="${v(c.ind7)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind8" value="${v(c.ind8)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind9" value="${v(c.ind9)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind10" value="${v(c.ind10)}" oninput="validarYCalcularComp(this)"></td><td class="total-cuant fw-bold">10.00</td><td class="total-cualit fw-bold">A</td></tr>`;
+                return `<tr data-estudiante-id="${est.id}"><td class="sticky-col-num fw-bold text-muted">${idx + 1}</td><td class="sticky-col-nombre" title="${est.nombres}">${formatearNombreVisual(est.nombres)}${badgeDistancia(est.modalidad)}${badgeEstado(est.estado)}${badgeEstado(est.estado)}</td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind1" value="${v(c.ind1)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind2" value="${v(c.ind2)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind3" value="${v(c.ind3)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind4" value="${v(c.ind4)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind5" value="${v(c.ind5)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind6" value="${v(c.ind6)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind7" value="${v(c.ind7)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind8" value="${v(c.ind8)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind9" value="${v(c.ind9)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind10" value="${v(c.ind10)}" oninput="validarYCalcularComp(this)"></td><td class="total-cuant fw-bold">10.00</td><td class="total-cualit fw-bold">A</td></tr>`;
               }).join('')}
             </tbody>
           </table>
@@ -1731,7 +1747,7 @@ if (accNomina) accNomina.classList.add('d-none');
                 return `
                   <tr data-estudiante-id="${est.id}" data-comp-num="${compPromNum.toFixed(2)}" data-comp-letra="${compCualit}">
                     <td class="sticky-col-num fw-bold text-muted">${idx + 1}</td>
-                    <td class="sticky-col-nombre" title="${est.nombres}">${formatearNombreVisual(est.nombres)}${badgeDistancia(est.modalidad)}</td>
+                    <td class="sticky-col-nombre" title="${est.nombres}">${formatearNombreVisual(est.nombres)}${badgeDistancia(est.modalidad)}${badgeEstado(est.estado)}${badgeEstado(est.estado)}</td>
                     <td class="p1-val">${p1.toFixed(2)}</td>
                     <td class="p2-val">${p2.toFixed(2)}</td>
                     <td><input type="number" step="0.5" min="0" max="10" class="form-control form-control-sm input-nota-app nota-examen" value="${ex}" oninput="validarYCalcularTrimestre(this)"></td>
@@ -1852,7 +1868,7 @@ if (accNomina) accNomina.classList.add('d-none');
                 return `
                   <tr>
                     <td class="sticky-col-num fw-bold text-muted">${idx + 1}</td>
-                    <td class="sticky-col-nombre" title="${est.nombres}">${formatearNombreVisual(est.nombres)}${badgeDistancia(est.modalidad)}</td>
+                    <td class="sticky-col-nombre" title="${est.nombres}">${formatearNombreVisual(est.nombres)}${badgeDistancia(est.modalidad)}${badgeEstado(est.estado)}${badgeEstado(est.estado)}</td>
                     <td class="${obtenerClaseColor(t1, false)}">${t1.toFixed(2)}</td>
                     <td class="${obtenerClaseColor(t2, false)}">${t2.toFixed(2)}</td>
                     <td class="${obtenerClaseColor(t3, false)}">${t3.toFixed(2)}</td>
@@ -1985,7 +2001,7 @@ if (accNomina) accNomina.classList.add('d-none');
             <tbody id="tablaCuerpoComp">
               ${estudiantes.map((est, idx) => {
                 const c = compMap[est.id] || {}, v = (val) => val !== undefined && val !== null ? val : '10';
-                return `<tr data-estudiante-id="${est.id}"><td class="sticky-col-num fw-bold text-muted">${idx + 1}</td><td class="sticky-col-nombre" title="${est.nombres}">${formatearNombreVisual(est.nombres)}${badgeDistancia(est.modalidad)}</td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind1" value="${v(c.ind1)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind2" value="${v(c.ind2)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind3" value="${v(c.ind3)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind4" value="${v(c.ind4)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind5" value="${v(c.ind5)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind6" value="${v(c.ind6)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind7" value="${v(c.ind7)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind8" value="${v(c.ind8)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind9" value="${v(c.ind9)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind10" value="${v(c.ind10)}" oninput="validarYCalcularComp(this)"></td><td class="total-cuant fw-bold">10.00</td><td class="total-cualit fw-bold">A</td></tr>`;
+                return `<tr data-estudiante-id="${est.id}"><td class="sticky-col-num fw-bold text-muted">${idx + 1}</td><td class="sticky-col-nombre" title="${est.nombres}">${formatearNombreVisual(est.nombres)}${badgeDistancia(est.modalidad)}${badgeEstado(est.estado)}${badgeEstado(est.estado)}</td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind1" value="${v(c.ind1)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind2" value="${v(c.ind2)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind3" value="${v(c.ind3)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind4" value="${v(c.ind4)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind5" value="${v(c.ind5)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind6" value="${v(c.ind6)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind7" value="${v(c.ind7)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind8" value="${v(c.ind8)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind9" value="${v(c.ind9)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind10" value="${v(c.ind10)}" oninput="validarYCalcularComp(this)"></td><td class="total-cuant fw-bold">10.00</td><td class="total-cualit fw-bold">A</td></tr>`;
               }).join('')}
             </tbody>
           </table>
@@ -4154,7 +4170,7 @@ if (accNomina) accNomina.classList.add('d-none');
                             ${listaEstudiantes.map(e => `
                               <div class="form-check">
                                 <input class="form-check-input check-incidencia-est" type="checkbox" value="${e.id}" data-nombre="${e.nombres}" id="estInc${e.id}">
-                                <label class="form-check-label small fw-semibold" for="estInc${e.id}">${e.nombres}${badgeDistancia(e.modalidad)}</label>
+                                <label class="form-check-label small fw-semibold" for="estInc${e.id}">${e.nombres}${badgeDistancia(e.modalidad)}${badgeEstado(e.estado)}</label>
                               </div>
                             `).join('')}
                           </div>
@@ -4420,7 +4436,7 @@ if (accNomina) accNomina.classList.add('d-none');
 
                 return `<tr data-estudiante-id="${est.id}">
                   <td class="sticky-col-num fw-bold text-muted">${idx + 1}</td>
-                  <td class="sticky-col-nombre" title="${est.nombres}">${formatearNombreVisual(est.nombres)} ${badgeInc}${badgeDistancia(est.modalidad)}</td>
+                  <td class="sticky-col-nombre" title="${est.nombres}">${formatearNombreVisual(est.nombres)} ${badgeInc}${badgeDistancia(est.modalidad)}${badgeEstado(est.estado)}${badgeEstado(est.estado)}</td>
                   <td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind1" value="${v(c.ind1)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind2" value="${v(c.ind2)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind3" value="${v(c.ind3)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind4" value="${v(c.ind4)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind5" value="${v(c.ind5)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind6" value="${v(c.ind6)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind7" value="${v(c.ind7)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind8" value="${v(c.ind8)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind9" value="${v(c.ind9)}" oninput="validarYCalcularComp(this)"></td><td><input type="number" step="1" min="0" max="10" class="form-control form-control-sm input-nota-app comp-ind c-ind10" value="${v(c.ind10)}" oninput="validarYCalcularComp(this)"></td><td class="total-cuant fw-bold">10.00</td><td class="total-cualit fw-bold">A</td>
                 </tr>`;
               }).join('')}
@@ -4699,7 +4715,7 @@ if (accNomina) accNomina.classList.add('d-none');
         }
 
         const { data: estData, error } = await supabaseClient.from('estudiantes')
-            .select('id, nombres, cedula, modalidad, curso_id')
+            .select('id, nombres, cedula, modalidad, estado, curso_id')
             .in('curso_id', cursosAConsultar)
             .order('nombres');
 
@@ -4752,7 +4768,7 @@ if (accNomina) accNomina.classList.add('d-none');
                             ${nom.estudiantes.map((e, i) => `
                                 <tr>
                                     <td class="fw-bold text-muted">${i + 1}</td>
-                                    <td class="text-start fw-bold text-primary">${e.nombres} ${badgeDistancia(e.modalidad)}</td>
+                                    <td class="text-start fw-bold text-primary">${e.nombres} ${badgeDistancia(e.modalidad)}${badgeEstado(e.estado)}</td>
                                     <td>${e.cedula || 'S/N'}</td>
                                 </tr>
                             `).join('')}
