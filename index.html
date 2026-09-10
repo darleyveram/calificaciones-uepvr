@@ -78,7 +78,7 @@
       </div>
       <div class="card-footer bg-light text-center py-2 text-muted small">
         <span class="header-dir-inst">Pichincha - Manabí - Ecuador</span><br>
-        <span style="font-size: 0.6rem; opacity: 0.5;">v1.0.4</span>
+        <span style="font-size: 0.6rem; opacity: 0.5;">v1.0.5</span>
       </div>
     </div>
   </div>
@@ -582,21 +582,35 @@
 
     async function obtenerBase64DesdeUrl(url) {
       if (!url) return null;
-      if (url.startsWith('data:image')) return url;
       return new Promise((resolve) => {
         const img = new Image();
         img.crossOrigin = 'Anonymous';
         img.onload = function () {
           try {
             const canvas = document.createElement('canvas');
-            canvas.width = img.naturalWidth || img.width;
-            canvas.height = img.naturalHeight || img.height;
+            // --- LÍMITE DE RESOLUCIÓN PARA EVITAR PDFS PESADOS ---
+            const MAX_WIDTH = 300;
+            const MAX_HEIGHT = 300;
+            let width = img.naturalWidth || img.width;
+            let height = img.naturalHeight || img.height;
+
+            if (width > height) {
+              if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
+            } else {
+              if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; }
+            }
+
+            canvas.width = width;
+            canvas.height = height;
             const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0);
+            ctx.drawImage(img, 0, 0, width, height);
+            
+            // Exporta optimizado
             resolve(canvas.toDataURL('image/png'));
-          } catch (err) { resolve(null); }
+          } catch (err) { resolve(url); }
         };
         img.onerror = () => resolve(null);
+        
         let urlFinal = url;
         if (url.includes('drive.google.com')) {
           const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/) || url.match(/id=([a-zA-Z0-9_-]+)/);
@@ -1369,7 +1383,7 @@ if (accNomina) accNomina.classList.add('d-none');
 
     async function generarLibretasLotePDF() {
       if (!datosConsolidadoTutoria || datosConsolidadoTutoria.length === 0) return alert('No hay datos para generar libretas.');
-      const { jsPDF } = window.jspdf; const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const { jsPDF } = window.jspdf; const doc = new jsPDF({ compress: true, orientation: 'portrait', unit: 'mm', format: 'a4' });
       const cursoId = document.getElementById('selectCurso').value, trimestre = parseInt(document.getElementById('selectTrimestre').value), reporteTipo = document.getElementById('selectParcialTutoria').value;
       const cursoInfo = todosCursos.find(c => String(c.id) === String(cursoId)), nombreCursoLargo = (cursoInfo?.nombre_largo_mayuscula || cursoInfo?.nombre || '').toUpperCase(), nombreRector = 'ING. DÍDIMO A. SALTOS S.';
       const imgLogoIzq = await obtenerBase64DesdeUrl(infoInstitucion?.logo_izquierdo || infoInstitucion?.logo_institucion), imgLogoDer = await obtenerBase64DesdeUrl(infoInstitucion?.logo_derecho || infoInstitucion?.escudo_nacional);
@@ -1379,7 +1393,7 @@ if (accNomina) accNomina.classList.add('d-none');
 
     async function generarBoletaIndividualPDF(indice) {
       const est = datosConsolidadoTutoria[indice]; if (!est) return;
-      const { jsPDF } = window.jspdf; const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const { jsPDF } = window.jspdf; const doc = new jsPDF({ compress: true, orientation: 'portrait', unit: 'mm', format: 'a4' });
       const cursoId = document.getElementById('selectCurso').value, trimestre = parseInt(document.getElementById('selectTrimestre').value), reporteTipo = document.getElementById('selectParcialTutoria').value;
       const cursoInfo = todosCursos.find(c => String(c.id) === String(cursoId)), nombreCursoLargo = (cursoInfo?.nombre_largo_mayuscula || cursoInfo?.nombre || '').toUpperCase(), nombreRector = 'ING. DÍDIMO A. SALTOS S.';
       const imgLogoIzq = await obtenerBase64DesdeUrl(infoInstitucion?.logo_izquierdo || infoInstitucion?.logo_institucion), imgLogoDer = await obtenerBase64DesdeUrl(infoInstitucion?.logo_derecho || infoInstitucion?.escudo_nacional);
@@ -1396,7 +1410,7 @@ if (accNomina) accNomina.classList.add('d-none');
         const cursoInfo = todosCursos.find(c => String(c.id) === String(cursoId)), nombreCursoLargo = (cursoInfo?.nombre_largo_mayuscula || cursoInfo?.nombre || '').toUpperCase(), nombreCursoFormat = (cursoInfo?.nombre || nombreCursoLargo).replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, ''), nombreRector = 'ING. DÍDIMO A. SALTOS S.';
         const imgLogoIzq = await obtenerBase64DesdeUrl(infoInstitucion?.logo_izquierdo || infoInstitucion?.logo_institucion), imgLogoDer = await obtenerBase64DesdeUrl(infoInstitucion?.logo_derecho || infoInstitucion?.escudo_nacional);
         for (let i = 0; i < datosConsolidadoTutoria.length; i++) {
-          const est = datosConsolidadoTutoria[i], doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+          const est = datosConsolidadoTutoria[i], doc = new jsPDF({ compress: true, orientation: 'portrait', unit: 'mm', format: 'a4' });
           construirPaginaLibreta(doc, est, nombreCursoLargo, trimestre, reporteTipo, nombreRector, imgLogoIzq, imgLogoDer);
           zip.file(`${nombreCursoFormat}_${est.nombres.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '')}_${(reporteTipo === 'trimestre') ? `TRIMESTRE_${trimestre}` : `TRIMESTRE_${trimestre}_PARCIAL_${reporteTipo}`}.pdf`, doc.output('blob'));
         }
@@ -2077,7 +2091,7 @@ if (accNomina) accNomina.classList.add('d-none');
 
       try {
         const { jsPDF } = window.jspdf;
-        const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+        const doc = new jsPDF({ compress: true, orientation: 'landscape', unit: 'mm', format: 'a4' });
 
         const nomArriba = (infoInstitucion?.nombre_arriba || 'Unidad Educativa Particular').toUpperCase();
         const nomAbajo = (infoInstitucion?.nombre_abajo || '"Vicente Rocafuerte"').toUpperCase();
@@ -2181,7 +2195,7 @@ if (accNomina) accNomina.classList.add('d-none');
 
       try {
         const { jsPDF } = window.jspdf;
-        const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+        const doc = new jsPDF({ compress: true, orientation: 'landscape', unit: 'mm', format: 'a4' });
 
         const nomArriba = (infoInstitucion?.nombre_arriba || 'Unidad Educativa Particular').toUpperCase();
         const nomAbajo = (infoInstitucion?.nombre_abajo || '"Vicente Rocafuerte"').toUpperCase();
@@ -2382,7 +2396,7 @@ if (accNomina) accNomina.classList.add('d-none');
 
       try {
         const { jsPDF } = window.jspdf;
-        const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+        const doc = new jsPDF({ compress: true, orientation: 'landscape', unit: 'mm', format: 'a4' });
 
         const nomArriba = (infoInstitucion?.nombre_arriba || 'Unidad Educativa Particular').toUpperCase();
         const nomAbajo = (infoInstitucion?.nombre_abajo || '"Vicente Rocafuerte"').toUpperCase();
@@ -2572,7 +2586,7 @@ if (accNomina) accNomina.classList.add('d-none');
       const btn = document.getElementById('btnDescargarPDF'); btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Generando PDF...';
 
       try {
-        const { jsPDF } = window.jspdf; const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+        const { jsPDF } = window.jspdf; const doc = new jsPDF({ compress: true, orientation: 'landscape', unit: 'mm', format: 'a4' });
         const nomArriba = (infoInstitucion?.nombre_arriba || 'Unidad Educativa Particular').toUpperCase(), nomAbajo = (infoInstitucion?.nombre_abajo || '"Vicente Rocafuerte"').toUpperCase(), periodo = infoInstitucion?.periodo_lectivo || '2026-2027', amie = infoInstitucion?.amie || '13H03021', distrito = infoInstitucion?.distrito || '13D08', circuito = infoInstitucion?.circuito || '13D08C0_b', dir1 = infoInstitucion?.direccion_1 || 'Pichincha - Manabí - Ecuador', frase1 = infoInstitucion?.frase_1 ? `"${infoInstitucion.frase_1}"` : '';
         const cursoEncontrado = (todosCursos && todosCursos.length > 0) ? todosCursos.find(c => c.id === asig.curso_id) : asig.cursos, nombreCursoLargo = (cursoEncontrado?.nombre_largo_mayuscula || cursoEncontrado?.nombre || asig.cursos?.nombre || '').toUpperCase(), nombreMateria = (asig.materias?.nombre || '').toUpperCase();
         const nombreDocenteActual = usuarioActualPerfil ? `${usuarioActualPerfil.titulo ? usuarioActualPerfil.titulo + ' ' : ''}${usuarioActualPerfil.nombres} ${usuarioActualPerfil.apellidos || ''}`.trim().toUpperCase() : 'DOCENTE RESPONSABLE', nombreSecretaria = 'C.P.A. MERCEDES A. SALAMEA M.', nombreRector = 'ING. DÍDIMO A. SALTOS S.';
@@ -2879,7 +2893,7 @@ if (accNomina) accNomina.classList.add('d-none');
 
       try {
         const { jsPDF } = window.jspdf;
-        const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+        const doc = new jsPDF({ compress: true, orientation: 'landscape', unit: 'mm', format: 'a4' });
 
         const cursoId = document.getElementById('selectCurso').value;
         const trimestre = parseInt(document.getElementById('selectTrimestre').value);
@@ -3038,7 +3052,7 @@ if (accNomina) accNomina.classList.add('d-none');
 
       try {
         const { jsPDF } = window.jspdf;
-        const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+        const doc = new jsPDF({ compress: true, orientation: 'landscape', unit: 'mm', format: 'a4' });
 
         const nomArriba = (infoInstitucion?.nombre_arriba || 'Unidad Educativa Particular').toUpperCase();
         const nomAbajo = (infoInstitucion?.nombre_abajo || '"Vicente Rocafuerte"').toUpperCase();
@@ -3464,7 +3478,7 @@ if (accNomina) accNomina.classList.add('d-none');
     async function exportarReporteEstudiantePDF() {
       if (!datosEstudianteActualReporte) return;
       const { jsPDF } = window.jspdf; 
-      const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+      const doc = new jsPDF({ compress: true, orientation: 'landscape', unit: 'mm', format: 'a4' });
       
       const btn = document.querySelector('button[onclick="exportarReporteEstudiantePDF()"]');
       const originalHtml = btn.innerHTML;
@@ -3830,7 +3844,7 @@ if (accNomina) accNomina.classList.add('d-none');
         const nombreCursoLargo = (cursoInfo?.nombre_largo_mayuscula || cursoInfo?.nombre || '').toUpperCase();
 
         const { jsPDF } = window.jspdf;
-        const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+        const doc = new jsPDF({ compress: true, orientation: 'portrait', unit: 'mm', format: 'a4' });
         const imgLogoIzq = await obtenerBase64DesdeUrl(infoInstitucion?.logo_izquierdo || infoInstitucion?.logo_institucion);
         const imgLogoDer = await obtenerBase64DesdeUrl(infoInstitucion?.logo_derecho || infoInstitucion?.escudo_nacional);
 
@@ -3846,7 +3860,7 @@ if (accNomina) accNomina.classList.add('d-none');
         const nombreCursoLargo = (cursoInfo?.nombre_largo_mayuscula || cursoInfo?.nombre || '').toUpperCase();
 
         const { jsPDF } = window.jspdf;
-        const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+        const doc = new jsPDF({ compress: true, orientation: 'portrait', unit: 'mm', format: 'a4' });
         const imgLogoIzq = await obtenerBase64DesdeUrl(infoInstitucion?.logo_izquierdo || infoInstitucion?.logo_institucion);
         const imgLogoDer = await obtenerBase64DesdeUrl(infoInstitucion?.logo_derecho || infoInstitucion?.escudo_nacional);
 
@@ -3873,7 +3887,7 @@ if (accNomina) accNomina.classList.add('d-none');
 
         for (let i = 0; i < estudiantes.length; i++) {
             const est = estudiantes[i];
-            const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+            const doc = new jsPDF({ compress: true, orientation: 'portrait', unit: 'mm', format: 'a4' });
             construirPaginaCertificado(doc, est, nombreCursoLargo, fechaIso, imgLogoIzq, imgLogoDer);
             zip.file(`Certificado_${est.nombres.replace(/\s+/g, '_')}.pdf`, doc.output('blob'));
         }
@@ -4503,7 +4517,7 @@ if (accNomina) accNomina.classList.add('d-none');
       if (!historialIncidenciasGlobal || historialIncidenciasGlobal.length === 0) return alert('No hay incidencias para exportar.');
       try {
         const { jsPDF } = window.jspdf;
-        const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+        const doc = new jsPDF({ compress: true, orientation: 'landscape', unit: 'mm', format: 'a4' });
         
         doc.setFontSize(14); doc.setFont('helvetica', 'bold');
         doc.text('HISTORIAL GLOBAL DE INCIDENCIAS', 148.5, 15, { align: 'center' });
@@ -4802,7 +4816,7 @@ if (accNomina) accNomina.classList.add('d-none');
 
       try {
         const { jsPDF } = window.jspdf;
-        const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+        const doc = new jsPDF({ compress: true, orientation: 'portrait', unit: 'mm', format: 'a4' });
 
         const nomArriba = (infoInstitucion?.nombre_arriba || 'Unidad Educativa Particular').toUpperCase();
         const nomAbajo = (infoInstitucion?.nombre_abajo || '"Vicente Rocafuerte"').toUpperCase();
