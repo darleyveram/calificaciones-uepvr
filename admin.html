@@ -1804,7 +1804,7 @@
         document.getElementById('personalNombres').value = p.nombres || '';
         document.getElementById('personalApellidos').value = p.apellidos || '';
         document.getElementById('personalEmail').value = p.email || '';
-        document.getElementById('personalEmail').disabled = true;
+        document.getElementById('personalEmail').disabled = false;
         document.getElementById('personalCedula').value = p.cedula || ''; // <-- NUEVO CÓDIGO
         document.getElementById('personalTelefono').value = p.telefono || '';
         document.getElementById('personalCargo').value = p.cargo || 'Docente';
@@ -1842,8 +1842,17 @@
       try {
         if (id) {
           // ACTUALIZAR DOCENTE EXISTENTE
+          
+          // 1. Cambiamos el correo real de inicio de sesión usando nuestra llave maestra
+          const { error: errAuth } = await supabaseClient.rpc('cambiar_correo_usuario', { 
+            p_user_id: id, 
+            p_nuevo_correo: email 
+          });
+          if (errAuth) throw new Error("Error al cambiar correo de acceso: " + errAuth.message);
+
+          // 2. Actualizamos la tabla visual de perfiles
           const { error } = await supabaseClient.from('perfiles').update({
-            titulo, nombres, apellidos, cedula, telefono, cargo, rol, puede_gestionar_asistencia // <-- SE AGREGÓ CÉDULA
+            email, titulo, nombres, apellidos, cedula, telefono, cargo, rol, puede_gestionar_asistencia
           }).eq('id', id);
           if (error) throw error;
         } else {
