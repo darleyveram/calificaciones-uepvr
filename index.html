@@ -78,7 +78,7 @@
       </div>
       <div class="card-footer bg-light text-center py-2 text-muted small">
         <span class="header-dir-inst">Pichincha - Manabí - Ecuador</span><br>
-        <span style="font-size: 0.6rem; opacity: 0.5;">v1.0.5</span>
+        <span style="font-size: 0.6rem; opacity: 0.5;">v1.0.6</span>
       </div>
     </div>
   </div>
@@ -4007,25 +4007,34 @@ if (accNomina) accNomina.classList.add('d-none');
     async function cargarVistaAuditoria() {
       const reqId = ++currentViewRequestId;
       const contenedor = document.getElementById('contenedorTabla');
+      
+      // Si la función fue llamada desde el menú lateral, solo limpia la pantalla y muestra el mensaje inicial.
+      // La auditoría real se cargará cuando el usuario haga clic en el botón "Generar Reporte" dentro de la vista.
+      if (document.getElementById('selectModo').value === 'auditoria' && document.activeElement.id !== 'btnGenerarAuditoria') {
+        contenedor.innerHTML = '<div class="py-5 text-center text-muted fw-bold">Por favor, utilice los filtros del panel superior para iniciar la auditoría y presione "Generar Reporte".</div>';
+        return;
+      }
+
       contenedor.innerHTML = '<div class="py-5 text-center"><div class="spinner-border text-primary me-2" style="width: 3rem; height: 3rem;"></div><div class="mt-3 fw-bold text-muted">Consultando bases de datos...</div></div>';
 
-      const trim = parseInt(document.getElementById('selectTrimestre').value);
-      const vistaVal = document.getElementById('selectVista').value; // 'p1', 'p2', 'resumen_trimestre'
+      // 1. AHORA LEEMOS LOS FILTROS CORRECTOS DEL PANEL DE AUDITORÍA
+      const trim = parseInt(document.getElementById('audTrimestre').value);
+      const vistaVal = document.getElementById('audParcial').value; 
       const tipoAud = document.getElementById('selectTipoAuditoria').value; // 'cumplidos', 'incumplidos'
 
       let parc = 1;
-      if (vistaVal === 'p2') parc = 2;
-      else if (vistaVal === 'resumen_trimestre') parc = 3;
+      if (vistaVal === '2') parc = 2;
+      else if (vistaVal === '3') parc = 3;
 
       try {
-        // 1. Obtener todas las asignaciones
+        // 2. Obtener todas las asignaciones
         const { data: asignaciones } = await supabaseClient.from('curso_materia_docente').select(`
             id, curso_id, materia_id, docente_id,
             cursos(nombre), materias(nombre)
         `);
         if (reqId !== currentViewRequestId) return;
 
-        // 2. Traer nombres de docentes
+        // 3. Traer nombres de docentes
         const { data: perfiles } = await supabaseClient.from('perfiles').select('id, titulo, nombres, apellidos');
         const docentesMap = new Map();
         (perfiles || []).forEach(p => {
@@ -4034,7 +4043,7 @@ if (accNomina) accNomina.classList.add('d-none');
             docentesMap.set(p.id, `${tit}${p.nombres}${ape}`.trim());
         });
 
-        // 3. Ver quiénes guardaron notas en este parcial/trimestre
+        // 4. Ver quiénes guardaron notas en este parcial/trimestre
         let savedAsigIds = new Set();
         if (parc === 1 || parc === 2) {
             const { data: config } = await supabaseClient.from('config_parcial_cabeceras')
@@ -4046,7 +4055,7 @@ if (accNomina) accNomina.classList.add('d-none');
             (examen || []).forEach(e => savedAsigIds.add(e.asignacion_id));
         }
 
-        // 4. Agrupar por Docente
+        // 5. Agrupar por Docente
         const auditMap = new Map();
         (asignaciones || []).forEach(asig => {
             if (!asig.docente_id) return;
@@ -4069,7 +4078,7 @@ if (accNomina) accNomina.classList.add('d-none');
             }
         });
 
-        // 5. Separar en Cumplidos vs Incumplidos
+        // 6. Separar en Cumplidos vs Incumplidos
         const cumplidos = [];
         const incumplidos = [];
 
@@ -4084,7 +4093,7 @@ if (accNomina) accNomina.classList.add('d-none');
         cumplidos.sort((a,b) => a.nombre.localeCompare(b.nombre));
         incumplidos.sort((a,b) => a.nombre.localeCompare(b.nombre));
 
-        // 6. Dibujar en la interfaz (Lista Simple o Acordeón)
+        // 7. Dibujar en la interfaz (Lista Simple o Acordeón)
         let html = '';
         
         if (tipoAud === 'cumplidos') {
