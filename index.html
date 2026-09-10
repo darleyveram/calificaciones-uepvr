@@ -100,6 +100,9 @@
           </div>
           <div class="d-flex align-items-center gap-2 ms-auto">
             <img id="appLogoDer" class="logo-header d-none d-sm-block" alt="Logo Derecho">
+            <button class="btn btn-outline-warning btn-sm px-2 py-1 text-dark fw-bold me-2" onclick="abrirModalCambiarMiClave()" style="font-size: 0.75rem;" title="Cambiar mi Contraseña">
+              <i class="bi bi-key-fill"></i><span class="d-none d-sm-inline ms-1">Clave</span>
+            </button>
             <button class="btn btn-outline-danger btn-sm px-2 py-1" onclick="cerrarSesion()" style="font-size: 0.75rem;">
               <i class="bi bi-box-arrow-right me-1"></i><span class="d-none d-sm-inline">Cerrar Sesión</span><span class="d-inline d-sm-none">Salir</span>
             </button>
@@ -285,6 +288,34 @@
     </div>
   </div>
 
+  <!-- Modal Cambiar Mi Contraseña -->
+  <div class="modal fade" id="modalCambiarMiClave" tabindex="-1">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+      <div class="modal-content border-0 shadow">
+        <div class="modal-header bg-warning text-dark py-2">
+          <h6 class="modal-title fw-bold" id="tituloModalClave"><i class="bi bi-key-fill me-2"></i>Cambiar Contraseña</h6>
+          <button type="button" class="btn-close" id="btnCerrarModalClave" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body bg-light">
+          <div id="alertaClaveObligatoria" class="alert alert-danger py-2 d-none" style="font-size: 0.75rem;">
+            <i class="bi bi-exclamation-triangle-fill me-1"></i> Por seguridad, debes cambiar tu contraseña temporal obligatoriamente para usar el sistema.
+          </div>
+          <form id="formCambiarMiClave" onsubmit="guardarMiNuevaClave(event)">
+            <div class="mb-3">
+              <label class="form-label fw-bold small text-primary">Nueva Contraseña:</label>
+              <input type="password" id="miNuevaClave" class="form-control form-control-sm border-primary" placeholder="Mínimo 6 caracteres" required minlength="6">
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-bold small text-primary">Confirmar Contraseña:</label>
+              <input type="password" id="miNuevaClaveConf" class="form-control form-control-sm border-primary" placeholder="Repite la contraseña" required minlength="6">
+            </div>
+            <button type="submit" class="btn btn-warning btn-sm w-100 fw-bold" id="btnGuardarMiClave"><i class="bi bi-save me-1"></i> Guardar Nueva Clave</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Modal Auditoria de Notas -->
   <div class="modal fade" id="modalAuditoria" tabindex="-1">
     <div class="modal-dialog modal-xl modal-dialog-scrollable">
@@ -391,6 +422,67 @@
     let modalAuditoriaInst = null;
     let incidenciasActivasMemoria = {};
     let modalIncidenciasInst = null;
+    let modalCambiarMiClaveInst = null;
+
+    // === LÓGICA DE CAMBIO DE CONTRASEÑA ===
+    function abrirModalCambiarMiClave(esObligatorio = false) {
+      if (!modalCambiarMiClaveInst) modalCambiarMiClaveInst = new bootstrap.Modal(document.getElementById('modalCambiarMiClave'), {
+          backdrop: esObligatorio ? 'static' : true, // Si es obligatorio, no puede hacer clic afuera
+          keyboard: !esObligatorio
+      });
+      
+      document.getElementById('formCambiarMiClave').reset();
+      const btnCerrar = document.getElementById('btnCerrarModalClave');
+      const alerta = document.getElementById('alertaClaveObligatoria');
+      
+      if (esObligatorio) {
+          btnCerrar.classList.add('d-none');
+          alerta.classList.remove('d-none');
+      } else {
+          btnCerrar.classList.remove('d-none');
+          alerta.classList.add('d-none');
+      }
+      
+      modalCambiarMiClaveInst.show();
+    }
+
+    async function guardarMiNuevaClave(e) {
+      e.preventDefault();
+      const p1 = document.getElementById('miNuevaClave').value;
+      const p2 = document.getElementById('miNuevaClaveConf').value;
+      const btn = document.getElementById('btnGuardarMiClave');
+
+      if (p1 !== p2) return alert('Las contraseñas no coinciden. Por favor, verifica.');
+
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Guardando...';
+
+      try {
+        // 1. Actualizar contraseña en el motor de autenticación
+        const { error: authErr } = await supabaseClient.auth.updateUser({ password: p1 });
+        if (authErr) throw authErr;
+
+        // 2. Quitar la bandera de obligatoriedad en la tabla perfiles
+        const { error: dbErr } = await supabaseClient.from('perfiles')
+            .update({ debe_cambiar_clave: false })
+            .eq('id', usuarioActualPerfil.id);
+        if (dbErr) throw dbErr;
+
+        alert('¡Tu contraseña ha sido actualizada con éxito!');
+        modalCambiarMiClaveInst.hide();
+        
+        // Si era obligatorio, recargamos la página para que el sistema inicie normalmente
+        if (usuarioActualPerfil.debe_cambiar_clave) {
+            location.reload();
+        }
+      } catch (err) {
+        alert('Error al actualizar la contraseña: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-save me-1"></i> Guardar Nueva Clave';
+      }
+    }
+    // ======================================
 
     // === LÓGICA DE ESTUDIANTES A DISTANCIA ===
     function procesarEstudiantesModalidad(estDataBruto) {
@@ -536,6 +628,12 @@
         const nombreDocente = perfil ? `${perfil.titulo ? perfil.titulo + ' ' : ''}${perfil.nombres} ${perfil.apellidos || ''}`.trim() : session.user.email;
         document.getElementById('seccionLogin').classList.add('d-none');
         document.getElementById('seccionApp').classList.remove('d-none');
+        // === BLOQUEO DE PRIMERA VEZ (CAMBIO OBLIGATORIO) ===
+        if (perfil && perfil.debe_cambiar_clave) {
+            abrirModalCambiarMiClave(true);
+            return; // Detiene la ejecución para que no carguen los datos hasta cambiarla
+        }
+        // ===================================================
         document.getElementById('usuarioConectado').innerText = `Docente: ${nombreDocente}`;
         const { data: cursosT } = await supabaseClient.from('cursos').select('*').eq('tutor_id', session.user.id);
         cursosTutor = cursosT || [];
