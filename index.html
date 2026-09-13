@@ -70,7 +70,12 @@
           </div>
           <div class="mb-3">
             <label class="form-label fw-bold">Contraseña</label>
-            <input type="password" id="loginPassword" class="form-control" required>
+            <div class="input-group">
+              <input type="password" id="loginPassword" class="form-control" required>
+              <button class="btn btn-outline-secondary" type="button" onclick="alternarVisibilidadClave('loginPassword', 'iconoClaveLogin')">
+                <i class="bi bi-eye-slash" id="iconoClaveLogin"></i>
+              </button>
+            </div>
           </div>
           <div id="loginError" class="alert alert-danger py-2 d-none"></div>
           <button type="submit" class="btn btn-primary w-100 fw-bold" id="btnLogin">Ingresar al Sistema</button>
@@ -78,7 +83,7 @@
       </div>
       <div class="card-footer bg-light text-center py-2 text-muted small">
         <span class="header-dir-inst">Pichincha - Manabí - Ecuador</span><br>
-        <span style="font-size: 0.6rem; opacity: 0.5;">v1.0.9</span>
+        <span style="font-size: 0.6rem; opacity: 0.5;">v1.0.10</span>
       </div>
     </div>
   </div>
@@ -5147,6 +5152,23 @@ if (accNomina) accNomina.classList.add('d-none');
         } catch (err) {
             body.innerHTML = `<div class="alert alert-danger text-center fw-bold mb-0">Error: ${err.message}</div>`;
         }
+    }
+    // =======================================================
+    // FUNCIÓN PARA MOSTRAR/OCULTAR CONTRASEÑAS
+    // =======================================================
+    function alternarVisibilidadClave(inputId, iconId) {
+      const input = document.getElementById(inputId);
+      const icon = document.getElementById(iconId);
+      
+      if (input.type === 'password') {
+        input.type = 'text'; // Muestra el texto
+        icon.classList.remove('bi-eye-slash');
+        icon.classList.add('bi-eye'); // Cambia el ícono al ojo abierto
+      } else {
+        input.type = 'password'; // Oculta el texto
+        icon.classList.remove('bi-eye');
+        icon.classList.add('bi-eye-slash'); // Cambia el ícono al ojo tachado
+      }
     }
   </script>
 </body>
