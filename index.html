@@ -432,6 +432,8 @@
     let incidenciasActivasMemoria = {};
     let modalIncidenciasInst = null;
     let modalCambiarMiClaveInst = null;
+    let latidoInterval = null;
+    
 
     // === LÓGICA DE CAMBIO DE CONTRASEÑA ===
     function abrirModalCambiarMiClave(esObligatorio = false) {
@@ -707,6 +709,10 @@
         }
         // -----------------------------------------------
 
+        // === INICIAR LA VIGILANCIA DE SESIÓN ===
+        iniciarLatidoDeSesion();
+        // =======================================
+
         await cargarCatalogo();
         await cargarPeriodosAsistenciaDB();
         await cargarCursosYMaterias(session.user.id, perfil?.rol, perfil?.puede_gestionar_asistencia);
@@ -720,12 +726,44 @@
       e.preventDefault();
       const email = document.getElementById('loginEmail').value.trim();
       const password = document.getElementById('loginPassword').value;
-      const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+      const btn = document.getElementById('btnLogin');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Ingresando...';
+
+      const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+      
       if (error) {
         const errDiv = document.getElementById('loginError');
         errDiv.innerText = error.message;
         errDiv.classList.remove('d-none');
+        btn.disabled = false;
+        btn.innerText = 'Ingresar al Sistema';
       } else {
+        // === NUEVO: REGISTRO DE SESIÓN ÚNICA E HISTORIAL ===
+        const userId = data.session.user.id;
+        const miTokenUnico = crypto.randomUUID(); // Genera un código único
+        localStorage.setItem('mi_token_sesion', miTokenUnico); // Lo guarda en la PC actual
+
+        // Actualizamos el perfil con el nuevo token y la hora
+        await supabaseClient.from('perfiles').update({ 
+            token_sesion_activo: miTokenUnico,
+            ultima_actividad: new Date().toISOString()
+        }).eq('id', userId);
+
+        // Guardamos el registro en el historial
+        await supabaseClient.from('historial_accesos').insert([{ 
+            docente_id: userId, 
+            navegador: navigator.userAgent.substring(0, 50) // Guarda info del navegador
+        }]);
+
+        // Limpieza: Mantenemos solo los últimos 3 registros
+        const { data: historial } = await supabaseClient.from('historial_accesos').select('id').eq('docente_id', userId).order('fecha_ingreso', { ascending: false });
+        if (historial && historial.length > 3) {
+            const idsBorrables = historial.slice(3).map(h => h.id);
+            await supabaseClient.from('historial_accesos').delete().in('id', idsBorrables);
+        }
+        // ===================================================
+        
         verificarSesion();
       }
     }
@@ -4910,6 +4948,37 @@ if (accNomina) accNomina.classList.add('d-none');
       } finally {
         btn.disabled = false; btn.innerHTML = originalHtml;
       }
+    }
+    // === SISTEMA DE LATIDO Y SESIÓN ÚNICA ===
+    function iniciarLatidoDeSesion() {
+      if (latidoInterval) clearInterval(latidoInterval);
+      
+      latidoInterval = setInterval(async () => {
+        if (!usuarioActualPerfil) return;
+
+        const miToken = localStorage.getItem('mi_token_sesion');
+        
+        // Consultar el token actual en la base de datos
+        const { data } = await supabaseClient.from('perfiles')
+            .select('token_sesion_activo')
+            .eq('id', usuarioActualPerfil.id)
+            .single();
+
+        if (data) {
+            // Si el token en la BD es diferente al de mi navegador, alguien más entró
+            if (data.token_sesion_activo && data.token_sesion_activo !== miToken) {
+                clearInterval(latidoInterval);
+                alert('⚠️ Sesión terminada: Alguien ha iniciado sesión con tu cuenta desde otro dispositivo.');
+                await supabaseClient.auth.signOut();
+                location.reload();
+            } else {
+                // Si todo está bien, actualizamos la última actividad (Heartbeat)
+                await supabaseClient.from('perfiles').update({ 
+                    ultima_actividad: new Date().toISOString() 
+                }).eq('id', usuarioActualPerfil.id);
+            }
+        }
+      }, 30000); // Se ejecuta cada 30 segundos
     }
   </script>
 </body>
