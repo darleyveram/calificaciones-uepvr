@@ -48,6 +48,41 @@
     .bg-examen { background-color: #fd7e14 !important; color: #fff; font-weight: bold; }
     .logo-header { height: 48px; width: auto; object-fit: contain; }
     .logo-login { height: 75px; width: auto; object-fit: contain; }
+    /* =========================================================
+       SOLUCIÓN 1 Y 2: ADAPTACIÓN DE PANTALLA Y ENCABEZADOS FIJOS
+       ========================================================= */
+
+    /* 1. Ajuste perfecto a la pantalla (Adiós al doble scroll y espacio vacío) */
+    #contenedorTabla {
+        max-height: calc(100vh - 230px) !important; /* Calcula dinámicamente el espacio sobrante */
+        overflow-y: auto !important;
+    }
+    
+    /* En celulares los filtros ocupan más espacio, ajustamos la tabla */
+    @media (max-width: 768px) {
+        #contenedorTabla { 
+            max-height: calc(100vh - 380px) !important; 
+        }
+    }
+
+    /* 2. Fijar el encabezado en la parte superior al bajar (Sticky Header) */
+    thead {
+        position: sticky;
+        top: 0;
+        z-index: 12;
+        /* Sombra elegante que aparece debajo del encabezado para separarlo de los datos */
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.15); 
+    }
+    
+    /* Mantiene los colores de fondo sólidos en los encabezados al scrolear */
+    thead th {
+        background-clip: padding-box;
+    }
+
+    /* Evita que los Nombres y Números queden por debajo del encabezado al mover en diagonal */
+    thead th.sticky-col-num, thead th.sticky-col-nombre {
+        z-index: 16 !important; 
+    }
   </style>
 </head>
 <body class="bg-light py-2">
@@ -90,7 +125,7 @@
       </div>
       <div class="card-footer bg-light text-center py-2 text-muted small">
         <span class="header-dir-inst">Pichincha - Manabí - Ecuador</span><br>
-        <span style="font-size: 0.6rem; opacity: 0.5;">v1.0.12</span>
+        <span style="font-size: 0.6rem; opacity: 0.5;">v1.0.13</span>
       </div>
     </div>
   </div>
