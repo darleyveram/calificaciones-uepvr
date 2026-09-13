@@ -51,8 +51,15 @@
   </style>
 </head>
 <body class="bg-light py-2">
+  <!-- PANTALLA DE CARGA INICIAL -->
+  <div id="pantallaCarga" class="vh-100 d-flex justify-content-center align-items-center">
+    <div class="text-center">
+      <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status"></div>
+      <div class="mt-3 fw-bold text-muted" style="font-size: 1.1rem;">Verificando credenciales...</div>
+    </div>
+  </div>
 
-  <div class="container" id="seccionLogin" style="max-width: 440px; margin-top: 50px;">
+  <div class="container d-none" id="seccionLogin" style="max-width: 440px; margin-top: 50px;">
     <div class="card shadow border-0">
       <div class="card-header bg-primary text-white text-center py-3">
         <div class="d-flex justify-content-center align-items-center gap-3 mb-2">
@@ -83,7 +90,7 @@
       </div>
       <div class="card-footer bg-light text-center py-2 text-muted small">
         <span class="header-dir-inst">Pichincha - Manabí - Ecuador</span><br>
-        <span style="font-size: 0.6rem; opacity: 0.5;">v1.0.11</span>
+        <span style="font-size: 0.6rem; opacity: 0.5;">v1.0.12</span>
       </div>
     </div>
   </div>
@@ -686,6 +693,7 @@
         const { data: perfil } = await supabaseClient.from('perfiles').select('*').eq('id', session.user.id).maybeSingle();
         usuarioActualPerfil = perfil;
         const nombreDocente = perfil ? `${perfil.titulo ? perfil.titulo + ' ' : ''}${perfil.nombres} ${perfil.apellidos || ''}`.trim() : session.user.email;
+        document.getElementById('pantallaCarga').classList.add('d-none');
         document.getElementById('seccionLogin').classList.add('d-none');
         document.getElementById('seccionApp').classList.remove('d-none');
         // === BLOQUEO DE PRIMERA VEZ (CAMBIO OBLIGATORIO) ===
@@ -742,6 +750,7 @@
         await cargarPeriodosAsistenciaDB();
         await cargarCursosYMaterias(session.user.id, perfil?.rol, perfil?.puede_gestionar_asistencia);
       } else {
+        document.getElementById('pantallaCarga').classList.add('d-none');
         document.getElementById('seccionLogin').classList.remove('d-none');
         document.getElementById('seccionApp').classList.add('d-none');
       }
