@@ -131,6 +131,8 @@
               <option value="incidencias" id="optModoIncidencias" class="text-danger fw-bold">⚠️ Registro de Incidencias</option>
               <!-- MÓDULO INTERCAMBIO -->
               <option value="intercambio" id="optModoIntercambio" class="d-none text-warning fw-bold">🔄 Intercambiar Calificaciones</option>
+              <!-- NUEVO MÓDULO: MONITOREO -->
+              <option value="monitoreo" id="optModoMonitoreo" class="d-none text-success fw-bold">🟢 Monitoreo en Vivo</option>
             </select>
           </div>
 
@@ -407,6 +409,20 @@
       </div>
     </div>
   </div>
+  <!-- Modal Historial Accesos -->
+  <div class="modal fade" id="modalHistorialAccesos" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 shadow">
+        <div class="modal-header bg-info text-dark py-2">
+          <h6 class="modal-title fw-bold" id="tituloModalHistorial"><i class="bi bi-clock-history me-2"></i>Historial de Accesos</h6>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body bg-light" id="bodyHistorialAccesos">
+          <!-- Se llenará con JS -->
+        </div>
+      </div>
+    </div>
+  </div>
   
   <script>
     const SUPABASE_URL = 'https://sbomuqwntosvdsojlfyr.supabase.co';
@@ -433,6 +449,7 @@
     let modalIncidenciasInst = null;
     let modalCambiarMiClaveInst = null;
     let latidoInterval = null;
+    let modalHistorialInst = null;
     
 
     // === LÓGICA DE CAMBIO DE CONTRASEÑA ===
@@ -706,12 +723,15 @@
           // --- NUEVO LÍNEA DE INTERCAMBIO ---
           const optInter = document.getElementById('optModoIntercambio');
           if (optInter) optInter.classList.remove('d-none');
+
+          const optMonitoreo = document.getElementById('optModoMonitoreo');
+          if (optMonitoreo) optMonitoreo.classList.remove('d-none');
         }
         // -----------------------------------------------
 
-        // === INICIAR LA VIGILANCIA DE SESIÓN ===
+        // === INICIAR LA VIGILANCIA DE SESIÓN (LATIDO) ===
         iniciarLatidoDeSesion();
-        // =======================================
+        // ================================================
 
         await cargarCatalogo();
         await cargarPeriodosAsistenciaDB();
@@ -727,8 +747,7 @@
       const email = document.getElementById('loginEmail').value.trim();
       const password = document.getElementById('loginPassword').value;
       const btn = document.getElementById('btnLogin');
-      btn.disabled = true;
-      btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Ingresando...';
+      btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Ingresando...';
 
       const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
       
@@ -736,38 +755,37 @@
         const errDiv = document.getElementById('loginError');
         errDiv.innerText = error.message;
         errDiv.classList.remove('d-none');
-        btn.disabled = false;
-        btn.innerText = 'Ingresar al Sistema';
+        btn.disabled = false; btn.innerText = 'Ingresar al Sistema';
       } else {
         // === NUEVO: REGISTRO DE SESIÓN ÚNICA E HISTORIAL ===
         const userId = data.session.user.id;
-        const miTokenUnico = crypto.randomUUID(); // Genera un código único
-        localStorage.setItem('mi_token_sesion', miTokenUnico); // Lo guarda en la PC actual
+        const miTokenUnico = crypto.randomUUID(); // Genera código único
+        localStorage.setItem('mi_token_sesion', miTokenUnico); // Guarda en la PC actual
 
-        // Actualizamos el perfil con el nuevo token y la hora
+        // 1. Actualizamos el perfil con el nuevo token y la hora
         await supabaseClient.from('perfiles').update({ 
             token_sesion_activo: miTokenUnico,
             ultima_actividad: new Date().toISOString()
         }).eq('id', userId);
 
-        // Guardamos el registro en el historial
+        // 2. Guardamos el registro en el historial
         await supabaseClient.from('historial_accesos').insert([{ 
             docente_id: userId, 
-            navegador: navigator.userAgent.substring(0, 50) // Guarda info del navegador
+            navegador: navigator.userAgent.substring(0, 80) // Qué dispositivo usó
         }]);
 
-        // Limpieza: Mantenemos solo los últimos 3 registros
-        const { data: historial } = await supabaseClient.from('historial_accesos').select('id').eq('docente_id', userId).order('fecha_ingreso', { ascending: false });
-        if (historial && historial.length > 3) {
-            const idsBorrables = historial.slice(3).map(h => h.id);
-            await supabaseClient.from('historial_accesos').delete().in('id', idsBorrables);
+        // 3. Limpieza: Mantenemos solo los últimos 3 registros por persona
+        const { data: hist } = await supabaseClient.from('historial_accesos')
+            .select('id').eq('docente_id', userId).order('fecha_ingreso', { ascending: false });
+            
+        if (hist && hist.length > 3) {
+            const idsBorrar = hist.slice(3).map(h => h.id);
+            await supabaseClient.from('historial_accesos').delete().in('id', idsBorrar);
         }
         // ===================================================
-        
         verificarSesion();
       }
     }
-
     async function cerrarSesion() {
       await supabaseClient.auth.signOut();
       location.reload();
@@ -879,6 +897,14 @@
         let cursosDisponibles = esAdmin ? todosCursos : []; // Seguridad extra: solo admin
         selectCurso.innerHTML = '<option value="">Seleccione curso...</option>' + cursosDisponibles.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
       }
+
+        else if (modo === 'monitoreo') {
+        boxCurso.classList.add('d-none'); boxMateria.classList.add('d-none'); boxVista.classList.add('d-none'); boxParcialAsist.classList.add('d-none'); boxParcialTut.classList.add('d-none'); optAnual.classList.add('d-none');
+        boxTrimestre.classList.add('d-none'); 
+        if (boxTipoAuditoria) boxTipoAuditoria.classList.add('d-none');
+        cambiarFiltro();
+        return; 
+      }
       // ===================================
 
         // === NUEVO MÓDULO: NÓMINAS ===
@@ -977,6 +1003,11 @@ if (accNomina) accNomina.classList.add('d-none');
           return; 
         }
         cargarVistaIntercambio(); 
+        return;
+      }
+
+      if (modo === 'monitoreo') {
+        cargarVistaMonitoreo(); 
         return;
       }
 
@@ -4949,36 +4980,173 @@ if (accNomina) accNomina.classList.add('d-none');
         btn.disabled = false; btn.innerHTML = originalHtml;
       }
     }
-    // === SISTEMA DE LATIDO Y SESIÓN ÚNICA ===
     function iniciarLatidoDeSesion() {
       if (latidoInterval) clearInterval(latidoInterval);
-      
-      latidoInterval = setInterval(async () => {
+      enviarLatido(); // Enviamos el primero inmediatamente
+      latidoInterval = setInterval(enviarLatido, 30000); // Luego cada 30 segundos
+    }
+    async function enviarLatido() {
         if (!usuarioActualPerfil) return;
-
         const miToken = localStorage.getItem('mi_token_sesion');
         
-        // Consultar el token actual en la base de datos
-        const { data } = await supabaseClient.from('perfiles')
+        // Consultar el token oficial en la base de datos
+        const { data, error } = await supabaseClient.from('perfiles')
             .select('token_sesion_activo')
             .eq('id', usuarioActualPerfil.id)
             .single();
 
-        if (data) {
-            // Si el token en la BD es diferente al de mi navegador, alguien más entró
-            if (data.token_sesion_activo && data.token_sesion_activo !== miToken) {
-                clearInterval(latidoInterval);
-                alert('⚠️ Sesión terminada: Alguien ha iniciado sesión con tu cuenta desde otro dispositivo.');
-                await supabaseClient.auth.signOut();
-                location.reload();
-            } else {
-                // Si todo está bien, actualizamos la última actividad (Heartbeat)
-                await supabaseClient.from('perfiles').update({ 
-                    ultima_actividad: new Date().toISOString() 
-                }).eq('id', usuarioActualPerfil.id);
-            }
+        // Si el token oficial es diferente al de esta computadora, alguien más entró
+        if (data && data.token_sesion_activo && data.token_sesion_activo !== miToken) {
+            clearInterval(latidoInterval);
+            alert('⚠️ SESIÓN TERMINADA: Alguien ha iniciado sesión con tu cuenta desde otro dispositivo (o pestaña). Por seguridad, te hemos desconectado de este equipo.');
+            await supabaseClient.auth.signOut();
+            location.reload();
+        } else {
+            // Si todo está en orden, actualizamos la hora de "última actividad"
+            await supabaseClient.from('perfiles').update({ 
+                ultima_actividad: new Date().toISOString() 
+            }).eq('id', usuarioActualPerfil.id);
         }
-      }, 30000); // Se ejecuta cada 30 segundos
+    }
+
+    async function cargarVistaMonitoreo() {
+      const reqId = ++currentViewRequestId;
+      const contenedor = document.getElementById('contenedorTabla');
+      
+      contenedor.innerHTML = '<div class="py-5 text-center"><div class="spinner-border text-success me-2" style="width: 3rem; height: 3rem;"></div><div class="mt-3 fw-bold text-muted">Buscando usuarios conectados...</div></div>';
+
+      try {
+        const { data: perfiles } = await supabaseClient.from('perfiles').select('id, titulo, nombres, apellidos, rol, ultima_actividad').order('nombres');
+        if (reqId !== currentViewRequestId) return;
+
+        const ahora = new Date();
+        let activos = 0;
+        
+        let htmlFilas = (perfiles || []).map(p => {
+            const nombre = `${p.titulo || ''} ${p.nombres} ${p.apellidos || ''}`.trim();
+            const rolBadge = p.rol === 'admin' ? '<span class="badge bg-danger">Admin</span>' : '<span class="badge bg-primary">Docente</span>';
+            
+            let estadoHtml = '';
+            let ultimaVezTexto = 'Nunca';
+
+            if (p.ultima_actividad) {
+                const ultimaAct = new Date(p.ultima_actividad);
+                const diffMinutos = (ahora - ultimaAct) / 1000 / 60;
+
+                if (diffMinutos <= 2) {
+                    estadoHtml = '<span class="badge bg-success blink"><i class="bi bi-circle-fill me-1" style="font-size:0.5rem;"></i> En Línea</span>';
+                    activos++;
+                    ultimaVezTexto = 'Hace un momento';
+                } else if (diffMinutos <= 15) {
+                    estadoHtml = '<span class="badge bg-warning text-dark"><i class="bi bi-clock me-1"></i> Ausente</span>';
+                    ultimaVezTexto = `Hace ${Math.floor(diffMinutos)} min`;
+                } else {
+                    estadoHtml = '<span class="badge bg-secondary"><i class="bi bi-moon-fill me-1"></i> Desconectado</span>';
+                    if (diffMinutos > 1440) {
+                        ultimaVezTexto = ultimaAct.toLocaleDateString('es-EC');
+                    } else if (diffMinutos > 60) {
+                        ultimaVezTexto = `Hace ${Math.floor(diffMinutos / 60)} horas`;
+                    } else {
+                        ultimaVezTexto = `Hace ${Math.floor(diffMinutos)} min`;
+                    }
+                }
+            } else {
+                estadoHtml = '<span class="badge bg-secondary"><i class="bi bi-moon-fill me-1"></i> Desconectado</span>';
+            }
+
+            return `
+                <tr>
+                    <td class="text-start fw-bold">${nombre}</td>
+                    <td>${rolBadge}</td>
+                    <td>${estadoHtml}</td>
+                    <td class="text-muted small">${ultimaVezTexto}</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-info py-0 px-2 fw-bold" onclick="verHistorialAccesos('${p.id}', '${nombre.replace(/'/g, "\\'")}')" title="Ver últimos 3 ingresos">
+                            <i class="bi bi-list-check"></i> Accesos
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+
+        let html = `
+          <div class="card border-0 shadow-sm mx-auto mt-2" style="max-width: 900px;">
+            <div class="card-header bg-success text-white fw-bold d-flex justify-content-between align-items-center py-3">
+              <span class="fs-5"><i class="bi bi-broadcast me-2"></i>Monitoreo de Usuarios en Tiempo Real</span>
+              <span class="badge bg-light text-success fs-6 px-3 py-1 rounded-pill">${activos} En Línea</span>
+            </div>
+            <div class="card-body bg-light p-3">
+               <div class="d-flex justify-content-between mb-3 px-2 align-items-center">
+                 <small class="text-muted"><i class="bi bi-info-circle me-1"></i>Los usuarios "En Línea" tienen la pestaña abierta en este momento.</small>
+                 <button class="btn btn-sm btn-success fw-bold py-1 px-3 shadow-sm" onclick="cargarVistaMonitoreo()"><i class="bi bi-arrow-clockwise me-1"></i>Refrescar Datos</button>
+               </div>
+               <div class="table-responsive" style="max-height: 50vh;">
+                 <table class="table table-hover table-sm align-middle text-center mb-0 border bg-white">
+                    <thead class="table-dark sticky-top">
+                        <tr>
+                            <th class="text-start px-3">Nombres y Apellidos</th>
+                            <th>Rol</th>
+                            <th>Estado Actual</th>
+                            <th>Última Actividad</th>
+                            <th>Historial</th>
+                        </tr>
+                    </thead>
+                    <tbody>${htmlFilas}</tbody>
+                 </table>
+               </div>
+            </div>
+          </div>
+        `;
+
+        contenedor.innerHTML = html;
+
+      } catch (err) {
+        if (reqId === currentViewRequestId) contenedor.innerHTML = `<div class="py-4 text-danger text-center fw-bold">Error: ${err.message}</div>`;
+      }
+    }
+
+    async function verHistorialAccesos(docenteId, nombre) {
+        if (!modalHistorialInst) modalHistorialInst = new bootstrap.Modal(document.getElementById('modalHistorialAccesos'));
+        
+        document.getElementById('tituloModalHistorial').innerHTML = `<i class="bi bi-clock-history me-2"></i>Accesos: ${nombre}`;
+        const body = document.getElementById('bodyHistorialAccesos');
+        body.innerHTML = '<div class="text-center py-4"><div class="spinner-border text-info mb-2"></div><br><small class="text-muted fw-bold">Obteniendo historial...</small></div>';
+        
+        modalHistorialInst.show();
+
+        try {
+            const { data, error } = await supabaseClient.from('historial_accesos')
+                .select('*')
+                .eq('docente_id', docenteId)
+                .order('fecha_ingreso', { ascending: false })
+                .limit(3);
+                
+            if (error) throw error;
+
+            if (!data || data.length === 0) {
+                body.innerHTML = '<div class="alert alert-warning text-center fw-bold mb-0">No hay registros de ingresos recientes.</div>';
+            } else {
+                body.innerHTML = '<ul class="list-group shadow-sm">' + data.map((h, i) => {
+                    const fecha = new Date(h.fecha_ingreso).toLocaleString('es-EC', { dateStyle: 'long', timeStyle: 'short' });
+                    
+                    let navStr = h.navegador || 'Dispositivo desconocido';
+                    let icono = 'bi-display';
+                    if (navStr.includes('Mobile') || navStr.includes('Android') || navStr.includes('iPhone')) icono = 'bi-phone';
+                    
+                    return `
+                        <li class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <h6 class="mb-0 fw-bold text-dark"><i class="bi ${icono} text-secondary me-2"></i>Ingreso ${i+1}</h6>
+                                <span class="badge bg-light text-primary border">${fecha}</span>
+                            </div>
+                            <small class="text-muted" style="font-size: 0.65rem;">Navegador: ${navStr}</small>
+                        </li>
+                    `;
+                }).join('') + '</ul>';
+            }
+        } catch (err) {
+            body.innerHTML = `<div class="alert alert-danger text-center fw-bold mb-0">Error: ${err.message}</div>`;
+        }
     }
   </script>
 </body>
