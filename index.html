@@ -125,7 +125,7 @@
       </div>
       <div class="card-footer bg-light text-center py-2 text-muted small">
         <span class="header-dir-inst">Pichincha - Manabí - Ecuador</span><br>
-        <span style="font-size: 0.6rem; opacity: 0.5;">v1.0.18</span>
+        <span style="font-size: 0.6rem; opacity: 0.5;">v1.0.19</span>
       </div>
     </div>
   </div>
@@ -1110,6 +1110,17 @@ if (accNomina) accNomina.classList.add('d-none');
         document.getElementById('contenedorTabla').innerHTML = '<div class="py-4 text-muted text-center">Seleccione Trimestre y Parcial para continuar.</div>';
         return;
       }
+
+      // === RESTAURAR VISIBILIDAD DE BOTONES ===
+      if (trimestreVal === 'anual') {
+        document.getElementById('boxVista').classList.add('d-none'); 
+        accAnual.classList.remove('d-none');
+      } else {
+        document.getElementById('boxVista').classList.remove('d-none');
+        if (vistaVal === 'resumen_trimestre') accResumen.classList.remove('d-none');
+        else accParcial.classList.remove('d-none');
+      }
+      // ==========================================
 
       if (!asigId) { controles.forEach(b => b.disabled = true); document.getElementById('contenedorTabla').innerHTML = '<div class="py-4 text-muted text-center">Seleccione un Curso y una Materia.</div>'; return; }
       controles.forEach(b => b.disabled = false);
