@@ -125,7 +125,7 @@
       </div>
       <div class="card-footer bg-light text-center py-2 text-muted small">
         <span class="header-dir-inst">Pichincha - Manabí - Ecuador</span><br>
-        <span style="font-size: 0.6rem; opacity: 0.5;">v1.0.17</span>
+        <span style="font-size: 0.6rem; opacity: 0.5;">v1.0.18</span>
       </div>
     </div>
   </div>
@@ -780,6 +780,11 @@
 
           const optMonitoreo = document.getElementById('optModoMonitoreo');
           if (optMonitoreo) optMonitoreo.classList.remove('d-none');
+
+          // === NUEVO: SI ES RECTOR/ADMIN, INICIAR EN EL BUSCADOR GLOBAL ===
+          // (Si tu base de datos usa la palabra 'rector' en vez de 'admin', cambia la validación a perfil?.rol === 'rector')
+          document.getElementById('selectModo').value = 'reporte_estudiante';
+          // ================================================================
         }
         // -----------------------------------------------
 
@@ -3402,24 +3407,18 @@ if (accNomina) accNomina.classList.add('d-none');
 
         const term = termino.toLowerCase().trim();
         
-        // 1. Si no hay nada escrito, ocultamos los resultados
         if (term.length === 0) {
             lista.innerHTML = '<div class="py-4 text-center text-muted fw-bold"><i class="bi bi-keyboard fs-3 d-block mb-2"></i>Escriba para buscar un estudiante...</div>';
             return;
         }
 
-        // 2. Búsqueda Flexible (Separa el texto por palabras)
         const terminosBusqueda = term.split(/\s+/); 
         
-        // Filtramos y limitamos a 50 resultados para que no se trabe el navegador
         const filtrados = todosEstudiantesGlobal.filter(e => {
             const nombreCompleto = (e.nombres || '').toLowerCase();
             const cedula = (e.cedula || '');
-            
-            // Verifica que TODAS las palabras que escribió el usuario existan en el nombre, sin importar el orden
             const coincideNombre = terminosBusqueda.every(t => nombreCompleto.includes(t));
             const coincideCedula = cedula.includes(term);
-            
             return coincideNombre || coincideCedula;
         }).slice(0, 50);
 
@@ -3428,16 +3427,20 @@ if (accNomina) accNomina.classList.add('d-none');
             return;
         }
 
-        // 3. Dibujamos la lista con letras más finas y estilizadas
-        lista.innerHTML = filtrados.map(e => `
-            <button type="button" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2 border-bottom" onclick="verDetalleEstudiante(${e.id}, '${e.nombres.replace(/'/g, "\\'")}', ${e.curso_id}, '${e.cursos?.nombre || 'Sin Curso'}')">
+        lista.innerHTML = filtrados.map(e => {
+            // SOLUCIÓN AL CLIC: Limpiamos comillas simples y dobles para que no rompan el HTML
+            const nombreSeguro = e.nombres.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+            const cursoSeguro = (e.cursos?.nombre || 'Sin Curso').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+            
+            return `
+            <button type="button" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2 border-bottom" onclick="verDetalleEstudiante(${e.id}, '${nombreSeguro}', ${e.curso_id || 0}, '${cursoSeguro}')">
               <div>
                 <div class="fw-bold text-dark" style="font-size:0.80rem;">${e.nombres} ${badgeDistancia(e.modalidad)}${badgeEstado(e.estado)}</div>
                 <small class="text-muted" style="font-size:0.70rem;"><i class="bi bi-mortarboard-fill me-1"></i>${e.cursos?.nombre || 'Sin curso asignado'} | <i class="bi bi-person-vcard me-1"></i>${e.cedula || 'S/N'}</small>
               </div>
               <i class="bi bi-chevron-right text-primary" style="font-size:0.9rem;"></i>
-            </button>
-        `).join('');
+            </button>`;
+        }).join('');
     }
 
     // Función auxiliar para alternar las tarjetas de resumen según el período seleccionado
@@ -3487,43 +3490,59 @@ if (accNomina) accNomina.classList.add('d-none');
         [1, 2, 3].forEach(t => { compMatriz[t].prom = (compMatriz[t].p1 + compMatriz[t].p2) / 2; });
         const compAnualNum = (compMatriz[1].prom + compMatriz[2].prom + compMatriz[3].prom) / 3;
 
-        // 3. Procesar Asistencia (Parciales, Trimestres y Anual)
+        // 3. Procesar Asistencia (Anual, Trimestral y Parcial con base en días reales)
+        const getDias = (t, p) => {
+           const per = periodosAsistencia.find(x => x.trimestre === t && x.parcial === p);
+           return per ? per.total_dias_laborados : 0;
+        };
+        // Extraemos los días oficiales de cada parcial según configuración del Admin
+        const metaDias = {
+            1: { 1: getDias(1, 1) || 34, 2: getDias(1, 2) || 35 },
+            2: { 1: getDias(2, 1) || 29, 2: getDias(2, 2) || 37 },
+            3: { 1: getDias(3, 1) || 25, 2: getDias(3, 2) || 40 }
+        };
+
         const asistData = {
-            1: { 1: { a: 0, f: 0, j: 0, tot: 0 }, 2: { a: 0, f: 0, j: 0, tot: 0 }, totA: 0, totF: 0, totJ: 0, totDias: 0 },
-            2: { 1: { a: 0, f: 0, j: 0, tot: 0 }, 2: { a: 0, f: 0, j: 0, tot: 0 }, totA: 0, totF: 0, totJ: 0, totDias: 0 },
-            3: { 1: { a: 0, f: 0, j: 0, tot: 0 }, 2: { a: 0, f: 0, j: 0, tot: 0 }, totA: 0, totF: 0, totJ: 0, totDias: 0 },
-            anual: { a: 0, f: 0, j: 0, totDias: 0 }
+            1: { 1: { a: 0, f: 0, j: 0, tot: metaDias[1][1] }, 2: { a: 0, f: 0, j: 0, tot: metaDias[1][2] }, totA: 0, totF: 0, totJ: 0, totDias: metaDias[1][1] + metaDias[1][2] },
+            2: { 1: { a: 0, f: 0, j: 0, tot: metaDias[2][1] }, 2: { a: 0, f: 0, j: 0, tot: metaDias[2][2] }, totA: 0, totF: 0, totJ: 0, totDias: metaDias[2][1] + metaDias[2][2] },
+            3: { 1: { a: 0, f: 0, j: 0, tot: metaDias[3][1] }, 2: { a: 0, f: 0, j: 0, tot: metaDias[3][2] }, totA: 0, totF: 0, totJ: 0, totDias: metaDias[3][1] + metaDias[3][2] },
+            anual: { a: 0, f: 0, j: 0, totDias: metaDias[1][1] + metaDias[1][2] + metaDias[2][1] + metaDias[2][2] + metaDias[3][1] + metaDias[3][2] }
         };
 
         (resAsist.data || []).forEach(reg => {
             const t = reg.trimestre;
             const p = reg.parcial;
             if (asistData[t] && asistData[t][p]) {
-                let a = 0, f = 0, j = 0;
+                let a = 0, j = 0;
                 if (reg.registro_diario && typeof reg.registro_diario === 'object') {
                     Object.values(reg.registro_diario).forEach(val => {
                         const v = String(val).toUpperCase();
                         if (v === 'A') a++;
-                        else if (v === 'F') f++;
                         else if (v === 'J') j++;
                     });
                 } else {
                     a = reg.total_asistencias || 0;
-                    f = reg.total_faltas || 0;
                     j = reg.total_justificadas || 0;
                 }
-                const totalD = a + f + j;
-                asistData[t][p] = { a, f, j, tot: totalD };
-                asistData[t].totA += a;
-                asistData[t].totF += f;
-                asistData[t].totJ += j;
-                asistData[t].totDias += totalD;
-
-                asistData.anual.a += a;
-                asistData.anual.f += f;
-                asistData.anual.j += j;
-                asistData.anual.totDias += totalD;
+                
+                // Las faltas se calculan restando a la meta de días oficiales (Igual que en módulo asistencia)
+                let f = Math.max(metaDias[t][p] - a - j, 0);
+                
+                asistData[t][p].a = a;
+                asistData[t][p].f = f;
+                asistData[t][p].j = j;
             }
+        });
+
+        // Recalcular los totales acumulados por trimestre y anual
+        [1, 2, 3].forEach(t => {
+            asistData[t].totA = asistData[t][1].a + asistData[t][2].a;
+            asistData[t].totF = asistData[t][1].f + asistData[t][2].f;
+            asistData[t].totJ = asistData[t][1].j + asistData[t][2].j;
+            
+            asistData.anual.a += asistData[t].totA;
+            asistData.anual.f += asistData[t].totF;
+            asistData.anual.j += asistData[t].totJ;
         });
 
         // 4. Procesar Calificaciones
