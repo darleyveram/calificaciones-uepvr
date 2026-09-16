@@ -200,6 +200,7 @@
           <div class="col-6 col-md-2" id="boxTrimestre">
             <label class="form-label mb-1 fw-bold small">Trimestre / Ciclo:</label>
             <select id="selectTrimestre" class="form-select form-select-sm" onchange="cambiarFiltro()">
+              <option value="" selected>Seleccione...</option>
               <option value="1">Trimestre 1</option>
               <option value="2">Trimestre 2</option>
               <option value="3">Trimestre 3</option>
@@ -210,6 +211,7 @@
           <div class="col-6 col-md-2" id="boxVista">
             <label class="form-label mb-1 fw-bold small">Evaluación / Parcial:</label>
             <select id="selectVista" class="form-select form-select-sm" onchange="cambiarFiltro()">
+              <option value="" selected>Seleccione...</option>
               <option value="p1">Parcial 1 (Insumos 1 y 2)</option>
               <option value="p2">Parcial 2 (Insumos 1 y 2)</option>
               <option value="resumen_trimestre">Examen y Resumen Trimestral</option>
@@ -245,6 +247,7 @@
           <div class="col-6 col-md-2 d-none" id="boxParcialAsistencia">
             <label class="form-label mb-1 fw-bold small">Parcial Asistencia:</label>
             <select id="selectParcialAsistencia" class="form-select form-select-sm" onchange="cambiarFiltro()">
+              <option value="" selected>Seleccione...</option>
               <option value="1">1er Parcial</option>
               <option value="2">2do Parcial</option>
             </select>
@@ -253,6 +256,7 @@
           <div class="col-6 col-md-2 d-none" id="boxParcialTutoria">
             <label class="form-label mb-1 fw-bold small">Tipo de Reporte:</label>
             <select id="selectParcialTutoria" class="form-select form-select-sm fw-bold text-dark" onchange="cambiarFiltro()">
+              <option value="" selected>Seleccione...</option>
               <option value="1">Libretas del 1er Parcial</option>
               <option value="2">Libretas del 2do Parcial</option>
               <option value="trimestre">Informe / Libreta Trimestral</option>
@@ -1002,6 +1006,8 @@
       const trimestreVal = document.getElementById('selectTrimestre').value;
       const vistaVal = document.getElementById('selectVista').value;
       const controles = document.querySelectorAll('.btn-control');
+      const parcialAsistVal = document.getElementById('selectParcialAsistencia').value;
+      const parcialTutVal = document.getElementById('selectParcialTutoria').value;
       
       const accParcial = document.getElementById('accionesParcial');
       const accComp = document.getElementById('accionesComportamiento');
@@ -1032,7 +1038,7 @@ if (accNomina) accNomina.classList.add('d-none');
 
       if (modo === 'tutoria') {
         accTutoria.classList.remove('d-none');
-        if (!cursoId) { document.getElementById('contenedorTabla').innerHTML = '<div class="py-4 text-muted text-center">Seleccione un Curso de Tutoría para consultar el consolidado y emitir libretas.</div>'; return; }
+        if (!cursoId || !trimestreVal || !parcialTutVal) { document.getElementById('contenedorTabla').innerHTML = '<div class="py-4 text-muted text-center">Seleccione Curso, Trimestre y Tipo de Reporte para consultar.</div>'; return; }
         const esAdmin = usuarioActualPerfil?.rol === 'admin';
         if (esAdmin) { document.getElementById('btnDescargarTodasLibretas').classList.remove('d-none'); document.getElementById('btnDescargarZipIndividuales').classList.remove('d-none'); document.getElementById('btnDescargarSabanaTutoria').classList.add('d-none'); } 
         else { document.getElementById('btnDescargarTodasLibretas').classList.add('d-none'); document.getElementById('btnDescargarZipIndividuales').classList.add('d-none'); document.getElementById('btnDescargarSabanaTutoria').classList.remove('d-none'); }
@@ -1041,7 +1047,7 @@ if (accNomina) accNomina.classList.add('d-none');
 
       if (modo === 'asistencia') {
         accAsist.classList.remove('d-none');
-        if (!cursoId) { controles.forEach(b => b.disabled = true); document.getElementById('contenedorTabla').innerHTML = '<div class="py-4 text-muted text-center">Seleccione un Curso para gestionar la Asistencia.</div>'; return; }
+        if (!cursoId || !trimestreVal || !parcialAsistVal) { controles.forEach(b => b.disabled = true); document.getElementById('contenedorTabla').innerHTML = '<div class="py-4 text-muted text-center">Seleccione Curso, Trimestre y Parcial para gestionar la Asistencia.</div>'; return; }
         controles.forEach(b => b.disabled = false);
         cargarVistaAsistencia(); return;
       }
@@ -1062,7 +1068,7 @@ if (accNomina) accNomina.classList.add('d-none');
 
       if (modo === 'comportamiento') {
         accComp.classList.remove('d-none');
-        if (!cursoId) { controles.forEach(b => b.disabled = true); document.getElementById('contenedorTabla').innerHTML = '<div class="py-4 text-muted text-center">Seleccione un Curso para evaluar el Comportamiento.</div>'; return; }
+        if (!cursoId || !trimestreVal || !parcialAsistVal) { controles.forEach(b => b.disabled = true); document.getElementById('contenedorTabla').innerHTML = '<div class="py-4 text-muted text-center">Seleccione Curso, Trimestre y Parcial para evaluar Comportamiento.</div>'; return; }
         controles.forEach(b => b.disabled = false);
         cargarVistaComportamientoGeneral(); return;
       }
@@ -1090,15 +1096,13 @@ if (accNomina) accNomina.classList.add('d-none');
         cargarVistaCertificados(); return;
       }
 
-      if (trimestreVal === 'anual') {
-        document.getElementById('boxVista').classList.add('d-none'); accAnual.classList.remove('d-none');
-      } else {
-        document.getElementById('boxVista').classList.remove('d-none');
-        if (vistaVal === 'resumen_trimestre') accResumen.classList.remove('d-none');
-        else accParcial.classList.remove('d-none');
+      if (!trimestreVal || (trimestreVal !== 'anual' && !vistaVal)) {
+        controles.forEach(b => b.disabled = true);
+        document.getElementById('contenedorTabla').innerHTML = '<div class="py-4 text-muted text-center">Seleccione Trimestre y Parcial para continuar.</div>';
+        return;
       }
 
-      if (!asigId) { controles.forEach(b => b.disabled = true); document.getElementById('contenedorTabla').innerHTML = '<div class="py-4 text-muted text-center">Seleccione un Curso y una Materia para visualizar las calificaciones.</div>'; return; }
+      if (!asigId) { controles.forEach(b => b.disabled = true); document.getElementById('contenedorTabla').innerHTML = '<div class="py-4 text-muted text-center">Seleccione un Curso y una Materia.</div>'; return; }
       controles.forEach(b => b.disabled = false);
 
       if (trimestreVal === 'anual') cargarVistaResumenAnual();
@@ -2035,18 +2039,27 @@ if (accNomina) accNomina.classList.add('d-none');
     // MOTOR DE BLOQUEO DE CALIFICACIONES Y PERMISOS
     // =========================================================================
     async function verificarBloqueoCalificaciones(asignacionId, trimestre, parcialNum) {
-        const esAdmin = usuarioActualPerfil?.rol === 'admin';
-        if (esAdmin) return { bloqueado: false, mensaje: '' }; // Admins no se bloquean
+        // Obtenemos fecha actual (Zona horaria EC)
+        const hoyStr = new Date().toLocaleString("sv-SE", { timeZone: "America/Guayaquil" }).substring(0, 10);
+        const hoy = new Date(hoyStr);
 
-        const hoy = new Date().toISOString().split('T')[0];
+        // Función matemática para sacar los días restantes
+        const diffDias = (fechaCierreStr) => {
+            const cierre = new Date(fechaCierreStr);
+            return Math.ceil((cierre - hoy) / (1000 * 60 * 60 * 24));
+        };
 
         // 1. Revisar si hay una prórroga/excepción activa para este docente/materia
         if (asignacionId > 0) {
             const { data: exc } = await supabaseClient.from('excepciones_notas').select('*')
                 .eq('asignacion_id', asignacionId).eq('trimestre', trimestre).eq('parcial', parcialNum)
-                .gte('fecha_cierre', hoy).maybeSingle();
+                .gte('fecha_cierre', hoyStr).maybeSingle();
             
-            if (exc) return { bloqueado: false, mensaje: `Tiene una prórroga especial hasta el ${exc.fecha_cierre}` };
+            if (exc) {
+                const dias = diffDias(exc.fecha_cierre);
+                const txt = dias === 0 ? "¡VENCE HOY!" : `Quedan ${dias} días`;
+                return { bloqueado: false, mensaje: `Tienes una prórroga especial hasta el ${exc.fecha_cierre} (${txt}).` };
+            }
         }
 
         // 2. Revisar la fecha global
@@ -2057,12 +2070,15 @@ if (accNomina) accNomina.classList.add('d-none');
             return { bloqueado: true, mensaje: 'El administrador aún no ha habilitado fechas para este periodo.' };
         }
 
-        if (hoy >= global.fecha_apertura && hoy <= global.fecha_cierre) {
-            return { bloqueado: false, mensaje: '' };
-        } else if (hoy < global.fecha_apertura) {
-            return { bloqueado: true, mensaje: `El sistema se abrirá el ${global.fecha_apertura}` };
+        // 3. Evaluar e Informar el estado actual
+        if (hoyStr >= global.fecha_apertura && hoyStr <= global.fecha_cierre) {
+            const dias = diffDias(global.fecha_cierre);
+            const txt = dias === 0 ? "¡SE CIERRA HOY!" : `Faltan ${dias} días para bloquearse`;
+            return { bloqueado: false, mensaje: `El ingreso de notas está ABIERTO hasta el ${global.fecha_cierre} (${txt}).` };
+        } else if (hoyStr < global.fecha_apertura) {
+            return { bloqueado: true, mensaje: `El sistema se abrirá el ${global.fecha_apertura}.` };
         } else {
-            return { bloqueado: true, mensaje: `El periodo finalizó el ${global.fecha_cierre}` };
+            return { bloqueado: true, mensaje: `El periodo finalizó el ${global.fecha_cierre}.` };
         }
     }
 
@@ -2070,36 +2086,31 @@ if (accNomina) accNomina.classList.add('d-none');
         const oldAlert = document.getElementById('alertaBloqueoNotas');
         if (oldAlert) oldAlert.remove();
 
-        if (bloqueoObj.bloqueado) {
-            // Deshabilitar notas, comportamiento e INCIDENCIAS
+        const esAdmin = usuarioActualPerfil?.rol === 'admin';
+        const uiBloqueado = bloqueoObj.bloqueado && !esAdmin; // Los admins ven todo desbloqueado siempre
+
+        if (uiBloqueado) {
+            // Deshabilitar toda la interfaz
             document.querySelectorAll('.input-nota-app, .select-act-custom, .comp-ind, .check-incidencia-est, #incTipo, #incContexto, #incFechaHora, #incObservaciones').forEach(el => el.disabled = true);
-            
-            document.querySelectorAll('.btn-del-col, .btn-act-header').forEach(el => {
-                el.disabled = true; el.style.opacity = '0.4'; el.style.pointerEvents = 'none';
-            });
-            
-            document.querySelectorAll('#accionesParcial button, #accionesComportamiento button, #accionesResumen button').forEach(btn => {
-                if (!btn.id.includes('PDF')) btn.disabled = true;
-            });
+            document.querySelectorAll('.btn-del-col, .btn-act-header').forEach(el => { el.disabled = true; el.style.opacity = '0.4'; el.style.pointerEvents = 'none'; });
+            document.querySelectorAll('#accionesParcial button, #accionesComportamiento button, #accionesResumen button').forEach(btn => { if (!btn.id.includes('PDF')) btn.disabled = true; });
+            if (btnGuardarId) { const btnExtra = document.getElementById(btnGuardarId); if (btnExtra) btnExtra.disabled = true; }
 
-            // Apagar botón específico (ej. btnGuardarInc)
-            if (btnGuardarId) {
-                const btnExtra = document.getElementById(btnGuardarId);
-                if (btnExtra) btnExtra.disabled = true;
-            }
-
+            // Mostrar Banner ROJO de Bloqueo
             const banner = document.createElement('div');
             banner.id = 'alertaBloqueoNotas';
             banner.className = 'alert alert-danger p-2 mb-3 fw-bold text-center border-danger shadow-sm';
-            banner.innerHTML = `<i class="bi bi-lock-fill me-2"></i> SISTEMA BLOQUEADO: ${bloqueoObj.mensaje}. 
-                                <span class="fw-normal ms-2 d-block d-md-inline">(Solo puede visualizar y descargar PDF)</span>`;
+            banner.innerHTML = `<i class="bi bi-lock-fill me-2"></i> SISTEMA BLOQUEADO: ${bloqueoObj.mensaje} <span class="fw-normal ms-2 d-block d-md-inline">(Solo Lectura)</span>`;
             const contenedor = document.getElementById('contenedorTabla');
             contenedor.parentNode.insertBefore(banner, contenedor);
+
         } else if (bloqueoObj.mensaje !== '') {
+            // Mostrar Banner AZUL INFORMATIVO (Abierto / Faltan días)
             const banner = document.createElement('div');
             banner.id = 'alertaBloqueoNotas';
-            banner.className = 'alert alert-warning p-2 mb-3 fw-bold text-center border-warning shadow-sm';
-            banner.innerHTML = `<i class="bi bi-unlock-fill me-2"></i> ATENCIÓN: ${bloqueoObj.mensaje}.`;
+            banner.className = 'alert alert-info p-2 mb-3 fw-bold text-center border-info shadow-sm text-dark';
+            let adminTag = (esAdmin && bloqueoObj.bloqueado) ? ' <span class="badge bg-danger ms-2">Admin (Saltando Bloqueo)</span>' : '';
+            banner.innerHTML = `<i class="bi bi-info-circle-fill me-2 text-primary"></i> ${bloqueoObj.mensaje} ${adminTag}`;
             const contenedor = document.getElementById('contenedorTabla');
             contenedor.parentNode.insertBefore(banner, contenedor);
         }
