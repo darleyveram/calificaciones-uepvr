@@ -125,7 +125,7 @@
       </div>
       <div class="card-footer bg-light text-center py-2 text-muted small">
         <span class="header-dir-inst">Pichincha - Manabí - Ecuador</span><br>
-        <span style="font-size: 0.6rem; opacity: 0.5;">v1.0.17</span>
+        <span style="font-size: 0.6rem; opacity: 0.5;">v1.0.16</span>
       </div>
     </div>
   </div>
@@ -3447,13 +3447,6 @@ if (accNomina) accNomina.classList.add('d-none');
         if(target) target.classList.remove('d-none');
     }
 
-    // Función auxiliar para alternar las tarjetas de resumen según el período seleccionado
-    function cambiarResumenPeriodo(val) {
-        document.querySelectorAll('.cards-resumen').forEach(el => el.classList.add('d-none'));
-        const target = document.getElementById('cards-' + val);
-        if (target) target.classList.remove('d-none');
-    }
-
     async function verDetalleEstudiante(estId, nombresEst, cursoId, nombreCurso) {
       const reqId = ++currentViewRequestId;
       const contenedor = document.getElementById('contenedorTabla');
@@ -3463,8 +3456,9 @@ if (accNomina) accNomina.classList.add('d-none');
         const { data: asigCurso } = await supabaseClient.from('curso_materia_docente').select(`id, materia_id, es_optativa, materias(nombre)`).eq('curso_id', cursoId);
         let asignaciones = asigCurso || [];
         asignaciones.sort((a, b) => a.es_optativa === b.es_optativa ? (a.materias?.nombre || '').localeCompare(b.materias?.nombre || '') : (a.es_optativa ? 1 : -1));
+        const asigIds = asignaciones.map(a => a.id);
 
-        // Consultamos notas, comportamiento, asistencia e incidencias en paralelo
+        // Traemos TODOS los datos del estudiante en paralelo
         const [resNotas, resTrim, resComp, resAsist, resInc] = await Promise.all([
           supabaseClient.from('notas_parcial_actividades').select('*').eq('estudiante_id', estId),
           supabaseClient.from('notas_trimestre').select('*').eq('estudiante_id', estId),
@@ -3474,66 +3468,24 @@ if (accNomina) accNomina.classList.add('d-none');
         ]);
         if (reqId !== currentViewRequestId) return;
 
-        // 1. Filtrar Incidencias
+        // 1. Filtrar Incidencias reales del estudiante
         const misIncidencias = (resInc.data || []).filter(inc => inc.estudiantes_ids && inc.estudiantes_ids.includes(estId));
-        const contarInc = (t, p) => misIncidencias.filter(i => (!t || i.trimestre === t) && (!p || i.parcial === p)).length;
 
-        // 2. Procesar Comportamiento por Parcial y Trimestre
-        const compMatriz = { 
-            1: { p1: 10, p2: 10, prom: 10 }, 
-            2: { p1: 10, p2: 10, prom: 10 }, 
-            3: { p1: 10, p2: 10, prom: 10 } 
-        };
+        // 2. Procesar Comportamiento
+        const compMatriz = { 1: {p1:10, p2:10}, 2: {p1:10, p2:10}, 3: {p1:10, p2:10} };
+        let sumaComp = 0, cantComp = 0;
         (resComp.data || []).forEach(c => {
-           if (compMatriz[c.trimestre]) {
-               const val = parseFloat(c.total_cuantitativo) || 10;
-               if (c.parcial === 1) compMatriz[c.trimestre].p1 = val;
-               if (c.parcial === 2) compMatriz[c.trimestre].p2 = val;
+           if(compMatriz[c.trimestre]) {
+               const notaC = parseFloat(c.total_cuantitativo) || 10;
+               if(c.parcial === 1) compMatriz[c.trimestre].p1 = notaC;
+               if(c.parcial === 2) compMatriz[c.trimestre].p2 = notaC;
+               sumaComp += notaC; cantComp++;
            }
         });
-        [1, 2, 3].forEach(t => { compMatriz[t].prom = (compMatriz[t].p1 + compMatriz[t].p2) / 2; });
-        const compAnualNum = (compMatriz[1].prom + compMatriz[2].prom + compMatriz[3].prom) / 3;
+        const compGeneralNum = cantComp > 0 ? (sumaComp / cantComp) : 10;
+        const compGeneralLetra = convertirCualitativo(compGeneralNum);
 
-        // 3. Procesar Asistencia (Parciales, Trimestres y Anual)
-        const asistData = {
-            1: { 1: { a: 0, f: 0, j: 0, tot: 0 }, 2: { a: 0, f: 0, j: 0, tot: 0 }, totA: 0, totF: 0, totJ: 0, totDias: 0 },
-            2: { 1: { a: 0, f: 0, j: 0, tot: 0 }, 2: { a: 0, f: 0, j: 0, tot: 0 }, totA: 0, totF: 0, totJ: 0, totDias: 0 },
-            3: { 1: { a: 0, f: 0, j: 0, tot: 0 }, 2: { a: 0, f: 0, j: 0, tot: 0 }, totA: 0, totF: 0, totJ: 0, totDias: 0 },
-            anual: { a: 0, f: 0, j: 0, totDias: 0 }
-        };
-
-        (resAsist.data || []).forEach(reg => {
-            const t = reg.trimestre;
-            const p = reg.parcial;
-            if (asistData[t] && asistData[t][p]) {
-                let a = 0, f = 0, j = 0;
-                if (reg.registro_diario && typeof reg.registro_diario === 'object') {
-                    Object.values(reg.registro_diario).forEach(val => {
-                        const v = String(val).toUpperCase();
-                        if (v === 'A') a++;
-                        else if (v === 'F') f++;
-                        else if (v === 'J') j++;
-                    });
-                } else {
-                    a = reg.total_asistencias || 0;
-                    f = reg.total_faltas || 0;
-                    j = reg.total_justificadas || 0;
-                }
-                const totalD = a + f + j;
-                asistData[t][p] = { a, f, j, tot: totalD };
-                asistData[t].totA += a;
-                asistData[t].totF += f;
-                asistData[t].totJ += j;
-                asistData[t].totDias += totalD;
-
-                asistData.anual.a += a;
-                asistData.anual.f += f;
-                asistData.anual.j += j;
-                asistData.anual.totDias += totalD;
-            }
-        });
-
-        // 4. Procesar Calificaciones
+        // 3. Procesar Notas
         const matrizNotas = {};
         asignaciones.forEach(a => { matrizNotas[a.id] = { nombre: a.materias?.nombre, es_optativa: a.es_optativa, t1: {p1:0, p2:0, ex:0}, t2: {p1:0, p2:0, ex:0}, t3: {p1:0, p2:0, ex:0} }; });
 
@@ -3549,10 +3501,11 @@ if (accNomina) accNomina.classList.add('d-none');
           }
         });
 
-        let sT1_P1 = 0, sT1_P2 = 0, sT2_P1 = 0, sT2_P2 = 0, sT3_P1 = 0, sT3_P2 = 0;
-        let sT1 = 0, sT2 = 0, sT3 = 0, contObl = 0;
+        // VARIABLES PARA SEPARAR PROMEDIOS POR TRIMESTRE
+        let sumT1 = 0, sumT2 = 0, sumT3 = 0, contObl = 0;
         let materiasProcesadasParaPDF = [];
 
+        // Generar Tablas de Notas
         let htmlAcordeon = asignaciones.map((a, idx) => {
           const m = matrizNotas[a.id];
           const t1_prom = (m.t1.p1 * 0.35) + (m.t1.p2 * 0.35) + (m.t1.ex * 0.30);
@@ -3560,19 +3513,15 @@ if (accNomina) accNomina.classList.add('d-none');
           const t3_prom = (m.t3.p1 * 0.35) + (m.t3.p2 * 0.35) + (m.t3.ex * 0.30);
           const promAnual = (t1_prom + t2_prom + t3_prom) / 3;
           
-          if (!m.es_optativa) {
-             sT1_P1 += m.t1.p1; sT1_P2 += m.t1.p2; sT1 += t1_prom;
-             sT2_P1 += m.t2.p1; sT2_P2 += m.t2.p2; sT2 += t2_prom;
-             sT3_P1 += m.t3.p1; sT3_P2 += m.t3.p2; sT3 += t3_prom;
-             contObl++;
-          }
+          if (!m.es_optativa) { sumT1 += t1_prom; sumT2 += t2_prom; sumT3 += t3_prom; contObl++; }
+          
           materiasProcesadasParaPDF.push({ nombre: m.nombre, optativa: m.es_optativa, t1_p1: m.t1.p1, t1_p2: m.t1.p2, t1_ex: m.t1.ex, t1_prom, t2_p1: m.t2.p1, t2_p2: m.t2.p2, t2_ex: m.t2.ex, t2_prom, t3_p1: m.t3.p1, t3_p2: m.t3.p2, t3_ex: m.t3.ex, t3_prom, promAnual });
 
           return `
             <div class="card mb-2 border-0 shadow-sm">
-                <div class="card-header bg-white fw-bold d-flex justify-content-between align-items-center cursor-pointer py-2" data-bs-toggle="collapse" data-bs-target="#colMat${idx}">
-                    <span style="font-size:0.8rem;"><i class="bi bi-journal-bookmark-fill text-primary me-2"></i>${m.nombre} <span class="badge ${m.es_optativa ? 'bg-secondary' : 'bg-primary'} ms-1" style="font-size:0.6rem;">${m.es_optativa ? 'Optativa' : 'Obligatoria'}</span></span>
-                    <span class="badge ${obtenerClaseColor(promAnual, true)}" style="font-size:0.8rem;">${m.es_optativa ? obtenerEscalaCualitativa(promAnual) : promAnual.toFixed(2)}</span>
+                <div class="card-header bg-white fw-bold d-flex justify-content-between align-items-center cursor-pointer" data-bs-toggle="collapse" data-bs-target="#colMat${idx}">
+                    <span><i class="bi bi-journal-bookmark-fill text-primary me-2"></i>${m.nombre} <span class="badge ${m.es_optativa ? 'bg-secondary' : 'bg-primary'} ms-1" style="font-size:0.6rem;">${m.es_optativa ? 'Optativa' : 'Obligatoria'}</span></span>
+                    <span class="badge ${obtenerClaseColor(promAnual, true)} fs-6">${m.es_optativa ? obtenerEscalaCualitativa(promAnual) : promAnual.toFixed(2)}</span>
                 </div>
                 <div id="colMat${idx}" class="collapse">
                     <div class="card-body p-0">
@@ -3589,46 +3538,73 @@ if (accNomina) accNomina.classList.add('d-none');
             </div>`;
         }).join('');
 
-        const calcP = (sum) => contObl > 0 ? (sum / contObl) : 0;
-        const promAnual = contObl > 0 ? ((sT1 + sT2 + sT3) / (contObl * 3)) : 0;
+        // CÁLCULO DE PROMEDIOS INDIVIDUALES Y GENERALES
+        const promT1 = contObl > 0 ? (sumT1 / contObl) : 0;
+        const promT2 = contObl > 0 ? (sumT2 / contObl) : 0;
+        const promT3 = contObl > 0 ? (sumT3 / contObl) : 0;
+        const promAnual = contObl > 0 ? ((sumT1 + sumT2 + sumT3) / (contObl * 3)) : 0;
 
-        // Estructura de tarjetas de resumen (4 columnas con Promedio, Comportamiento, Días Asistidos y Reportes)
-        const generarTarjetas = (id, dDisplay, pProm, pCompLetra, diasAsist, dReportes, tTitulo) => `
+        const compT1Letra = convertirCualitativo((compMatriz[1].p1 + compMatriz[1].p2)/2);
+        const compT2Letra = convertirCualitativo((compMatriz[2].p1 + compMatriz[2].p2)/2);
+        const compT3Letra = convertirCualitativo((compMatriz[3].p1 + compMatriz[3].p2)/2);
+
+        const incT1 = misIncidencias.filter(i => i.trimestre === 1).length;
+        const incT2 = misIncidencias.filter(i => i.trimestre === 2).length;
+        const incT3 = misIncidencias.filter(i => i.trimestre === 3).length;
+
+        // Generar Tabla de Comportamiento
+        const renderFilaComp = (trim, d) => {
+            const p = (d.p1 + d.p2) / 2;
+            return `<tr><td class="fw-bold text-start">Trimestre ${trim}</td><td>${d.p1.toFixed(2)} (${convertirCualitativo(d.p1)})</td><td>${d.p2.toFixed(2)} (${convertirCualitativo(d.p2)})</td><td class="fw-bold bg-light ${obtenerClaseColor(p, true)}">${p.toFixed(2)} (${convertirCualitativo(p)})</td></tr>`;
+        };
+
+        // Generar HTML Incidencias
+        let htmlIncidencias = '';
+        if (misIncidencias.length === 0) {
+            htmlIncidencias = '<div class="alert alert-success text-center fw-bold"><i class="bi bi-shield-check fs-3 d-block mb-2"></i>El estudiante no registra reportes de incidencias.</div>';
+        } else {
+            htmlIncidencias = misIncidencias.map((inc, i) => `
+                <div class="card mb-3 border-danger shadow-sm">
+                  <div class="card-header bg-white text-danger fw-bold d-flex justify-content-between">
+                     <span>Reporte #${i+1} - ${inc.tipo_incidencia}</span>
+                     <span class="badge bg-danger">${new Date(inc.fecha_hora).toLocaleDateString('es-EC')}</span>
+                  </div>
+                  <div class="card-body">
+                     <p class="mb-1 small"><strong>Contexto:</strong> ${inc.contexto} (Trimestre ${inc.trimestre})</p>
+                     <div class="p-2 bg-light border rounded small fst-italic">"${inc.observaciones}"</div>
+                  </div>
+                </div>`).join('');
+        }
+
+        // GUARDAR DATOS PARA EL PDF
+        datosEstudianteActualReporte = { estId, nombresEst, cursoId, promGlobal: promAnual, compGeneralNum, compGeneralLetra, totalFaltasInjustificadas: 0, totalDiasAsistidos: 0, materias: materiasProcesadasParaPDF };
+
+        // Función constructora de tarjetas para mantener limpio el HTML
+        const generarTarjetas = (id, dDisplay, pProm, pCompLetra, pInc, tTitulo) => `
             <div id="${id}" class="row g-2 mb-3 text-center cards-resumen ${dDisplay}">
                <div class="col-12"><div class="text-muted small fw-bold mb-1">${tTitulo}</div></div>
-               <div class="col-3">
+               <div class="col-4">
                  <div class="p-2 border rounded bg-white shadow-sm h-100 border-start border-primary border-4">
-                   <div class="text-muted fw-bold text-uppercase mb-1" style="font-size:0.62rem;">Promedio</div>
-                   <h5 class="mb-0 fw-bold ${obtenerClaseColor(pProm, true)}">${pProm.toFixed(2)}</h5>
+                   <div class="text-muted fw-bold text-uppercase mb-1" style="font-size:0.65rem;">Promedio</div>
+                   <h4 class="mb-0 fw-bold ${obtenerClaseColor(pProm, true)}">${pProm.toFixed(2)}</h4>
                  </div>
                </div>
-               <div class="col-3">
+               <div class="col-4">
                  <div class="p-2 border rounded bg-white shadow-sm h-100 border-start border-success border-4">
-                   <div class="text-muted fw-bold text-uppercase mb-1" style="font-size:0.62rem;">Comport.</div>
-                   <h5 class="mb-0 fw-bold text-success">${pCompLetra}</h5>
+                   <div class="text-muted fw-bold text-uppercase mb-1" style="font-size:0.65rem;">Comportamiento</div>
+                   <h4 class="mb-0 fw-bold text-success">${pCompLetra}</h4>
                  </div>
                </div>
-               <div class="col-3">
-                 <div class="p-2 border rounded bg-white shadow-sm h-100 border-start border-info border-4">
-                   <div class="text-muted fw-bold text-uppercase mb-1" style="font-size:0.62rem;">Asistencia</div>
-                   <h5 class="mb-0 fw-bold text-dark">${diasAsist} <small style="font-size:0.65rem;" class="text-muted">días</small></h5>
-                 </div>
-               </div>
-               <div class="col-3">
-                 <div class="p-2 border rounded bg-white shadow-sm h-100 border-start border-${dReportes > 0 ? 'danger' : 'secondary'} border-4">
-                   <div class="text-muted fw-bold text-uppercase mb-1" style="font-size:0.62rem;">Reportes</div>
-                   <h5 class="mb-0 fw-bold text-${dReportes > 0 ? 'danger' : 'secondary'}">${dReportes}</h5>
+               <div class="col-4">
+                 <div class="p-2 border rounded bg-white shadow-sm h-100 border-start border-${pInc > 0 ? 'danger' : 'secondary'} border-4">
+                   <div class="text-muted fw-bold text-uppercase mb-1" style="font-size:0.65rem;">Reportes</div>
+                   <h4 class="mb-0 fw-bold text-${pInc > 0 ? 'danger' : 'secondary'}">${pInc}</h4>
                  </div>
                </div>
              </div>
         `;
 
-        const calcPorc = (a, tot) => tot > 0 ? ((a / tot) * 100).toFixed(1) + '%' : '0.0%';
-
-        // Guardar para el exportador de PDF
-        datosEstudianteActualReporte = { estId, nombresEst, cursoId, promGlobal: promAnual, compGeneralNum: compAnualNum, compGeneralLetra: convertirCualitativo(compAnualNum), totalFaltasInjustificadas: asistData.anual.f, totalDiasAsistidos: asistData.anual.a, materias: materiasProcesadasParaPDF };
-
-        // 5. Renderizar vista del estudiante
+        // 4. RENDERIZAR DASHBOARD COMPLETO
         contenedor.innerHTML = `
           <div class="p-2 mb-3 d-flex justify-content-between align-items-center border-bottom bg-white sticky-top shadow-sm" style="z-index: 5;">
              <button class="btn btn-sm btn-outline-secondary fw-bold" onclick="cargarVistaListaEstudiantesReporte()"><i class="bi bi-arrow-left me-1"></i> Volver a Buscar</button>
@@ -3636,204 +3612,64 @@ if (accNomina) accNomina.classList.add('d-none');
           </div>
           
           <div class="px-2 pb-3 mx-auto" style="max-width: 900px;">
-             <!-- CABECERA -->
+             <!-- CABECERA DEL PERFIL -->
              <div class="card border-0 shadow-sm bg-primary text-white mb-3">
-                 <div class="card-body d-flex justify-content-between align-items-center py-2 px-3">
+                 <div class="card-body d-flex justify-content-between align-items-center">
                      <div>
-                         <h5 class="fw-bold mb-0">${nombresEst}</h5>
+                         <h4 class="fw-bold mb-0">${nombresEst}</h4>
                          <small class="text-white-50"><i class="bi bi-mortarboard-fill me-1"></i>${nombreCurso}</small>
                      </div>
                  </div>
              </div>
 
-             <!-- SELECTOR DE PERÍODO (ANUAL, TRIMESTRES Y PARCIALES) -->
+             <!-- SELECTOR DE TRIMESTRE -->
              <div class="d-flex justify-content-between align-items-center mb-2 px-1">
-                 <span class="fw-bold text-secondary small"><i class="bi bi-funnel-fill me-1"></i>Ver Resumen de:</span>
-                 <select class="form-select form-select-sm w-auto fw-bold text-primary border-primary shadow-sm" onchange="cambiarResumenPeriodo(this.value)">
-                     <option value="anual">📊 General Anual (Acumulado)</option>
-                     <optgroup label="1er Trimestre">
-                         <option value="t1">1er Trimestre (Consolidado)</option>
-                         <option value="t1_p1">1er Trimestre - Parcial 1</option>
-                         <option value="t1_p2">1er Trimestre - Parcial 2</option>
-                     </optgroup>
-                     <optgroup label="2do Trimestre">
-                         <option value="t2">2do Trimestre (Consolidado)</option>
-                         <option value="t2_p1">2do Trimestre - Parcial 1</option>
-                         <option value="t2_p2">2do Trimestre - Parcial 2</option>
-                     </optgroup>
-                     <optgroup label="3er Trimestre">
-                         <option value="t3">3er Trimestre (Consolidado)</option>
-                         <option value="t3_p1">3er Trimestre - Parcial 1</option>
-                         <option value="t3_p2">3er Trimestre - Parcial 2</option>
-                     </optgroup>
+                 <h6 class="fw-bold text-secondary mb-0"><i class="bi bi-bar-chart-fill me-1"></i>Resumen Específico</h6>
+                 <select class="form-select form-select-sm w-auto fw-bold text-primary border-primary shadow-sm" onchange="cambiarResumenTrimestre(this.value)">
+                     <option value="anual">📊 General Anual</option>
+                     <option value="t1">1er Trimestre</option>
+                     <option value="t2">2do Trimestre</option>
+                     <option value="t3">3er Trimestre</option>
                  </select>
              </div>
 
-             <!-- TARJETAS DE RESUMEN DINÁMICAS (ANUAL, TRIMESTRALES Y PARCIALES) -->
-             ${generarTarjetas('cards-anual', '', promAnual, convertirCualitativo(compAnualNum), asistData.anual.a, misIncidencias.length, 'Resumen General Anual')}
-             
-             ${generarTarjetas('cards-t1', 'd-none', calcP(sT1), convertirCualitativo(compMatriz[1].prom), asistData[1].totA, contarInc(1), 'Resumen Consolidado: 1er Trimestre')}
-             ${generarTarjetas('cards-t1_p1', 'd-none', calcP(sT1_P1), convertirCualitativo(compMatriz[1].p1), asistData[1][1].a, contarInc(1, 1), '1er Trimestre - Parcial 1')}
-             ${generarTarjetas('cards-t1_p2', 'd-none', calcP(sT1_P2), convertirCualitativo(compMatriz[1].p2), asistData[1][2].a, contarInc(1, 2), '1er Trimestre - Parcial 2')}
+             <!-- TARJETAS DE RESUMEN (DINÁMICAS) -->
+             ${generarTarjetas('cards-anual', '', promAnual, compGeneralLetra, misIncidencias.length, 'Promedio General Consolidado')}
+             ${generarTarjetas('cards-t1', 'd-none', promT1, compT1Letra, incT1, 'Promedio Específico del 1er Trimestre')}
+             ${generarTarjetas('cards-t2', 'd-none', promT2, compT2Letra, incT2, 'Promedio Específico del 2do Trimestre')}
+             ${generarTarjetas('cards-t3', 'd-none', promT3, compT3Letra, incT3, 'Promedio Específico del 3er Trimestre')}
 
-             ${generarTarjetas('cards-t2', 'd-none', calcP(sT2), convertirCualitativo(compMatriz[2].prom), asistData[2].totA, contarInc(2), 'Resumen Consolidado: 2do Trimestre')}
-             ${generarTarjetas('cards-t2_p1', 'd-none', calcP(sT2_P1), convertirCualitativo(compMatriz[2].p1), asistData[2][1].a, contarInc(2, 1), '2do Trimestre - Parcial 1')}
-             ${generarTarjetas('cards-t2_p2', 'd-none', calcP(sT2_P2), convertirCualitativo(compMatriz[2].p2), asistData[2][2].a, contarInc(2, 2), '2do Trimestre - Parcial 2')}
-
-             ${generarTarjetas('cards-t3', 'd-none', calcP(sT3), convertirCualitativo(compMatriz[3].prom), asistData[3].totA, contarInc(3), 'Resumen Consolidado: 3er Trimestre')}
-             ${generarTarjetas('cards-t3_p1', 'd-none', calcP(sT3_P1), convertirCualitativo(compMatriz[3].p1), asistData[3][1].a, contarInc(3, 1), '3er Trimestre - Parcial 1')}
-             ${generarTarjetas('cards-t3_p2', 'd-none', calcP(sT3_P2), convertirCualitativo(compMatriz[3].p2), asistData[3][2].a, contarInc(3, 2), '3er Trimestre - Parcial 2')}
-
-             <!-- PESTAÑAS DE CONTENIDO -->
+             <!-- PESTAÑAS DETALLADAS -->
              <ul class="nav nav-pills nav-justified mb-3 shadow-sm bg-white rounded p-1" id="perfilTabs" role="tablist">
-                <li class="nav-item"><button class="nav-link active fw-bold py-1 small" data-bs-toggle="tab" data-bs-target="#tab-notas"><i class="bi bi-book-fill me-1"></i> Notas</button></li>
-                <li class="nav-item"><button class="nav-link fw-bold text-info py-1 small" data-bs-toggle="tab" data-bs-target="#tab-asistencia"><i class="bi bi-calendar-check-fill me-1"></i> Asistencia</button></li>
-                <li class="nav-item"><button class="nav-link fw-bold text-success py-1 small" data-bs-toggle="tab" data-bs-target="#tab-comportamiento"><i class="bi bi-person-check-fill me-1"></i> Comportamiento</button></li>
-                <li class="nav-item"><button class="nav-link fw-bold text-danger py-1 small" data-bs-toggle="tab" data-bs-target="#tab-incidencias"><i class="bi bi-exclamation-triangle-fill me-1"></i> Disciplina</button></li>
+                <li class="nav-item" role="presentation"><button class="nav-link active fw-bold" data-bs-toggle="tab" data-bs-target="#tab-notas"><i class="bi bi-book-fill me-1"></i> Notas (Por Asignatura)</button></li>
+                <li class="nav-item" role="presentation"><button class="nav-link fw-bold" data-bs-toggle="tab" data-bs-target="#tab-comportamiento"><i class="bi bi-person-check-fill me-1"></i> Comportamiento</button></li>
+                <li class="nav-item" role="presentation"><button class="nav-link fw-bold text-danger" data-bs-toggle="tab" data-bs-target="#tab-incidencias"><i class="bi bi-exclamation-triangle-fill me-1"></i> Expediente Disciplinario</button></li>
              </ul>
 
              <div class="tab-content bg-white p-3 rounded shadow-sm border">
-                <!-- PESTAÑA NOTAS -->
+                <!-- NOTAS -->
                 <div class="tab-pane fade show active" id="tab-notas">
-                    <h6 class="fw-bold border-bottom pb-2 mb-3 text-primary" style="font-size:0.85rem;"><i class="bi bi-list-task me-2"></i>Desglose Académico Anual</h6>
+                    <h6 class="fw-bold border-bottom pb-2 mb-3 text-primary"><i class="bi bi-list-task me-2"></i>Desglose Académico Anual</h6>
                     ${htmlAcordeon}
                 </div>
                 
-                <!-- PESTAÑA ASISTENCIA COMPLETA (PARCIALES, TRIMESTRES Y ANUAL) -->
-                <div class="tab-pane fade" id="tab-asistencia">
-                    <h6 class="fw-bold border-bottom pb-2 mb-3 text-info" style="font-size:0.85rem;"><i class="bi bi-calendar-check-fill me-2"></i>Días Asistidos: Anual, por Trimestre y por Parcial</h6>
-                    <div class="table-responsive">
-                      <table class="table table-bordered table-sm text-center align-middle mb-0" style="font-size:0.75rem;">
-                        <thead class="table-dark">
-                          <tr>
-                            <th class="text-start">Período / Ciclo</th>
-                            <th class="bg-primary text-white">Asistencias (A)</th>
-                            <th class="bg-danger text-white">Faltas Injust. (F)</th>
-                            <th class="bg-info text-dark">Justificadas (J)</th>
-                            <th class="bg-secondary text-white">Días Registrados</th>
-                            <th class="bg-success text-white">% Asistencia</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          <!-- T1 -->
-                          <tr>
-                            <td class="text-start ps-3 text-primary fw-semibold">1er Trimestre - Parcial 1</td>
-                            <td class="fw-bold text-success">${asistData[1][1].a} días</td>
-                            <td class="text-danger">${asistData[1][1].f}</td>
-                            <td class="text-primary">${asistData[1][1].j}</td>
-                            <td>${asistData[1][1].tot}</td>
-                            <td>${calcPorc(asistData[1][1].a, asistData[1][1].tot)}</td>
-                          </tr>
-                          <tr>
-                            <td class="text-start ps-3 text-primary fw-semibold">1er Trimestre - Parcial 2</td>
-                            <td class="fw-bold text-success">${asistData[1][2].a} días</td>
-                            <td class="text-danger">${asistData[1][2].f}</td>
-                            <td class="text-primary">${asistData[1][2].j}</td>
-                            <td>${asistData[1][2].tot}</td>
-                            <td>${calcPorc(asistData[1][2].a, asistData[1][2].tot)}</td>
-                          </tr>
-                          <tr class="table-light fw-bold">
-                            <td class="text-start ps-2">TOTAL 1ER TRIMESTRE</td>
-                            <td class="text-success">${asistData[1].totA} días</td>
-                            <td class="text-danger">${asistData[1].totF}</td>
-                            <td class="text-primary">${asistData[1].totJ}</td>
-                            <td>${asistData[1].totDias}</td>
-                            <td class="text-success">${calcPorc(asistData[1].totA, asistData[1].totDias)}</td>
-                          </tr>
-
-                          <!-- T2 -->
-                          <tr>
-                            <td class="text-start ps-3 text-primary fw-semibold">2do Trimestre - Parcial 1</td>
-                            <td class="fw-bold text-success">${asistData[2][1].a} días</td>
-                            <td class="text-danger">${asistData[2][1].f}</td>
-                            <td class="text-primary">${asistData[2][1].j}</td>
-                            <td>${asistData[2][1].tot}</td>
-                            <td>${calcPorc(asistData[2][1].a, asistData[2][1].tot)}</td>
-                          </tr>
-                          <tr>
-                            <td class="text-start ps-3 text-primary fw-semibold">2do Trimestre - Parcial 2</td>
-                            <td class="fw-bold text-success">${asistData[2][2].a} días</td>
-                            <td class="text-danger">${asistData[2][2].f}</td>
-                            <td class="text-primary">${asistData[2][2].j}</td>
-                            <td>${asistData[2][2].tot}</td>
-                            <td>${calcPorc(asistData[2][2].a, asistData[2][2].tot)}</td>
-                          </tr>
-                          <tr class="table-light fw-bold">
-                            <td class="text-start ps-2">TOTAL 2DO TRIMESTRE</td>
-                            <td class="text-success">${asistData[2].totA} días</td>
-                            <td class="text-danger">${asistData[2].totF}</td>
-                            <td class="text-primary">${asistData[2].totJ}</td>
-                            <td>${asistData[2].totDias}</td>
-                            <td class="text-success">${calcPorc(asistData[2].totA, asistData[2].totDias)}</td>
-                          </tr>
-
-                          <!-- T3 -->
-                          <tr>
-                            <td class="text-start ps-3 text-primary fw-semibold">3er Trimestre - Parcial 1</td>
-                            <td class="fw-bold text-success">${asistData[3][1].a} días</td>
-                            <td class="text-danger">${asistData[3][1].f}</td>
-                            <td class="text-primary">${asistData[3][1].j}</td>
-                            <td>${asistData[3][1].tot}</td>
-                            <td>${calcPorc(asistData[3][1].a, asistData[3][1].tot)}</td>
-                          </tr>
-                          <tr>
-                            <td class="text-start ps-3 text-primary fw-semibold">3er Trimestre - Parcial 2</td>
-                            <td class="fw-bold text-success">${asistData[3][2].a} días</td>
-                            <td class="text-danger">${asistData[3][2].f}</td>
-                            <td class="text-primary">${asistData[3][2].j}</td>
-                            <td>${asistData[3][2].tot}</td>
-                            <td>${calcPorc(asistData[3][2].a, asistData[3][2].tot)}</td>
-                          </tr>
-                          <tr class="table-light fw-bold">
-                            <td class="text-start ps-2">TOTAL 3ER TRIMESTRE</td>
-                            <td class="text-success">${asistData[3].totA} días</td>
-                            <td class="text-danger">${asistData[3].totF}</td>
-                            <td class="text-primary">${asistData[3].totJ}</td>
-                            <td>${asistData[3].totDias}</td>
-                            <td class="text-success">${calcPorc(asistData[3].totA, asistData[3].totDias)}</td>
-                          </tr>
-
-                          <!-- TOTAL ANUAL -->
-                          <tr class="table-warning fw-bold fs-6">
-                            <td class="text-start ps-2 text-dark">TOTAL GENERAL ANUAL</td>
-                            <td class="text-success">${asistData.anual.a} días</td>
-                            <td class="text-danger">${asistData.anual.f}</td>
-                            <td class="text-primary">${asistData.anual.j}</td>
-                            <td>${asistData.anual.totDias}</td>
-                            <td class="text-dark">${calcPorc(asistData.anual.a, asistData.anual.totDias)}</td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
-                </div>
-
-                <!-- PESTAÑA COMPORTAMIENTO -->
+                <!-- COMPORTAMIENTO -->
                 <div class="tab-pane fade" id="tab-comportamiento">
-                    <h6 class="fw-bold border-bottom pb-2 mb-3 text-success" style="font-size:0.85rem;"><i class="bi bi-bar-chart-line-fill me-2"></i>Evolución del Comportamiento</h6>
-                    <table class="table table-bordered text-center align-middle" style="font-size:0.75rem;">
+                    <h6 class="fw-bold border-bottom pb-2 mb-3 text-success"><i class="bi bi-bar-chart-line-fill me-2"></i>Evolución del Comportamiento</h6>
+                    <table class="table table-bordered text-center align-middle">
                         <thead class="table-light"><tr><th class="text-start">Período</th><th>Parcial 1</th><th>Parcial 2</th><th>Promedio Trimestral</th></tr></thead>
                         <tbody>
-                            <tr><td class="fw-bold text-start">Trimestre 1</td><td>${compMatriz[1].p1.toFixed(2)} (${convertirCualitativo(compMatriz[1].p1)})</td><td>${compMatriz[1].p2.toFixed(2)} (${convertirCualitativo(compMatriz[1].p2)})</td><td class="fw-bold bg-light ${obtenerClaseColor(compMatriz[1].prom, true)}">${compMatriz[1].prom.toFixed(2)} (${convertirCualitativo(compMatriz[1].prom)})</td></tr>
-                            <tr><td class="fw-bold text-start">Trimestre 2</td><td>${compMatriz[2].p1.toFixed(2)} (${convertirCualitativo(compMatriz[2].p1)})</td><td>${compMatriz[2].p2.toFixed(2)} (${convertirCualitativo(compMatriz[2].p2)})</td><td class="fw-bold bg-light ${obtenerClaseColor(compMatriz[2].prom, true)}">${compMatriz[2].prom.toFixed(2)} (${convertirCualitativo(compMatriz[2].prom)})</td></tr>
-                            <tr><td class="fw-bold text-start">Trimestre 3</td><td>${compMatriz[3].p1.toFixed(2)} (${convertirCualitativo(compMatriz[3].p1)})</td><td>${compMatriz[3].p2.toFixed(2)} (${convertirCualitativo(compMatriz[3].p2)})</td><td class="fw-bold bg-light ${obtenerClaseColor(compMatriz[3].prom, true)}">${compMatriz[3].prom.toFixed(2)} (${convertirCualitativo(compMatriz[3].prom)})</td></tr>
+                            ${renderFilaComp(1, compMatriz[1])}
+                            ${renderFilaComp(2, compMatriz[2])}
+                            ${renderFilaComp(3, compMatriz[3])}
                         </tbody>
                     </table>
                 </div>
 
-                <!-- PESTAÑA DISCIPLINA -->
+                <!-- INCIDENCIAS -->
                 <div class="tab-pane fade" id="tab-incidencias">
-                    <h6 class="fw-bold border-bottom pb-2 mb-3 text-danger" style="font-size:0.85rem;"><i class="bi bi-folder-x me-2"></i>Reportes Disciplinarios Registrados</h6>
-                    ${misIncidencias.length === 0 ? '<div class="alert alert-success text-center fw-bold py-3"><i class="bi bi-shield-check fs-3 d-block mb-2"></i>El estudiante no registra reportes de incidencias.</div>' : misIncidencias.map((inc, i) => `
-                        <div class="card mb-2 border-danger shadow-sm">
-                          <div class="card-header bg-white text-danger fw-bold d-flex justify-content-between py-1" style="font-size:0.75rem;">
-                             <span>Reporte #${i+1} - ${inc.tipo_incidencia}</span>
-                             <span class="badge bg-danger">${new Date(inc.fecha_hora).toLocaleDateString('es-EC')}</span>
-                          </div>
-                          <div class="card-body py-2">
-                             <p class="mb-1 small"><strong>Contexto:</strong> ${inc.contexto} (Trimestre ${inc.trimestre})</p>
-                             <div class="p-2 bg-light border rounded small fst-italic">"${inc.observaciones}"</div>
-                          </div>
-                        </div>`).join('')}
+                    <h6 class="fw-bold border-bottom pb-2 mb-3 text-danger"><i class="bi bi-folder-x me-2"></i>Reportes Disciplinarios Registrados</h6>
+                    ${htmlIncidencias}
                 </div>
              </div>
           </div>
@@ -3841,7 +3677,7 @@ if (accNomina) accNomina.classList.add('d-none');
       } catch (err) {
         if (reqId === currentViewRequestId) contenedor.innerHTML = `<div class="py-4 text-danger text-center fw-bold">Error: ${err.message}</div>`;
       }
-    }}
+    }
 
     async function exportarReporteEstudiantePDF() {
       if (!datosEstudianteActualReporte) return;
