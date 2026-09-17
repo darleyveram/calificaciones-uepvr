@@ -1073,13 +1073,14 @@
       const accCertificados = document.getElementById('accionesCertificados');
       const accIncidencias = document.getElementById('accionesIncidencias');
       const accNomina = document.getElementById('accionesNomina');
-
       const accInfParcial = document.getElementById('accionesInformeParcial');
-      if (accInfParcial) accInfParcial.classList.add('d-none'); // Ocultamos botones por defecto
-      
+
+      // Ocultar todo por defecto
+      if (accInfParcial) accInfParcial.classList.add('d-none');
       if (accNomina) accNomina.classList.add('d-none');
-      
-      accParcial.classList.add('d-none'); accComp.classList.add('d-none'); accResumen.classList.add('d-none'); accAnual.classList.add('d-none'); accAsist.classList.add('d-none'); accTutoria.classList.add('d-none');
+      accParcial.classList.add('d-none'); accComp.classList.add('d-none'); 
+      accResumen.classList.add('d-none'); accAnual.classList.add('d-none'); 
+      accAsist.classList.add('d-none'); accTutoria.classList.add('d-none');
       if (accCertificados) accCertificados.classList.add('d-none');
       if (accIncidencias) accIncidencias.classList.add('d-none');
 
@@ -1089,24 +1090,14 @@
             document.getElementById('contenedorTabla').innerHTML = '<div class="py-4 text-muted text-center">Seleccione Curso, Materia, Trimestre y Parcial para generar el Informe.</div>'; 
             return; 
         }
-        // Solo mostramos los botones si ya se seleccionó todo
         if (accInfParcial) accInfParcial.classList.remove('d-none');
         controles.forEach(b => b.disabled = false);
         cargarVistaInformeParcial(); 
         return;
       }
 
-      // === AUDITORÍA DIRECTA ===
-      if (modo === 'auditoria') {
-        cargarVistaAuditoria();
-        return;
-      }
-
-      if (modo === 'nomina') {
-     if (accNomina) accNomina.classList.remove('d-none');
-     cargarVistaNomina(); 
-     return;
-   }
+      if (modo === 'auditoria') { cargarVistaAuditoria(); return; }
+      if (modo === 'nomina') { if (accNomina) accNomina.classList.remove('d-none'); cargarVistaNomina(); return; }
 
       if (modo === 'tutoria') {
         accTutoria.classList.remove('d-none');
@@ -1119,24 +1110,42 @@
 
       if (modo === 'asistencia') {
         accAsist.classList.remove('d-none');
-        if (!cursoId || !trimestreVal || !parcialAsistVal) { controles.forEach(b => b.disabled = true); document.getElementById('contenedorTabla').innerHTML = '<div class="py-4 text-muted text-center">Seleccione Curso, Trimestre y Parcial para gestionar la Asistencia.</div>'; return; }
-        controles.forEach(b => b.disabled = false);
-        cargarVistaAsistencia(); return;
+        if (!cursoId || (!trimestreVal && trimestreVal !== 'anual')) { 
+            controles.forEach(b => b.disabled = true); 
+            document.getElementById('contenedorTabla').innerHTML = '<div class="py-4 text-muted text-center">Seleccione Curso y Trimestre para gestionar la Asistencia.</div>'; 
+            return; 
+        }
+        
+        if (trimestreVal === 'anual') {
+            document.getElementById('boxParcialAsistencia').classList.add('d-none');
+            Array.from(accAsist.children).forEach(btn => btn.classList.add('d-none'));
+            const btnPdfAnual = document.getElementById('btnDescargarAsistAnualPDF');
+            if (btnPdfAnual) { btnPdfAnual.classList.remove('d-none'); btnPdfAnual.disabled = false; }
+            cargarVistaAsistenciaAnual();
+        } else {
+            document.getElementById('boxParcialAsistencia').classList.remove('d-none');
+            if (!parcialAsistVal) {
+                controles.forEach(b => b.disabled = true); 
+                document.getElementById('contenedorTabla').innerHTML = '<div class="py-4 text-muted text-center">Seleccione el Parcial.</div>'; 
+                return;
+            }
+            Array.from(accAsist.children).forEach(btn => {
+                if (btn.id !== 'btnDescargarAsistAnualPDF') btn.classList.remove('d-none');
+            });
+            const btnPdfAnual = document.getElementById('btnDescargarAsistAnualPDF');
+            if (btnPdfAnual) btnPdfAnual.classList.add('d-none');
+            controles.forEach(b => b.disabled = false);
+            cargarVistaAsistencia(); 
+        }
+        return;
       }
 
       if (modo === 'intercambio') {
-        if (!cursoId) { 
-          document.getElementById('contenedorTabla').innerHTML = '<div class="py-4 text-muted text-center">Seleccione un Curso para realizar el intercambio.</div>'; 
-          return; 
-        }
-        cargarVistaIntercambio(); 
-        return;
+        if (!cursoId) { document.getElementById('contenedorTabla').innerHTML = '<div class="py-4 text-muted text-center">Seleccione un Curso para realizar el intercambio.</div>'; return; }
+        cargarVistaIntercambio(); return;
       }
 
-      if (modo === 'monitoreo') {
-        cargarVistaMonitoreo(); 
-        return;
-      }
+      if (modo === 'monitoreo') { cargarVistaMonitoreo(); return; }
 
       if (modo === 'comportamiento') {
         accComp.classList.remove('d-none');
@@ -1153,14 +1162,10 @@
           return; 
         }
         controles.forEach(b => b.disabled = false);
-        cargarVistaIncidencias(); 
-        return;
+        cargarVistaIncidencias(); return;
       }
 
-      if (modo === 'reporte_estudiante') {
-        cargarVistaListaEstudiantesReporte(); 
-        return;
-      }
+      if (modo === 'reporte_estudiante') { cargarVistaListaEstudiantesReporte(); return; }
 
       if (modo === 'certificados') {
         if (accCertificados) accCertificados.classList.remove('d-none');
@@ -1174,7 +1179,6 @@
         return;
       }
 
-      // === RESTAURAR VISIBILIDAD DE BOTONES ===
       if (trimestreVal === 'anual') {
         document.getElementById('boxVista').classList.add('d-none'); 
         accAnual.classList.remove('d-none');
@@ -1183,7 +1187,6 @@
         if (vistaVal === 'resumen_trimestre') accResumen.classList.remove('d-none');
         else accParcial.classList.remove('d-none');
       }
-      // ==========================================
 
       if (!asigId) { controles.forEach(b => b.disabled = true); document.getElementById('contenedorTabla').innerHTML = '<div class="py-4 text-muted text-center">Seleccione un Curso y una Materia.</div>'; return; }
       controles.forEach(b => b.disabled = false);
@@ -5551,11 +5554,9 @@
       }
     }
     // =========================================================================
-    // NUEVO MÓDULO: INFORME DE APRENDIZAJE POR PARCIAL
+    // MÓDULO: INFORME DE APRENDIZAJE Y EXÁMENES PENDIENTES
     // =========================================================================
-    // NUEVO MÓDULO: INFORME DE APRENDIZAJE Y EXÁMENES PENDIENTES
-    // =========================================================================
-    let estudiantesListGlobalInf = []; // Para usarlo en el PDF
+    let estudiantesListGlobalInf = []; 
 
     async function cargarVistaInformeParcial() {
         const reqId = ++currentViewRequestId;
@@ -5577,13 +5578,11 @@
             let trimMap = {};
 
             if (!isExamenes) {
-                // Si es 1er o 2do parcial, traemos notas del parcial
                 const { data: notasData } = await supabaseClient.from('notas_parcial_actividades')
                     .select('estudiante_id, nota_parcial, recomendacion, plan_mejoramiento')
                     .eq('asignacion_id', parseInt(asigId)).eq('trimestre', trimestre).eq('parcial', parcial);
                 (notasData || []).forEach(n => notasMap[n.estudiante_id] = n);
             } else {
-                // Si es exámenes, traemos la nota del examen
                 const { data: trimData } = await supabaseClient.from('notas_trimestre')
                     .select('estudiante_id, examen, motivo_examen_pendiente')
                     .eq('asignacion_id', parseInt(asigId)).eq('trimestre', trimestre);
@@ -5742,7 +5741,7 @@
             
             const nomCurso = (cursoInfo?.nombre_largo_mayuscula || cursoInfo?.nombre || '').toUpperCase();
             const nomMateria = (asig?.materias?.nombre || '').toUpperCase();
-            const periodo = infoInstitucion?.periodo_lectivo || '2026-2027';
+            const periodo = infoInstitucion?.periodo_lectivo || '2026-2027'; // CORREGIDO AQUÍ
             
             let nomTutor = 'TUTOR NO ASIGNADO';
             if (cursoInfo && cursoInfo.tutor_id) {
@@ -5911,6 +5910,183 @@
             const nombreArchivo = isExamenes ? `Examenes_Pendientes_${nomMateria.replace(/\s+/g, '_')}_T${trimestre}.pdf` : `Informe_Parcial_${parcial}_${nomMateria.replace(/\s+/g, '_')}_T${trimestre}.pdf`;
             doc.save(nombreArchivo);
         } catch (err) { alert('Error generando PDF: ' + err.message); } finally { btn.disabled = false; btn.innerHTML = '<i class="bi bi-file-pdf me-1"></i> Generar PDF Oficial'; }
+    }
+
+    // =========================================================================
+    // MÓDULO: RESUMEN ANUAL DE ASISTENCIA (POR CURSO)
+    // =========================================================================
+    let datosAsistenciaAnualActual = null;
+
+    async function cargarVistaAsistenciaAnual() {
+      const reqId = ++currentViewRequestId;
+      const cursoId = document.getElementById('selectCurso').value.trim();
+      const contenedor = document.getElementById('contenedorTabla');
+      
+      contenedor.innerHTML = '<div class="py-4 text-center"><div class="spinner-border text-primary me-2"></div>Cargando consolidado anual de asistencia...</div>';
+
+      try {
+        const { data: estData } = await supabaseClient.from('estudiantes').select('*').eq('curso_id', parseInt(cursoId)).order('nombres');
+        if (reqId !== currentViewRequestId) return;
+        estudiantes = procesarEstudiantesModalidad(estData || []);
+
+        const { data: asistData } = await supabaseClient.from('asistencia_estudiantes').select('*').eq('curso_id', parseInt(cursoId));
+        if (reqId !== currentViewRequestId) return;
+
+        const getDias = (t, p) => {
+           const per = periodosAsistencia.find(x => x.trimestre === t && x.parcial === p);
+           return per ? per.total_dias_laborados : 0;
+        };
+
+        const tDias = {
+            t1p1: getDias(1, 1) || 34, t1p2: getDias(1, 2) || 35,
+            t2p1: getDias(2, 1) || 29, t2p2: getDias(2, 2) || 37,
+            t3p1: getDias(3, 1) || 25, t3p2: getDias(3, 2) || 40
+        };
+        const t1Total = tDias.t1p1 + tDias.t1p2;
+        const t2Total = tDias.t2p1 + tDias.t2p2;
+        const t3Total = tDias.t3p1 + tDias.t3p2;
+        const anualTotal = t1Total + t2Total + t3Total;
+
+        const asistMap = {};
+        estudiantes.forEach(e => { asistMap[e.id] = { 1: {1:0, 2:0}, 2: {1:0, 2:0}, 3: {1:0, 2:0} }; });
+
+        (asistData || []).forEach(a => {
+            if (asistMap[a.estudiante_id] && asistMap[a.estudiante_id][a.trimestre]) {
+                let asistidos = 0;
+                if (a.registro_diario && typeof a.registro_diario === 'object') {
+                    Object.values(a.registro_diario).forEach(v => {
+                        if (String(v).toUpperCase() === 'A') asistidos++;
+                    });
+                } else { asistidos = a.total_asistencias || 0; }
+                asistMap[a.estudiante_id][a.trimestre][a.parcial] = asistidos;
+            }
+        });
+
+        datosAsistenciaAnualActual = { tDias, t1Total, t2Total, t3Total, anualTotal, filas: [] };
+
+        let html = `
+          <div class="p-2 bg-light border-bottom d-flex justify-content-between align-items-center">
+            <span class="badge bg-primary fs-6">Sábana Anual de Asistencia</span>
+            <small class="text-muted fw-bold">Total Días Laborables Escolar: ${anualTotal}</small>
+          </div>
+          <table class="table table-bordered table-sm mb-0 align-middle text-center">
+            <thead class="table-dark">
+              <tr>
+                <th rowspan="2" class="sticky-col-num">N°</th>
+                <th rowspan="2" class="sticky-col-nombre">NÓMINA DE ESTUDIANTES</th>
+                <th colspan="3" class="bg-primary text-white">1ER TRIMESTRE</th>
+                <th colspan="3" class="bg-success text-white">2DO TRIMESTRE</th>
+                <th colspan="3" class="bg-info text-dark">3ER TRIMESTRE</th>
+                <th rowspan="2" class="bg-warning text-dark align-middle">TOTAL<br>ASISTIDOS</th>
+                <th rowspan="2" class="bg-danger text-white align-middle">%<br>ASIST.</th>
+              </tr>
+              <tr class="bg-secondary text-white">
+                <th>P1<br><small>(${tDias.t1p1})</small></th><th>P2<br><small>(${tDias.t1p2})</small></th><th class="bg-dark">T1<br><small>(${t1Total})</small></th>
+                <th>P1<br><small>(${tDias.t2p1})</small></th><th>P2<br><small>(${tDias.t2p2})</small></th><th class="bg-dark">T2<br><small>(${t2Total})</small></th>
+                <th>P1<br><small>(${tDias.t3p1})</small></th><th>P2<br><small>(${tDias.t3p2})</small></th><th class="bg-dark">T3<br><small>(${t3Total})</small></th>
+              </tr>
+            </thead>
+            <tbody>
+              ${estudiantes.map((est, idx) => {
+                 const m = asistMap[est.id];
+                 const t1p1 = m[1][1], t1p2 = m[1][2], sumT1 = t1p1 + t1p2;
+                 const t2p1 = m[2][1], t2p2 = m[2][2], sumT2 = t2p1 + t2p2;
+                 const t3p1 = m[3][1], t3p2 = m[3][2], sumT3 = t3p1 + t3p2;
+                 const totalAsist = sumT1 + sumT2 + sumT3;
+                 const porcentaje = anualTotal > 0 ? ((totalAsist / anualTotal) * 100).toFixed(1) : 0;
+                 const colorPorc = porcentaje < 75 ? 'text-danger' : 'text-success';
+
+                 datosAsistenciaAnualActual.filas.push({ num: idx+1, nombres: est.nombres, t1p1, t1p2, sumT1, t2p1, t2p2, sumT2, t3p1, t3p2, sumT3, totalAsist, porcentaje });
+
+                 return \`
+                   <tr>
+                     <td class="sticky-col-num fw-bold text-muted">\${idx + 1}</td>
+                     <td class="sticky-col-nombre text-start px-2">\${formatearNombreVisual(est.nombres)}</td>
+                     <td>\${t1p1}</td><td>\${t1p2}</td><td class="fw-bold bg-light text-dark">\${sumT1}</td>
+                     <td>\${t2p1}</td><td>\${t2p2}</td><td class="fw-bold bg-light text-dark">\${sumT2}</td>
+                     <td>\${t3p1}</td><td>\${t3p2}</td><td class="fw-bold bg-light text-dark">\${sumT3}</td>
+                     <td class="fw-bold fs-6">\${totalAsist}</td>
+                     <td class="fw-bold fs-6 \${colorPorc}">\${porcentaje}%</td>
+                   </tr>
+                 \`;
+              }).join('')}
+            </tbody>
+          </table>
+        `;
+
+        contenedor.innerHTML = html;
+      } catch (err) {
+        if (reqId === currentViewRequestId) contenedor.innerHTML = `<div class="py-4 text-danger text-center fw-bold">Error: ${err.message}</div>`;
+      }
+    }
+
+    async function exportarAsistenciaAnualPDF() {
+      if (!datosAsistenciaAnualActual || datosAsistenciaAnualActual.filas.length === 0) return alert('No hay datos para exportar.');
+      const cursoId = document.getElementById('selectCurso').value;
+      const cursoInfo = todosCursos.find(c => String(c.id) === String(cursoId));
+      if (!cursoInfo) return alert('Seleccione un curso.');
+
+      const btn = document.getElementById('btnDescargarAsistAnualPDF'); 
+      const originalHtml = btn.innerHTML;
+      btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> PDF...';
+
+      try {
+        const { jsPDF } = window.jspdf; const doc = new jsPDF({ compress: true, orientation: 'landscape', unit: 'mm', format: 'a4' });
+        const nomArriba = (infoInstitucion?.nombre_arriba || 'Unidad Educativa Particular').toUpperCase();
+        const nomAbajo = (infoInstitucion?.nombre_abajo || '"Vicente Rocafuerte"').toUpperCase();
+        const periodo = infoInstitucion?.periodo_lectivo || '2026-2027';
+
+        const nombreCursoLargo = (cursoInfo?.nombre_largo_mayuscula || cursoInfo?.nombre || '').toUpperCase();
+        const imgLogoIzq = await obtenerBase64DesdeUrl(infoInstitucion?.logo_izquierdo || infoInstitucion?.logo_institucion);
+        const imgLogoDer = await obtenerBase64DesdeUrl(infoInstitucion?.logo_derecho || infoInstitucion?.escudo_nacional);
+
+        const d = datosAsistenciaAnualActual;
+        const headers = [
+          [
+            { content: 'N°', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } },
+            { content: 'NÓMINA DE ESTUDIANTES', rowSpan: 2, styles: { valign: 'middle', halign: 'left' } },
+            { content: '1ER TRIMESTRE', colSpan: 3, styles: { halign: 'center', fillColor: [13, 110, 253] } },
+            { content: '2DO TRIMESTRE', colSpan: 3, styles: { halign: 'center', fillColor: [25, 135, 84] } },
+            { content: '3ER TRIMESTRE', colSpan: 3, styles: { halign: 'center', fillColor: [13, 202, 240], textColor: [0,0,0] } },
+            { content: 'TOTAL\nASIST.', rowSpan: 2, styles: { valign: 'middle', halign: 'center', fillColor: [255, 193, 7], textColor: [0,0,0] } },
+            { content: '% ASIST.', rowSpan: 2, styles: { valign: 'middle', halign: 'center', fillColor: [220, 53, 69] } }
+          ],
+          [
+            { content: 'P1\n('+d.tDias.t1p1+')', styles: { halign: 'center' } }, { content: 'P2\n('+d.tDias.t1p2+')', styles: { halign: 'center' } }, { content: 'T1\n('+d.t1Total+')', styles: { halign: 'center', fillColor: [33,37,41] } },
+            { content: 'P1\n('+d.tDias.t2p1+')', styles: { halign: 'center' } }, { content: 'P2\n('+d.tDias.t2p2+')', styles: { halign: 'center' } }, { content: 'T2\n('+d.t2Total+')', styles: { halign: 'center', fillColor: [33,37,41] } },
+            { content: 'P1\n('+d.tDias.t3p1+')', styles: { halign: 'center' } }, { content: 'P2\n('+d.tDias.t3p2+')', styles: { halign: 'center' } }, { content: 'T3\n('+d.t3Total+')', styles: { halign: 'center', fillColor: [33,37,41] } }
+          ]
+        ];
+
+        const bodyData = d.filas.map(f => [
+            f.num, f.nombres, 
+            f.t1p1, f.t1p2, f.sumT1, 
+            f.t2p1, f.t2p2, f.sumT2, 
+            f.t3p1, f.t3p2, f.sumT3, 
+            f.totalAsist, f.porcentaje + '%'
+        ]);
+
+        doc.autoTable({
+          head: headers, body: bodyData, margin: { top: 38, bottom: 20, left: 10, right: 10 }, theme: 'grid',
+          styles: { fontSize: 7.5, cellPadding: 1.5, lineColor: [200, 200, 200], lineWidth: 0.1, valign: 'middle', halign: 'center' },
+          headStyles: { textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 6.5 },
+          columnStyles: { 0: { cellWidth: 10 }, 1: { cellWidth: 60, halign: 'left' } },
+          didDrawPage: function (data) {
+            if (imgLogoIzq) { try { doc.addImage(imgLogoIzq, 'PNG', 12, 7, 18, 18); } catch(e){} }
+            if (imgLogoDer) { try { doc.addImage(imgLogoDer, 'PNG', 267, 7, 18, 18); } catch(e){} }
+            doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(30, 41, 59); doc.text(nomArriba, 148.5, 10, { align: 'center' });
+            doc.setFontSize(13); doc.text(nomAbajo, 148.5, 15, { align: 'center' });
+            doc.setFontSize(9.5); doc.text(`SÁBANA DE ASISTENCIA ANUAL CONSOLIDADA - AÑO LECTIVO ${periodo}`, 148.5, 20, { align: 'center' });
+            doc.setDrawColor(203, 213, 225); doc.setLineWidth(0.3); doc.line(12, 24, 285, 24);
+            doc.setFontSize(8); doc.text(`CURSO: ${nombreCursoLargo}`, 12, 29); 
+            doc.text(`TOTAL DÍAS LABORABLES ESC.: ${d.anualTotal}`, 285, 29, { align: 'right' }); 
+            doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(148, 163, 184); 
+            doc.text(`Página ${doc.internal.getNumberOfPages()}`, 285, 202, { align: 'right' });
+          }
+        });
+
+        doc.save(`Asistencia_Anual_${nombreCursoLargo.replace(/\s+/g, '_')}.pdf`);
+      } catch (err) { alert('Error al exportar PDF: ' + err.message); } finally { btn.disabled = false; btn.innerHTML = originalHtml; }
     }
   </script>
 </body>
