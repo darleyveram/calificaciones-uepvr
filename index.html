@@ -125,7 +125,7 @@
       </div>
       <div class="card-footer bg-light text-center py-2 text-muted small">
         <span class="header-dir-inst">Pichincha - Manabí - Ecuador</span><br>
-        <span style="font-size: 0.6rem; opacity: 0.5;">v1.0.21</span>
+        <span style="font-size: 0.6rem; opacity: 0.5;">v1.0.22</span>
       </div>
     </div>
   </div>
@@ -509,7 +509,7 @@
     let latidoInterval = null;
     let modalHistorialInst = null;
     let todosEstudiantesGlobal = [];
-    let estudiantesListGlobalInf = [];
+    
     
     
 
@@ -5553,7 +5553,122 @@
     // =========================================================================
     // NUEVO MÓDULO: INFORME DE APRENDIZAJE POR PARCIAL
     // =========================================================================
-    }
+    // NUEVO MÓDULO: INFORME DE APRENDIZAJE Y EXÁMENES PENDIENTES
+    // =========================================================================
+    let estudiantesListGlobalInf = []; // Para usarlo en el PDF
+
+    async function cargarVistaInformeParcial() {
+        const reqId = ++currentViewRequestId;
+        const cursoId = document.getElementById('selectCurso').value;
+        const asigId = document.getElementById('selectMateria').value;
+        const trimestre = parseInt(document.getElementById('selectTrimestre').value);
+        const parcial = parseInt(document.getElementById('selectParcialAsistencia').value); 
+        const contenedor = document.getElementById('contenedorTabla');
+        
+        contenedor.innerHTML = '<div class="py-5 text-center"><div class="spinner-border text-primary me-2"></div><div class="mt-3 fw-bold text-muted">Cargando datos para el informe...</div></div>';
+
+        try {
+            const { data: estData } = await supabaseClient.from('estudiantes').select('id, nombres').eq('curso_id', parseInt(cursoId)).order('nombres');
+            if (reqId !== currentViewRequestId) return;
+            estudiantesListGlobalInf = procesarEstudiantesModalidad(estData || []);
+
+            const isExamenes = parcial === 3;
+            let notasMap = {};
+            let trimMap = {};
+
+            if (!isExamenes) {
+                // Si es 1er o 2do parcial, traemos notas del parcial
+                const { data: notasData } = await supabaseClient.from('notas_parcial_actividades')
+                    .select('estudiante_id, nota_parcial, recomendacion, plan_mejoramiento')
+                    .eq('asignacion_id', parseInt(asigId)).eq('trimestre', trimestre).eq('parcial', parcial);
+                (notasData || []).forEach(n => notasMap[n.estudiante_id] = n);
+            } else {
+                // Si es exámenes, traemos la nota del examen
+                const { data: trimData } = await supabaseClient.from('notas_trimestre')
+                    .select('estudiante_id, examen, motivo_examen_pendiente')
+                    .eq('asignacion_id', parseInt(asigId)).eq('trimestre', trimestre);
+                (trimData || []).forEach(t => trimMap[t.estudiante_id] = t);
+            }
+
+            let html = '';
+
+            if (!isExamenes) {
+                html = `
+                  <div class="alert alert-info shadow-sm mb-3">
+                     <i class="bi bi-info-circle-fill me-2"></i><strong>Importante:</strong> Solo los estudiantes con calificación inferior a 7.00 tendrán habilitadas las casillas de Recomendaciones y Plan de Mejoramiento.
+                  </div>
+                  <table class="table table-bordered table-sm align-middle text-center" style="font-size: 0.75rem;">
+                    <thead class="table-dark sticky-top">
+                        <tr>
+                            <th class="sticky-col-num">N°</th>
+                            <th class="sticky-col-nombre text-start">Nómina del Estudiante</th>
+                            <th style="width: 60px;">Nota<br>Cuant.</th>
+                            <th style="width: 60px;">Nota<br>Cualit.</th>
+                            <th>Recomendaciones Aplicables</th>
+                            <th>Plan de Mejoramiento</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tablaCuerpoInformeParcial">
+                        ${estudiantesListGlobalInf.map((est, i) => {
+                            const n = notasMap[est.id] || {};
+                            const notaNum = parseFloat(n.nota_parcial);
+                            const tieneNota = !isNaN(notaNum);
+                            const requiereMejora = tieneNota && notaNum < 7.00;
+                            const notaCualit = tieneNota ? obtenerEscalaCualitativa(notaNum) : '-';
+                            const reqMejAttr = requiereMejora ? '' : 'disabled placeholder="N/A (Supera el 7.00)"';
+
+                            return \`
+                            <tr data-est-id="\${est.id}">
+                                <td class="sticky-col-num text-muted fw-bold">\${i + 1}</td>
+                                <td class="sticky-col-nombre text-start">\${formatearNombreVisual(est.nombres)}</td>
+                                <td class="fw-bold \${obtenerClaseColor(notaNum, true)}">\${tieneNota ? notaNum.toFixed(2) : '-'}</td>
+                                <td class="fw-bold \${obtenerClaseColor(notaNum, true)}">\${notaCualit}</td>
+                                <td><textarea class="form-control form-control-sm inf-rec" rows="1" \${reqMejAttr}>\${n.recomendacion || ''}</textarea></td>
+                                <td><textarea class="form-control form-control-sm inf-plan" rows="1" \${reqMejAttr}>\${n.plan_mejoramiento || ''}</textarea></td>
+                            </tr>\`;
+                        }).join('')}
+                    </tbody>
+                  </table>
+                `;
+            } else {
+                html = `
+                  <div class="alert alert-warning shadow-sm mb-3 text-dark">
+                     <i class="bi bi-exclamation-triangle-fill me-2"></i><strong>Exámenes Pendientes:</strong> Solo se habilitará el motivo para los estudiantes que tengan el examen vacío o con nota 0. (Las notas de examen se ingresan en "Calificaciones Académicas").
+                  </div>
+                  <table class="table table-bordered table-sm align-middle text-center" style="font-size: 0.75rem;">
+                    <thead class="table-dark sticky-top">
+                        <tr>
+                            <th class="sticky-col-num">N°</th>
+                            <th class="sticky-col-nombre text-start">Nómina del Estudiante</th>
+                            <th style="width: 80px;" class="bg-primary text-white">Nota Examen</th>
+                            <th class="bg-primary text-white">Motivo Examen Pendiente</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tablaCuerpoInformeParcial">
+                        ${estudiantesListGlobalInf.map((est, i) => {
+                            const t = trimMap[est.id] || {};
+                            const exNum = parseFloat(t.examen);
+                            const tieneEx = !isNaN(exNum) && t.examen !== '';
+                            const isPendiente = !tieneEx || exNum === 0;
+                            const exVal = tieneEx ? exNum.toFixed(2) : '-';
+                            const reqExAttr = isPendiente ? '' : 'disabled placeholder="Examen rendido correctamente"';
+
+                            return \`
+                            <tr data-est-id="\${est.id}">
+                                <td class="sticky-col-num text-muted fw-bold">\${i + 1}</td>
+                                <td class="sticky-col-nombre text-start">\${formatearNombreVisual(est.nombres)}</td>
+                                <td class="fw-bold \${!isPendiente ? 'text-success' : 'text-danger'}">\${exVal}</td>
+                                <td><input type="text" class="form-control form-control-sm inf-motivo" value="\${t.motivo_examen_pendiente || ''}" \${reqExAttr}></td>
+                            </tr>\`;
+                        }).join('')}
+                    </tbody>
+                  </table>
+                `;
+            }
+            contenedor.innerHTML = html;
+        } catch (err) {
+            contenedor.innerHTML = `<div class="py-4 text-danger text-center fw-bold">Error: ${err.message}</div>`;
+        }
     }
 
     async function guardarInformeParcial() {
