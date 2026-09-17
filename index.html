@@ -125,7 +125,7 @@
       </div>
       <div class="card-footer bg-light text-center py-2 text-muted small">
         <span class="header-dir-inst">Pichincha - Manabí - Ecuador</span><br>
-        <span style="font-size: 0.6rem; opacity: 0.5;">v1.0.20</span>
+        <span style="font-size: 0.6rem; opacity: 0.5;">v1.0.21</span>
       </div>
     </div>
   </div>
@@ -1021,12 +1021,24 @@
       const modo = document.getElementById('selectModo').value;
       const cursoId = document.getElementById('selectCurso').value;
       const selectMateria = document.getElementById('selectMateria');
-      if (modo === 'calificaciones') {
-        if (!cursoId) { selectMateria.innerHTML = '<option value="">Seleccione materia...</option>'; selectMateria.disabled = true; cambiarFiltro(); return; }
+      
+      // AHORA LLENA LAS MATERIAS TANTO EN CALIFICACIONES COMO EN EL INFORME PARCIAL
+      if (modo === 'calificaciones' || modo === 'informe_parcial') {
+        if (!cursoId) { 
+            selectMateria.innerHTML = '<option value="">Seleccione materia...</option>'; 
+            selectMateria.disabled = true; 
+            cambiarFiltro(); 
+            return; 
+        }
         const materiasDelCurso = todasAsignaciones.filter(a => String(a.curso_id) === String(cursoId));
         selectMateria.innerHTML = '<option value="">Seleccione materia...</option>' + materiasDelCurso.map(a => `<option value="${a.id}">${a.materias.nombre} ${a.es_optativa ? '(Optativa)' : ''}</option>`).join('');
         selectMateria.disabled = false;
-        if (materiasDelCurso.length > 0) { selectMateria.value = String(materiasDelCurso[0].id); } else { selectMateria.value = ""; }
+        
+        if (materiasDelCurso.length > 0) { 
+            selectMateria.value = String(materiasDelCurso[0].id); 
+        } else { 
+            selectMateria.value = ""; 
+        }
       }
       cambiarFiltro();
     }
@@ -1052,7 +1064,7 @@
       const accNomina = document.getElementById('accionesNomina');
 
       const accInfParcial = document.getElementById('accionesInformeParcial');
-      if (accInfParcial) accInfParcial.classList.add('d-none');
+      if (accInfParcial) accInfParcial.classList.add('d-none'); // Ocultamos botones por defecto
       
       if (accNomina) accNomina.classList.add('d-none');
       
@@ -1061,12 +1073,13 @@
       if (accIncidencias) accIncidencias.classList.add('d-none');
 
       if (modo === 'informe_parcial') {
-        if (accInfParcial) accInfParcial.classList.remove('d-none');
         if (!cursoId || !asigId || !trimestreVal || !parcialAsistVal) { 
             controles.forEach(b => b.disabled = true); 
             document.getElementById('contenedorTabla').innerHTML = '<div class="py-4 text-muted text-center">Seleccione Curso, Materia, Trimestre y Parcial para generar el Informe.</div>'; 
             return; 
         }
+        // Solo mostramos los botones si ya se seleccionó todo
+        if (accInfParcial) accInfParcial.classList.remove('d-none');
         controles.forEach(b => b.disabled = false);
         cargarVistaInformeParcial(); 
         return;
@@ -5688,6 +5701,10 @@
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF({ compress: true, orientation: 'portrait', unit: 'mm', format: 'a4' });
             
+            // === AQUÍ AGREGAMOS LA VARIABLE PERIODO ===
+            const periodo = infoInstitucion?.periodo_lectivo || '2026-2027';
+            // ==========================================
+
             const txtTrimestre = trimestre === 1 ? 'PRIMER' : (trimestre === 2 ? 'SEGUNDO' : 'TERCER');
             const txtParcial = parcial === 1 ? 'PRIMER' : 'SEGUNDO';
             const nomCurso = (cursoInfo?.nombre_largo_mayuscula || cursoInfo?.nombre || '').toUpperCase();
