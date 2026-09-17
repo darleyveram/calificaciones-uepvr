@@ -919,22 +919,22 @@
         const cursosDisponibles = esAdmin ? todosCursos : cursosTutor;
         selectCurso.innerHTML = '<option value="">Seleccione curso...</option>' + cursosDisponibles.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
       } 
-      // === TANTO ASISTENCIA COMO COMPORTAMIENTO USAN SOLO 2 PARCIALES (SIN EXAMEN) ===
-      // === ASISTENCIA, COMPORTAMIENTO E INCIDENCIAS USAN SOLO 2 PARCIALES (SIN EXAMEN) ===
       else if (modo === 'asistencia' || modo === 'comportamiento' || modo === 'incidencias') {
         boxCurso.classList.remove('d-none'); boxMateria.classList.add('d-none'); 
-        boxVista.classList.add('d-none'); // Ocultamos el selector de notas con examen
-        boxParcialAsist.classList.remove('d-none'); // Mostramos el selector de Parcial 1 y Parcial 2
+        boxVista.classList.add('d-none'); 
+        boxParcialAsist.classList.remove('d-none'); 
         boxParcialTut.classList.add('d-none'); optAnual.classList.add('d-none');
         boxTrimestre.classList.remove('d-none'); 
+        
+        // Mantiene solo Parcial 1 y 2
+        document.getElementById('selectParcialAsistencia').innerHTML = '<option value="" selected>Seleccione...</option><option value="1">1er Parcial</option><option value="2">2do Parcial</option>';
+
         if (document.getElementById('selectTrimestre').value === 'anual') document.getElementById('selectTrimestre').value = '1';
         let cursosDisponibles = puedeVerAsistencia ? todosCursos : Array.from(new Map([...cursosTutor.map(c => [c.id, c]), ...todasAsignaciones.map(a => [a.cursos.id, a.cursos])]).values());
         selectCurso.innerHTML = '<option value="">Seleccione curso...</option>' + cursosDisponibles.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
       }
-      // =========================================================================
       else if (modo === 'reporte_estudiante') {
-        boxCurso.classList.add('d-none'); // OCULTAMOS EL CURSO
-        boxMateria.classList.add('d-none'); boxVista.classList.add('d-none'); boxParcialAsist.classList.add('d-none'); boxParcialTut.classList.add('d-none'); optAnual.classList.add('d-none');
+        boxCurso.classList.add('d-none'); boxMateria.classList.add('d-none'); boxVista.classList.add('d-none'); boxParcialAsist.classList.add('d-none'); boxParcialTut.classList.add('d-none'); optAnual.classList.add('d-none');
         boxTrimestre.classList.add('d-none'); 
         if (boxTipoAuditoria) boxTipoAuditoria.classList.add('d-none');
         cambiarFiltro();
@@ -958,42 +958,38 @@
         cambiarFiltro();
         return; 
       }
-        // === NUEVO: MÓDULO DE INTERCAMBIO ===
       else if (modo === 'intercambio') {
         boxCurso.classList.remove('d-none'); boxMateria.classList.add('d-none'); boxVista.classList.add('d-none'); boxParcialAsist.classList.add('d-none'); boxParcialTut.classList.add('d-none'); optAnual.classList.add('d-none');
         boxTrimestre.classList.remove('d-none'); 
         if (document.getElementById('selectTrimestre').value === 'anual') document.getElementById('selectTrimestre').value = '1';
-        let cursosDisponibles = esAdmin ? todosCursos : []; // Seguridad extra: solo admin
+        let cursosDisponibles = esAdmin ? todosCursos : []; 
         selectCurso.innerHTML = '<option value="">Seleccione curso...</option>' + cursosDisponibles.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
       }
-
-        else if (modo === 'monitoreo') {
+      else if (modo === 'monitoreo') {
         boxCurso.classList.add('d-none'); boxMateria.classList.add('d-none'); boxVista.classList.add('d-none'); boxParcialAsist.classList.add('d-none'); boxParcialTut.classList.add('d-none'); optAnual.classList.add('d-none');
         boxTrimestre.classList.add('d-none'); 
         if (boxTipoAuditoria) boxTipoAuditoria.classList.add('d-none');
         cambiarFiltro();
         return; 
       }
-      // ===================================
-
-        // === NUEVO MÓDULO: NÓMINAS ===
       else if (modo === 'nomina') {
         boxCurso.classList.remove('d-none'); boxMateria.classList.add('d-none'); boxVista.classList.add('d-none'); boxParcialAsist.classList.add('d-none'); boxParcialTut.classList.add('d-none'); optAnual.classList.add('d-none');
         boxTrimestre.classList.add('d-none'); 
         let cursosDisponibles = esAdmin ? todosCursos : Array.from(new Map([...cursosTutor.map(c => [c.id, c]), ...todasAsignaciones.map(a => [a.cursos.id, a.cursos])]).values());
-        cursosDisponibles.sort((a,b) => a.nombre.localeCompare(b.nombre)); // Ordenar alfabéticamente
+        cursosDisponibles.sort((a,b) => a.nombre.localeCompare(b.nombre)); 
         selectCurso.innerHTML = '<option value="TODOS">👉 TODOS MIS CURSOS (Consolidado)</option>' + cursosDisponibles.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
       }
-      // =============================
-
-        else if (modo === 'informe_parcial') {
+      else if (modo === 'informe_parcial') {
         boxCurso.classList.remove('d-none'); boxMateria.classList.remove('d-none'); boxVista.classList.add('d-none'); 
-        boxParcialAsist.classList.remove('d-none'); // Usamos este selector temporalmente para elegir 1 o 2
+        boxParcialAsist.classList.remove('d-none'); 
         boxParcialTut.classList.add('d-none'); optAnual.classList.add('d-none');
         boxTrimestre.classList.remove('d-none'); 
         if (boxTipoAuditoria) boxTipoAuditoria.classList.add('d-none');
         
         if (document.getElementById('selectTrimestre').value === 'anual') document.getElementById('selectTrimestre').value = '1';
+        
+        // AQUI ESTÁ EL CAMBIO DE LA TERCERA OPCIÓN
+        document.getElementById('selectParcialAsistencia').innerHTML = '<option value="" selected>Seleccione...</option><option value="1">1er Parcial</option><option value="2">2do Parcial</option><option value="3">Exámenes Pendientes</option>';
         
         const cursosMap = new Map();
         todasAsignaciones.forEach(a => { if (a.cursos) cursosMap.set(String(a.cursos.id), a.cursos.nombre); });
@@ -1001,7 +997,6 @@
         alCambiarCurso();
         return;
       }
-        
       else {
         boxCurso.classList.remove('d-none'); boxMateria.classList.remove('d-none'); boxVista.classList.remove('d-none'); boxParcialAsist.classList.add('d-none'); boxParcialTut.classList.add('d-none'); optAnual.classList.remove('d-none');
         boxTrimestre.classList.remove('d-none'); 
@@ -5540,8 +5535,10 @@
       }
     }
     // =========================================================================
-    // NUEVO MÓDULO: INFORME DE APRENDIZAJE POR PARCIAL
+    // NUEVO MÓDULO: INFORME DE APRENDIZAJE Y EXÁMENES PENDIENTES
     // =========================================================================
+    let estudiantesListGlobalInf = []; 
+
     async function cargarVistaInformeParcial() {
         const reqId = ++currentViewRequestId;
         const cursoId = document.getElementById('selectCurso').value;
@@ -5564,13 +5561,13 @@
             let nP2 = [];
 
             if (!isExamenes) {
-                // Parcial 1 o 2: Traemos notas del parcial
+                // Parcial 1 o 2: Traemos notas del parcial (NO hay examen)
                 const { data: notasData } = await supabaseClient.from('notas_parcial_actividades')
                     .select('estudiante_id, nota_parcial, recomendacion, plan_mejoramiento')
                     .eq('asignacion_id', parseInt(asigId)).eq('trimestre', trimestre).eq('parcial', parcial);
                 (notasData || []).forEach(n => notasMap[n.estudiante_id] = n);
             } else {
-                // Exámenes Pendientes: Traemos el examen Y las notas previas para el resumen
+                // Exámenes Pendientes: Traemos el examen y las notas previas
                 const { data: trimData } = await supabaseClient.from('notas_trimestre')
                     .select('estudiante_id, examen, motivo_examen_pendiente')
                     .eq('asignacion_id', parseInt(asigId)).eq('trimestre', trimestre);
@@ -5586,18 +5583,18 @@
             let html = '';
 
             if (!isExamenes) {
-                // VISTA PARA 1ER Y 2DO PARCIAL
+                // VISTA: PARCIAL 1 O 2
                 html = `
                   <div class="alert alert-info shadow-sm mb-3">
-                     <i class="bi bi-info-circle-fill me-2"></i><strong>Importante:</strong> Solo los estudiantes con promedio inferior a 7.00 tendrán habilitadas las casillas de Recomendaciones y Plan de Mejoramiento.
+                     <i class="bi bi-info-circle-fill me-2"></i><strong>Importante:</strong> Solo los estudiantes con calificación inferior a 7.00 tendrán habilitadas las casillas de Recomendaciones y Plan de Mejoramiento.
                   </div>
                   <table class="table table-bordered table-sm align-middle text-center" style="font-size: 0.75rem;">
                     <thead class="table-dark sticky-top">
                         <tr>
                             <th class="sticky-col-num">N°</th>
                             <th class="sticky-col-nombre text-start">Nómina del Estudiante</th>
-                            <th style="width: 70px;">Promedio<br>Cuant.</th>
-                            <th style="width: 70px;">Promedio<br>Cualit.</th>
+                            <th style="width: 70px;">Nota<br>Cuant.</th>
+                            <th style="width: 70px;">Nota<br>Cualit.</th>
                             <th>Recomendaciones Aplicables</th>
                             <th>Plan de Mejoramiento</th>
                         </tr>
@@ -5625,17 +5622,17 @@
                   </table>
                 `;
             } else {
-                // VISTA PARA EXÁMENES PENDIENTES
+                // VISTA: EXÁMENES PENDIENTES
                 html = `
                   <div class="alert alert-warning shadow-sm mb-3 text-dark">
-                     <i class="bi bi-exclamation-triangle-fill me-2"></i><strong>Resumen del Trimestre y Exámenes Pendientes:</strong> Se muestra el historial de dificultades del estudiante. Solo se habilitará el "Motivo" para aquellos con calificación de 0 o examen vacío.
+                     <i class="bi bi-exclamation-triangle-fill me-2"></i><strong>Exámenes Pendientes:</strong> Se muestra el historial de dificultades. Solo se habilitará el "Motivo" para aquellos con calificación de 0 o examen vacío.
                   </div>
                   <table class="table table-bordered table-sm align-middle text-center" style="font-size: 0.75rem;">
                     <thead class="table-dark sticky-top">
                         <tr>
                             <th class="sticky-col-num">N°</th>
                             <th class="sticky-col-nombre text-start">Nómina del Estudiante</th>
-                            <th>Resumen de Dificultades Previas (P1 y P2)</th>
+                            <th class="text-start">Resumen de Dificultades Previas (P1 y P2)</th>
                             <th style="width: 80px;" class="bg-primary text-white">Nota<br>Examen</th>
                             <th class="bg-primary text-white" style="width: 250px;">Motivo Examen Pendiente</th>
                         </tr>
@@ -5644,7 +5641,7 @@
                         ${estudiantesListGlobalInf.map((est, i) => {
                             const t = trimMap[est.id] || {};
                             
-                            // Buscar alertas previas para el resumen
+                            // Buscar alertas de los parciales 1 y 2
                             const p1 = nP1.find(x => x.estudiante_id === est.id) || {};
                             const p2 = nP2.find(x => x.estudiante_id === est.id) || {};
                             let alertas = [];
@@ -5660,7 +5657,7 @@
                             const tieneEx = !isNaN(exNum) && t.examen !== '';
                             const isPendiente = !tieneEx || exNum === 0;
                             const exVal = tieneEx ? exNum.toFixed(2) : '-';
-                            const reqExAttr = isPendiente ? '' : 'disabled placeholder="Examen rendido (No requiere motivo)"';
+                            const reqExAttr = isPendiente ? '' : 'disabled placeholder="Rindió Examen (No requiere motivo)"';
 
                             return \`
                             <tr data-est-id="\${est.id}">
@@ -5691,22 +5688,26 @@
 
         try {
             const filas = document.querySelectorAll('#tablaCuerpoInformeParcial tr');
-            const payloadNotas = [];
-            const payloadTrim = [];
+            const isExamenes = (parcial === 3);
             
-            filas.forEach(tr => {
-                const estId = parseInt(tr.getAttribute('data-est-id'));
-                const rec = tr.querySelector('.inf-rec').value.trim();
-                const plan = tr.querySelector('.inf-plan').value.trim();
-                
-                if (rec || plan || !tr.querySelector('.inf-rec').disabled) {
-                    payloadNotas.push({
-                        asignacion_id: asigId, estudiante_id: estId, trimestre: trimestre, parcial: parcial,
-                        recomendacion: rec, plan_mejoramiento: plan
-                    });
-                }
-
-                if (parcial === 2) {
+            if (!isExamenes) {
+                const payloadNotas = [];
+                filas.forEach(tr => {
+                    const estId = parseInt(tr.getAttribute('data-est-id'));
+                    const rec = tr.querySelector('.inf-rec').value.trim();
+                    const plan = tr.querySelector('.inf-plan').value.trim();
+                    if (rec || plan || !tr.querySelector('.inf-rec').disabled) {
+                        payloadNotas.push({
+                            asignacion_id: asigId, estudiante_id: estId, trimestre: trimestre, parcial: parcial,
+                            recomendacion: rec, plan_mejoramiento: plan
+                        });
+                    }
+                });
+                if (payloadNotas.length > 0) await supabaseClient.from('notas_parcial_actividades').upsert(payloadNotas, { onConflict: 'asignacion_id,estudiante_id,trimestre,parcial' });
+            } else {
+                const payloadTrim = [];
+                filas.forEach(tr => {
+                    const estId = parseInt(tr.getAttribute('data-est-id'));
                     const mot = tr.querySelector('.inf-motivo').value.trim();
                     if (mot || !tr.querySelector('.inf-motivo').disabled) {
                         payloadTrim.push({
@@ -5714,13 +5715,11 @@
                             motivo_examen_pendiente: mot
                         });
                     }
-                }
-            });
+                });
+                if (payloadTrim.length > 0) await supabaseClient.from('notas_trimestre').upsert(payloadTrim, { onConflict: 'asignacion_id,estudiante_id,trimestre' });
+            }
 
-            if (payloadNotas.length > 0) await supabaseClient.from('notas_parcial_actividades').upsert(payloadNotas, { onConflict: 'asignacion_id,estudiante_id,trimestre,parcial' });
-            if (payloadTrim.length > 0) await supabaseClient.from('notas_trimestre').upsert(payloadTrim, { onConflict: 'asignacion_id,estudiante_id,trimestre' });
-
-            alert('Informe de Aprendizaje guardado con éxito.');
+            alert('Datos guardados con éxito.');
         } catch (err) {
             alert('Error al guardar: ' + err.message);
         } finally {
@@ -5744,14 +5743,13 @@
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF({ compress: true, orientation: 'portrait', unit: 'mm', format: 'a4' });
             
-            // === AQUÍ AGREGAMOS LA VARIABLE PERIODO ===
-            const periodo = infoInstitucion?.periodo_lectivo || '2026-2027';
-            // ==========================================
-
             const txtTrimestre = trimestre === 1 ? 'PRIMER' : (trimestre === 2 ? 'SEGUNDO' : 'TERCER');
-            const txtParcial = parcial === 1 ? 'PRIMER' : 'SEGUNDO';
+            const isExamenes = (parcial === 3);
+            const txtParcial = isExamenes ? 'EXÁMENES PENDIENTES' : (parcial === 1 ? 'PRIMER' : 'SEGUNDO');
+            
             const nomCurso = (cursoInfo?.nombre_largo_mayuscula || cursoInfo?.nombre || '').toUpperCase();
             const nomMateria = (asig?.materias?.nombre || '').toUpperCase();
+            const periodo = infoInstitucion?.periodo_lectivo || '2026-2027';
             
             let nomTutor = 'TUTOR NO ASIGNADO';
             if (cursoInfo && cursoInfo.tutor_id) {
@@ -5778,89 +5776,101 @@
             doc.text('Correo: 13H03021@educacion.gob.ec | Código AMIE: 13H03021 | Teléfono: 05 2323232', 105, 62, { align: 'center' });
             
             doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
-            doc.text(`INFORME DEL ${txtParcial} PARCIAL DEL ${txtTrimestre} TRIMESTRE`, 105, 72, { align: 'center' });
+            if (!isExamenes) {
+                doc.text(`INFORME DEL ${txtParcial} PARCIAL DEL ${txtTrimestre} TRIMESTRE`, 105, 72, { align: 'center' });
+            } else {
+                doc.text(`INFORME DE EXÁMENES PENDIENTES DEL ${txtTrimestre} TRIMESTRE`, 105, 72, { align: 'center' });
+            }
 
             const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
             const hoy = new Date(); const dia = hoy.getDate(); const mes = meses[hoy.getMonth()]; const anio = hoy.getFullYear(); const hora = hoy.getHours() + ':' + String(hoy.getMinutes()).padStart(2, '0');
             
-            const parrafoInicio = `En el cantón Pichincha, a los ${dia} días del mes de ${mes} del ${anio}, siendo las ${hora} en la sala de sesiones de la Unidad Educativa Particular "Vicente Rocafuerte" sección vespertina se inició la Junta de Cierre del ${txtParcial} Parcial del ${txtTrimestre} Trimestre de ${nomCurso} en la asignatura de: ${nomMateria} dirigida por el Tutor ${nomTutor} y la profesora de la asignatura, ${nomDocente}.`;
+            const parrafoInicio = `En el cantón Pichincha, a los ${dia} días del mes de ${mes} del ${anio}, siendo las ${hora} en la sala de sesiones de la Unidad Educativa Particular "Vicente Rocafuerte" sección vespertina se inició la Junta de Cierre del ${!isExamenes ? txtParcial+' Parcial del ' : ''}${txtTrimestre} Trimestre de ${nomCurso} en la asignatura de: ${nomMateria} dirigida por el Tutor ${nomTutor} y la profesora de la asignatura, ${nomDocente}.`;
             doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
             const textLines = doc.splitTextToSize(parrafoInicio, 170);
             doc.text(textLines, 20, 80);
 
-            const parrafoIndicacion = `Resultados del análisis individual por estudiantes, detallamos solo los estudiantes que promedian PAR (está próximo alcanzar los aprendizajes requerido) y NAR (No alcanza los aprendizajes requeridos) de la escala de valoración Técnica, el comportamiento considerándolo desde la valoración C, D y E y estudiantes con exámenes pendientes.`;
+            const parrafoIndicacion = !isExamenes 
+                ? `Resultados del análisis individual por estudiantes, detallamos solo los estudiantes que promedian PAR (está próximo alcanzar los aprendizajes requerido) y NAR (No alcanza los aprendizajes requeridos) de la escala de valoración Técnica, el comportamiento considerándolo desde la valoración C, D y E.`
+                : `A continuación se detallan los estudiantes con exámenes pendientes no rendidos o con calificación de cero, junto con un resumen de los inconvenientes y sugerencias previamente reportadas en los parciales de este trimestre.`;
+            
             const indLines = doc.splitTextToSize(parrafoIndicacion, 170);
             doc.text(indLines, 20, 85 + (textLines.length * 4));
 
             let currentY = 90 + (textLines.length * 4) + (indLines.length * 4);
 
-            // EXTRAER DATOS DE LA TABLA HTML
-            const tbNotas = [], tbComp = [], tbEx = [];
-            document.querySelectorAll('#tablaCuerpoInformeParcial tr').forEach(tr => {
-                const nom = tr.querySelector('.sticky-col-nombre').innerText;
-                const notaN = parseFloat(tr.cells[2].innerText);
-                const notaC = tr.cells[3].innerText;
-                const rec = tr.querySelector('.inf-rec').value.trim() || 'Ninguna';
-                const plan = tr.querySelector('.inf-plan').value.trim() || 'Ninguno';
-                
-                // Solo insertamos si < 7
-                if (!isNaN(notaN) && notaN < 7) {
-                    tbNotas.push([nom, notaN.toFixed(2), notaC, rec, plan]);
-                }
-                
-                if (parcial === 2) {
-                    const exT = tr.cells[6].innerText;
-                    if (exT === '-' || exT === '') {
-                        const mot = tr.querySelector('.inf-motivo').value.trim() || 'No justificado';
-                        tbEx.push([nom, mot]);
+            if (!isExamenes) {
+                // PDF NORMAL DE PARCIAL 1 O 2
+                const tbNotas = [];
+                document.querySelectorAll('#tablaCuerpoInformeParcial tr').forEach(tr => {
+                    const nom = tr.querySelector('.sticky-col-nombre').innerText;
+                    const notaN = parseFloat(tr.cells[2].innerText);
+                    const notaC = tr.cells[3].innerText;
+                    const rec = tr.querySelector('.inf-rec').value.trim() || 'Ninguna';
+                    const plan = tr.querySelector('.inf-plan').value.trim() || 'Ninguno';
+                    
+                    if (!isNaN(notaN) && notaN < 7) {
+                        tbNotas.push([nom, notaN.toFixed(2), notaC, rec, plan]);
                     }
-                }
-            });
+                });
 
-            // TABLA 1: APRENDIZAJE
-            doc.setFont('helvetica', 'bold'); doc.text('Aprendizaje:', 20, currentY);
-            doc.autoTable({
-                startY: currentY + 3,
-                head: [['Nómina', 'Nota Cuant.', 'Nota Cualit.', 'Recomendaciones aplicables', 'Plan de mejoramiento académico']],
-                body: tbNotas.length > 0 ? tbNotas : [['N/A', '-', '-', 'No se registran estudiantes con promedios < 7', '-']],
-                theme: 'grid', styles: { fontSize: 7.5, cellPadding: 1.5, valign: 'middle' },
-                headStyles: { fillColor: [241, 245, 249], textColor: [15, 23, 42] },
-                columnStyles: { 0: { cellWidth: 45 }, 1: { cellWidth: 15, halign: 'center' }, 2: { cellWidth: 15, halign: 'center' }, 3: { cellWidth: 47 }, 4: { cellWidth: 48 } }
-            });
-            currentY = doc.lastAutoTable.finalY + 8;
-
-            // TABLA 2: COMPORTAMIENTO (Ficticia consultando BD)
-            const { data: compData } = await supabaseClient.from('comportamiento_parcial').select('estudiante_id, total_cuantitativo').eq('curso_id', cursoInfo.id).eq('trimestre', trimestre).eq('parcial', parcial);
-            const compList = [];
-            (compData || []).forEach(c => {
-                const est = estudiantesList.find(e => e.id === c.estudiante_id);
-                if (est) {
-                    const val = parseFloat(c.total_cuantitativo) || 10;
-                    if (val < 7) compList.push([est.nombres, val.toFixed(2), convertirCualitativo(val)]);
-                }
-            });
-
-            doc.setFont('helvetica', 'bold'); doc.text('Comportamiento:', 20, currentY);
-            doc.autoTable({
-                startY: currentY + 3,
-                head: [['Nómina', 'Nota cuantitativa', 'Nota Equivalente']],
-                body: compList.length > 0 ? compList : [['N/A', '-', 'No se registran estudiantes con comportamiento C, D o E']],
-                theme: 'grid', styles: { fontSize: 7.5, cellPadding: 1.5, valign: 'middle' },
-                headStyles: { fillColor: [241, 245, 249], textColor: [15, 23, 42] }
-            });
-            currentY = doc.lastAutoTable.finalY + 8;
-
-            // TABLA 3: EXAMENES PENDIENTES
-            if (parcial === 2) {
-                doc.setFont('helvetica', 'bold'); doc.text('Exámenes pendientes:', 20, currentY);
+                doc.setFont('helvetica', 'bold'); doc.text('Aprendizaje:', 20, currentY);
                 doc.autoTable({
                     startY: currentY + 3,
-                    head: [['Nómina', 'Motivo']],
-                    body: tbEx.length > 0 ? tbEx : [['N/A', 'No se registran exámenes pendientes']],
+                    head: [['Nómina', 'Nota Cuant.', 'Nota Cualit.', 'Recomendaciones aplicables', 'Plan de mejoramiento académico']],
+                    body: tbNotas.length > 0 ? tbNotas : [['N/A', '-', '-', 'No se registran estudiantes con promedios < 7', '-']],
+                    theme: 'grid', styles: { fontSize: 7.5, cellPadding: 1.5, valign: 'middle' },
+                    headStyles: { fillColor: [241, 245, 249], textColor: [15, 23, 42] },
+                    columnStyles: { 0: { cellWidth: 45 }, 1: { cellWidth: 15, halign: 'center' }, 2: { cellWidth: 15, halign: 'center' }, 3: { cellWidth: 47 }, 4: { cellWidth: 48 } }
+                });
+                currentY = doc.lastAutoTable.finalY + 8;
+
+                // TABLA DE COMPORTAMIENTO
+                const { data: compData } = await supabaseClient.from('comportamiento_parcial').select('estudiante_id, total_cuantitativo').eq('curso_id', cursoInfo.id).eq('trimestre', trimestre).eq('parcial', parcial);
+                const compList = [];
+                (compData || []).forEach(c => {
+                    const est = estudiantesListGlobalInf.find(e => e.id === c.estudiante_id);
+                    if (est) {
+                        const val = parseFloat(c.total_cuantitativo) || 10;
+                        if (val < 7) compList.push([est.nombres, val.toFixed(2), convertirCualitativo(val)]);
+                    }
+                });
+
+                doc.setFont('helvetica', 'bold'); doc.text('Comportamiento:', 20, currentY);
+                doc.autoTable({
+                    startY: currentY + 3,
+                    head: [['Nómina', 'Nota cuantitativa', 'Nota Equivalente']],
+                    body: compList.length > 0 ? compList : [['N/A', '-', 'No se registran estudiantes con comportamiento C, D o E']],
                     theme: 'grid', styles: { fontSize: 7.5, cellPadding: 1.5, valign: 'middle' },
                     headStyles: { fillColor: [241, 245, 249], textColor: [15, 23, 42] }
                 });
-                currentY = doc.lastAutoTable.finalY + 10;
+                currentY = doc.lastAutoTable.finalY + 8;
+
+            } else {
+                // PDF DE EXÁMENES PENDIENTES
+                const tbEx = [];
+                document.querySelectorAll('#tablaCuerpoInformeParcial tr').forEach(tr => {
+                    const nom = tr.querySelector('.sticky-col-nombre').innerText;
+                    const inputMotivo = tr.querySelector('.inf-motivo');
+                    
+                    // Si el input no está bloqueado es porque debe un examen
+                    if (!inputMotivo.disabled) {
+                        const resumenPrevio = tr.cells[2].innerText.trim();
+                        const notaEx = tr.cells[3].innerText.trim();
+                        tbEx.push([nom, resumenPrevio, notaEx, inputMotivo.value.trim() || 'Motivo no registrado']);
+                    }
+                });
+
+                doc.setFont('helvetica', 'bold'); doc.text('Exámenes Pendientes e Historial de Dificultades:', 20, currentY);
+                doc.autoTable({
+                    startY: currentY + 3,
+                    head: [['Nómina', 'Dificultades Previas (Parciales)', 'Nota Examen', 'Motivo del Examen Pendiente']],
+                    body: tbEx.length > 0 ? tbEx : [['N/A', '-', '-', 'No se registran estudiantes con exámenes pendientes']],
+                    theme: 'grid', styles: { fontSize: 7.5, cellPadding: 1.5, valign: 'middle' },
+                    headStyles: { fillColor: [241, 245, 249], textColor: [15, 23, 42] },
+                    columnStyles: { 0: { cellWidth: 40 }, 1: { cellWidth: 55 }, 2: { cellWidth: 15, halign: 'center' }, 3: { cellWidth: 60 } }
+                });
+                currentY = doc.lastAutoTable.finalY + 8;
             }
 
             // PIE Y FIRMAS
@@ -5883,7 +5893,8 @@
             doc.text('LCDA. SOLANGE SALTOS GILER', 60, currentY + 4, { align: 'center' }); doc.text('INSPECTORA GENERAL', 60, currentY + 8, { align: 'center' });
             doc.text('ING. DÍDIMO SALTOS SABANDO', 150, currentY + 4, { align: 'center' }); doc.text('RECTOR', 150, currentY + 8, { align: 'center' });
 
-            doc.save(`Informe_Parcial_${nomMateria.replace(/\s+/g, '_')}_${txtTrimestre}_T.pdf`);
+            const nombreArchivo = isExamenes ? `Examenes_Pendientes_${nomMateria.replace(/\s+/g, '_')}_T${trimestre}.pdf` : `Informe_Parcial_${parcial}_${nomMateria.replace(/\s+/g, '_')}_T${trimestre}.pdf`;
+            doc.save(nombreArchivo);
         } catch (err) { alert('Error generando PDF: ' + err.message); } finally { btn.disabled = false; btn.innerHTML = '<i class="bi bi-file-pdf me-1"></i> Generar PDF Oficial'; }
     }
   </script>
