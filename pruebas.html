@@ -478,31 +478,187 @@
     }
 
     async function verificarSesion() {
-      await cargarInformacionInstitucionalDinamica();
-      const { data: { session } } = await supabaseClient.auth.getSession();
-      if (session) {
-        const { data: perfil } = await supabaseClient.from('perfiles').select('*').eq('id', session.user.id).maybeSingle();
-        usuarioActualPerfil = perfil;
-        const nombreDocente = perfil ? `${perfil.titulo ? perfil.titulo + ' ' : ''}${perfil.nombres} ${perfil.apellidos || ''}`.trim() : session.user.email;
-        document.getElementById('pantallaCarga').classList.add('d-none'); document.getElementById('seccionLogin').classList.add('d-none'); document.getElementById('seccionApp').classList.remove('d-none');
-        if (perfil && perfil.debe_cambiar_clave) { abrirModalCambiarMiClave(true); return; }
-        document.getElementById('usuarioConectado').innerText = `Docente: ${nombreDocente}`;
-        const { data: cursosT } = await supabaseClient.from('cursos').select('*').eq('tutor_id', session.user.id);
-        cursosTutor = cursosT || [];
-        const esAdmin = perfil?.rol === 'admin'; const esTutor = cursosTutor.length > 0; const puedeVerAsistencia = (esAdmin || perfil?.puede_gestionar_asistencia === true);
-        if (esTutor) document.getElementById('badgeTutorInfo').classList.remove('d-none');
-        if (puedeVerAsistencia) { document.getElementById('optModoAsistencia').classList.remove('d-none'); document.getElementById('optModoComportamiento').classList.remove('d-none'); }
-        if (esAdmin || esTutor) document.getElementById('optModoTutoria').classList.remove('d-none');
-        if (esAdmin) {
-          ['optModoReporteEstudiante', 'optModoCertificados', 'optModoAuditoria', 'boxFiltroDistancia', 'boxFiltroRetirados', 'optModoIntercambio', 'optModoMonitoreo'].forEach(id => { const el = document.getElementById(id); if (el) el.classList.remove('d-none'); });
-          document.getElementById('selectModo').value = 'reporte_estudiante';
-        }
-        iniciarLatidoDeSesion();
-        await cargarCatalogo(); await cargarPeriodosAsistenciaDB(); await cargarCursosYMaterias(session.user.id, perfil?.rol, perfil?.puede_gestionar_asistencia);
-      } else {
-        document.getElementById('pantallaCarga').classList.add('d-none'); document.getElementById('seccionLogin').classList.remove('d-none'); document.getElementById('seccionApp').classList.add('d-none');
-      }
+  const pantallaCarga = document.getElementById('pantallaCarga');
+  const seccionLogin = document.getElementById('seccionLogin');
+  const seccionApp = document.getElementById('seccionApp');
+
+  try {
+    console.log('1. Iniciando verificación de sesión...');
+
+    // PRIMERO verificar sesión
+    const { data: sessionData, error: sessionError } =
+      await supabaseClient.auth.getSession();
+
+    if (sessionError) {
+      throw new Error('Error verificando sesión: ' + sessionError.message);
     }
+
+    const session = sessionData?.session;
+
+    console.log('2. Sesión:', session ? 'ENCONTRADA' : 'NO ENCONTRADA');
+
+    // Si no hay sesión, mostrar login
+    if (!session) {
+      pantallaCarga.classList.add('d-none');
+      seccionLogin.classList.remove('d-none');
+      seccionApp.classList.add('d-none');
+
+      console.log('3. Mostrando pantalla de login');
+      return;
+    }
+
+    // Mostrar aplicación inmediatamente
+    pantallaCarga.classList.add('d-none');
+    seccionLogin.classList.add('d-none');
+    seccionApp.classList.remove('d-none');
+
+    console.log('3. Usuario autenticado:', session.user.email);
+
+    // Cargar información institucional sin bloquear el login
+    try {
+      await cargarInformacionInstitucionalDinamica();
+      console.log('4. Información institucional cargada');
+    } catch (err) {
+      console.error('Error cargando institución:', err);
+    }
+
+    // Obtener perfil
+    const { data: perfil, error: perfilError } =
+      await supabaseClient
+        .from('perfiles')
+        .select('*')
+        .eq('id', session.user.id)
+        .maybeSingle();
+
+    if (perfilError) {
+      console.error('Error cargando perfil:', perfilError);
+    }
+
+    usuarioActualPerfil = perfil;
+
+    const nombreDocente = perfil
+      ? `${perfil.titulo ? perfil.titulo + ' ' : ''}${perfil.nombres || ''} ${perfil.apellidos || ''}`.trim()
+      : session.user.email;
+
+    document.getElementById('usuarioConectado').innerText =
+      `Docente: ${nombreDocente}`;
+
+    // Cambio obligatorio de contraseña
+    if (perfil && perfil.debe_cambiar_clave) {
+      abrirModalCambiarMiClave(true);
+      return;
+    }
+
+    const esAdmin = perfil?.rol === 'admin';
+
+    // Cursos del tutor
+    try {
+      const { data: cursosT, error: cursosError } =
+        await supabaseClient
+          .from('cursos')
+          .select('*')
+          .eq('tutor_id', session.user.id);
+
+      if (cursosError) {
+        console.error('Error cargando cursos tutor:', cursosError);
+      }
+
+      cursosTutor = cursosT || [];
+    } catch (err) {
+      console.error('Error inesperado cursos:', err);
+      cursosTutor = [];
+    }
+
+    const esTutor = cursosTutor.length > 0;
+    const puedeVerAsistencia =
+      esAdmin || perfil?.puede_gestionar_asistencia === true;
+
+    if (esTutor) {
+      document.getElementById('badgeTutorInfo')
+        .classList.remove('d-none');
+    }
+
+    if (puedeVerAsistencia) {
+      document.getElementById('optModoAsistencia')
+        .classList.remove('d-none');
+
+      document.getElementById('optModoComportamiento')
+        .classList.remove('d-none');
+    }
+
+    if (esAdmin || esTutor) {
+      document.getElementById('optModoTutoria')
+        .classList.remove('d-none');
+    }
+
+    if (esAdmin) {
+      [
+        'optModoReporteEstudiante',
+        'optModoCertificados',
+        'optModoAuditoria',
+        'boxFiltroDistancia',
+        'boxFiltroRetirados',
+        'optModoIntercambio',
+        'optModoMonitoreo'
+      ].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.remove('d-none');
+      });
+
+      document.getElementById('selectModo').value =
+        'reporte_estudiante';
+    }
+
+    iniciarLatidoDeSesion();
+
+    // Estas cargas ya NO pueden dejar congelada la pantalla
+    try {
+      await cargarCatalogo();
+    } catch (err) {
+      console.error('Error catálogo:', err);
+    }
+
+    try {
+      await cargarPeriodosAsistenciaDB();
+    } catch (err) {
+      console.error('Error períodos asistencia:', err);
+    }
+
+    try {
+      await cargarCursosYMaterias(
+        session.user.id,
+        perfil?.rol,
+        perfil?.puede_gestionar_asistencia
+      );
+    } catch (err) {
+      console.error('Error cursos/materias:', err);
+    }
+
+    console.log('5. Sistema iniciado correctamente');
+
+  } catch (err) {
+
+    console.error('ERROR CRÍTICO AL INICIAR:', err);
+
+    // MUY IMPORTANTE:
+    // Nunca dejar la pantalla de carga congelada
+    pantallaCarga.classList.add('d-none');
+
+    seccionApp.classList.add('d-none');
+    seccionLogin.classList.remove('d-none');
+
+    const errorDiv = document.getElementById('loginError');
+
+    if (errorDiv) {
+      errorDiv.innerHTML =
+        `<strong>Error al conectar con el sistema.</strong><br>
+        ${err.message}<br><br>
+        <small>Abre F12 → Console para ver el detalle.</small>`;
+
+      errorDiv.classList.remove('d-none');
+    }
+  }
+}
 
     async function iniciarSesion(e) {
       e.preventDefault();
@@ -1302,7 +1458,14 @@
       document.getElementById('contenedorTabla').innerHTML = '<div class="py-5 text-center fw-bold text-success"><i class="bi bi-shield-check fs-1 d-block mb-3"></i>Módulo de Auditoría Abierto en Ventana Emergente</div>';
     }
 
-    document.addEventListener('DOMContentLoaded', verificarSesion);
+    document.addEventListener('DOMContentLoaded', () => {
+  verificarSesion().catch(error => {
+    console.error('Error no controlado:', error);
+
+    document.getElementById('pantallaCarga')?.classList.add('d-none');
+    document.getElementById('seccionLogin')?.classList.remove('d-none');
+  });
+});
   </script>
 </body>
 </html>
