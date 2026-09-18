@@ -67,7 +67,7 @@
   <div id="pantallaCarga" class="vh-100 d-flex justify-content-center align-items-center">
     <div class="text-center">
       <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status"></div>
-      <div class="mt-3 fw-bold text-muted" style="font-size: 1.1rem;">Verificando credenciales2.0...</div>
+      <div class="mt-3 fw-bold text-muted" style="font-size: 1.1rem;">Verificando credenciales...</div>
     </div>
   </div>
 
@@ -100,7 +100,7 @@
       </div>
       <div class="card-footer bg-light text-center py-2 text-muted small">
         <span class="header-dir-inst">Pichincha - Manabí - Ecuador</span><br>
-        <span style="font-size: 0.6rem; opacity: 0.5;">v1.0.22</span>
+        <span style="font-size: 0.6rem; opacity: 0.5;">v1.0.23</span>
       </div>
     </div>
   </div>
@@ -188,7 +188,7 @@
           <div class="col-6 col-md-2 d-none" id="boxParcialAsistencia">
             <label class="form-label mb-1 fw-bold small">Parcial / Vista:</label>
             <select id="selectParcialAsistencia" class="form-select form-select-sm" onchange="cambiarFiltro()">
-              <option value="" selected>Seleccione...</option><option value="1">1er Parcial</option><option value="2">2do Parcial</option><option value="3">Exámenes Pendientes</option>
+              <option value="" selected>Seleccione...</option><option value="1">1er Parcial</option><option value="2">2do Parcial</option>
             </select>
           </div>
           <div class="col-6 col-md-2 d-none" id="boxParcialTutoria">
@@ -848,13 +848,11 @@
             let nP2 = [];
 
             if (!isExamenes) {
-                // Parcial 1 o 2: Traemos notas del parcial
                 const { data: notasData } = await supabaseClient.from('notas_parcial_actividades')
                     .select('estudiante_id, nota_parcial, recomendacion, plan_mejoramiento')
                     .eq('asignacion_id', parseInt(asigId)).eq('trimestre', trimestre).eq('parcial', parcial);
                 (notasData || []).forEach(n => notasMap[n.estudiante_id] = n);
             } else {
-                // Exámenes Pendientes: Traemos el examen Y las notas previas para el resumen
                 const { data: trimData } = await supabaseClient.from('notas_trimestre')
                     .select('estudiante_id, examen, motivo_examen_pendiente')
                     .eq('asignacion_id', parseInt(asigId)).eq('trimestre', trimestre);
@@ -870,7 +868,6 @@
             let html = '';
 
             if (!isExamenes) {
-                // VISTA PARA 1ER Y 2DO PARCIAL
                 html = `
                   <div class="alert alert-info shadow-sm mb-3">
                      <i class="bi bi-info-circle-fill me-2"></i><strong>Importante:</strong> Solo los estudiantes con calificación inferior a 7.00 tendrán habilitadas las casillas de Recomendaciones y Plan de Mejoramiento.
@@ -909,7 +906,6 @@
                   </table>
                 `;
             } else {
-                // VISTA PARA EXÁMENES PENDIENTES
                 html = `
                   <div class="alert alert-warning shadow-sm mb-3 text-dark">
                      <i class="bi bi-exclamation-triangle-fill me-2"></i><strong>Resumen del Trimestre y Exámenes Pendientes:</strong> Se muestra el historial de dificultades del estudiante. Solo se habilitará el "Motivo" para aquellos con calificación de 0 o examen vacío.
@@ -919,7 +915,7 @@
                         <tr>
                             <th class="sticky-col-num">N°</th>
                             <th class="sticky-col-nombre text-start">Nómina del Estudiante</th>
-                            <th>Resumen de Dificultades Previas (P1 y P2)</th>
+                            <th class="text-start">Resumen de Dificultades Previas (P1 y P2)</th>
                             <th style="width: 80px;" class="bg-primary text-white">Nota<br>Examen</th>
                             <th class="bg-primary text-white" style="width: 250px;">Motivo Examen Pendiente</th>
                         </tr>
@@ -928,7 +924,6 @@
                         ${estudiantesListGlobalInf.map((est, i) => {
                             const t = trimMap[est.id] || {};
                             
-                            // Buscar alertas previas para el resumen
                             const p1 = nP1.find(x => x.estudiante_id === est.id) || {};
                             const p2 = nP2.find(x => x.estudiante_id === est.id) || {};
                             let alertas = [];
@@ -1030,14 +1025,13 @@
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF({ compress: true, orientation: 'portrait', unit: 'mm', format: 'a4' });
             
-            const periodo = infoInstitucion?.periodo_lectivo || '2026-2027';
-
             const txtTrimestre = trimestre === 1 ? 'PRIMER' : (trimestre === 2 ? 'SEGUNDO' : 'TERCER');
             const isExamenes = (parcial === 3);
             const txtParcial = isExamenes ? 'EXÁMENES PENDIENTES' : (parcial === 1 ? 'PRIMER' : 'SEGUNDO');
             
             const nomCurso = (cursoInfo?.nombre_largo_mayuscula || cursoInfo?.nombre || '').toUpperCase();
             const nomMateria = (asig?.materias?.nombre || '').toUpperCase();
+            const periodo = infoInstitucion?.periodo_lectivo || '2026-2027';
             
             let nomTutor = 'TUTOR NO ASIGNADO';
             if (cursoInfo && cursoInfo.tutor_id) {
@@ -1052,7 +1046,6 @@
 
             const imgLogoIzq = await obtenerBase64DesdeUrl(infoInstitucion?.logo_izquierdo || infoInstitucion?.logo_institucion);
 
-            // CABECERA OFICIAL
             if (imgLogoIzq) doc.addImage(imgLogoIzq, 'PNG', 95, 10, 20, 25);
             doc.setFont('helvetica', 'italic'); doc.setFontSize(10); doc.setTextColor(30, 64, 175);
             doc.text(`"Educación de calidad para la vida, en paz y en democracia"`, 105, 42, { align: 'center' });
@@ -1088,7 +1081,6 @@
             let currentY = 90 + (textLines.length * 4) + (indLines.length * 4);
 
             if (!isExamenes) {
-                // PDF NORMAL DE PARCIAL 1 O 2
                 const tbNotas = [];
                 document.querySelectorAll('#tablaCuerpoInformeParcial tr').forEach(tr => {
                     const nom = tr.querySelector('.sticky-col-nombre').innerText;
@@ -1112,9 +1104,7 @@
                     columnStyles: { 0: { cellWidth: 45 }, 1: { cellWidth: 15, halign: 'center' }, 2: { cellWidth: 15, halign: 'center' }, 3: { cellWidth: 47 }, 4: { cellWidth: 48 } }
                 });
                 currentY = doc.lastAutoTable.finalY + 8;
-
             } else {
-                // PDF DE EXÁMENES PENDIENTES
                 const tbEx = [];
                 document.querySelectorAll('#tablaCuerpoInformeParcial tr').forEach(tr => {
                     const nom = tr.querySelector('.sticky-col-nombre').innerText;
@@ -1139,7 +1129,6 @@
                 currentY = doc.lastAutoTable.finalY + 8;
             }
 
-            // PIE Y FIRMAS (Igual para todos)
             if (currentY > 240) { doc.addPage(); currentY = 30; }
             
             const horaFin = new Date(hoy.getTime() + 35*60000); 
@@ -1164,7 +1153,6 @@
         } catch (err) { alert('Error generando PDF: ' + err.message); } finally { btn.disabled = false; btn.innerHTML = '<i class="bi bi-file-pdf me-1"></i> Generar PDF Oficial'; }
     }
 
-    // AÑADIDO: Módulo para cargar calificaciones base
     async function cargarVistaParcial(parcialNum) {
       const reqId = ++currentViewRequestId;
       const asigId = document.getElementById('selectMateria').value.trim();
@@ -1237,6 +1225,81 @@
       `;
       contenedor.innerHTML = html;
       document.querySelectorAll('#tablaCuerpo tr').forEach(fila => calcularFilaParcial(fila));
+    }
+
+    async function generarAuditoriaNotas() {
+        const btn = document.getElementById('btnGenerarAuditoria');
+        btn.disabled = true; btn.innerHTML = 'Generando...';
+        
+        const trim = parseInt(document.getElementById('audTrimestre').value);
+        const parc = parseInt(document.getElementById('audParcial').value);
+
+        const tFaltan = document.getElementById('tablaAudFaltan');
+        const tComp = document.getElementById('tablaAudCompletados');
+        tFaltan.innerHTML = '<tr><td colspan="3" class="text-center"><div class="spinner-border spinner-border-sm text-danger"></div></td></tr>';
+        tComp.innerHTML = '<tr><td colspan="3" class="text-center"><div class="spinner-border spinner-border-sm text-success"></div></td></tr>';
+
+        try {
+            const { data: asignaciones } = await supabaseClient.from('curso_materia_docente').select('id, curso_id, materia_id, docente_id, cursos(nombre), materias(nombre)');
+            const { data: perfiles } = await supabaseClient.from('perfiles').select('id, titulo, nombres, apellidos');
+            
+            const docentesMap = new Map();
+            (perfiles || []).forEach(p => { docentesMap.set(p.id, `${p.titulo||''} ${p.nombres} ${p.apellidos||''}`.trim()); });
+
+            let savedAsigIds = new Set();
+            
+            if (parc === 1 || parc === 2) {
+                let fetchMore = true, start = 0;
+                while (fetchMore) {
+                    const { data: config } = await supabaseClient.from('config_parcial_cabeceras').select('asignacion_id').eq('trimestre', trim).eq('parcial', parc).range(start, start + 999);
+                    if (config && config.length > 0) {
+                        config.forEach(c => savedAsigIds.add(c.asignacion_id));
+                        start += 1000;
+                        if (config.length < 1000) fetchMore = false;
+                    } else fetchMore = false;
+                }
+            } else if (parc === 3) {
+                let fetchMore = true, start = 0;
+                while (fetchMore) {
+                    const { data: examen } = await supabaseClient.from('notas_trimestre').select('asignacion_id, examen').eq('trimestre', trim).range(start, start + 999);
+                    if (examen && examen.length > 0) {
+                        examen.forEach(e => { if (e.examen !== null && e.examen !== undefined && e.examen !== '') savedAsigIds.add(e.asignacion_id); });
+                        start += 1000;
+                        if (examen.length < 1000) fetchMore = false;
+                    } else fetchMore = false;
+                }
+            }
+
+            const faltanList = [];
+            const compList = [];
+
+            (asignaciones || []).forEach(asig => {
+                if (!asig.docente_id) return;
+                const docName = docentesMap.get(asig.docente_id) || 'Desconocido';
+                const rowHtml = `<tr><td>${docName}</td><td>${asig.cursos?.nombre || '-'}</td><td>${asig.materias?.nombre || '-'}</td></tr>`;
+                
+                if (savedAsigIds.has(asig.id)) compList.push(rowHtml);
+                else faltanList.push(rowHtml);
+            });
+
+            document.getElementById('countFaltan').innerText = faltanList.length;
+            document.getElementById('countCompletados').innerText = compList.length;
+
+            tFaltan.innerHTML = faltanList.length > 0 ? faltanList.join('') : '<tr><td colspan="3" class="text-center text-success fw-bold">¡Todos completaron!</td></tr>';
+            tComp.innerHTML = compList.length > 0 ? compList.join('') : '<tr><td colspan="3" class="text-center text-danger fw-bold">Nadie ha completado</td></tr>';
+            
+        } catch (err) {
+            tFaltan.innerHTML = `<tr><td colspan="3" class="text-danger text-center">Error: ${err.message}</td></tr>`;
+            tComp.innerHTML = `<tr><td colspan="3" class="text-danger text-center">Error: ${err.message}</td></tr>`;
+        } finally {
+            btn.disabled = false; btn.innerHTML = 'Generar Reporte';
+        }
+    }
+
+    function cargarVistaAuditoria() {
+      if (!modalAuditoriaInst) modalAuditoriaInst = new bootstrap.Modal(document.getElementById('modalAuditoria'));
+      modalAuditoriaInst.show();
+      document.getElementById('contenedorTabla').innerHTML = '<div class="py-5 text-center fw-bold text-success"><i class="bi bi-shield-check fs-1 d-block mb-3"></i>Módulo de Auditoría Abierto en Ventana Emergente</div>';
     }
 
     document.addEventListener('DOMContentLoaded', verificarSesion);
