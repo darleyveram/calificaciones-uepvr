@@ -98,7 +98,7 @@
             <li class="nav-item"><a href="#" class="nav-link" id="nav-titulos" onclick="mostrarModulo('titulos', this)"><i class="bi bi-mortarboard me-2"></i> Títulos Académicos</a></li>
             <li class="nav-item"><a href="#" class="nav-link" id="nav-actividades" onclick="mostrarModulo('actividades', this)"><i class="bi bi-list-check me-2"></i> Actividades</a></li>
             <li class="nav-item"><a href="#" class="nav-link" id="nav-control" onclick="mostrarModulo('control', this)"><i class="bi bi-lock-fill me-2"></i> Control de Notas</a></li>
-            <li class="nav-item"><a class="nav-link text-white cursor-pointer" id="btnMenuJuntas" onclick="mostrarSeccion('sec-juntas', this)"><i class="bi bi-calendar2-week me-2"></i> Datos de Juntas</a></li>
+            <li class="nav-item"><a href="#" class="nav-link" id="nav-juntas" onclick="mostrarModulo('juntas', this)"><i class="bi bi-calendar2-week me-2"></i> Datos de Juntas</a></li>
           </ul>
           
           <div class="mt-auto pt-4 border-top border-secondary w-100">
@@ -501,13 +501,8 @@
             </div>
           </div>
         </div>
-
-      </div>
-    </div>
-  </div>
-
-  <!-- SECCIÓN: DATOS DE JUNTAS -->
-<div id="sec-juntas" class="seccion-admin d-none">
+          <!-- SECCIÓN: DATOS DE JUNTAS -->
+<div class="modulo d-none" id="mod-juntas">
   <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
       <h4 class="fw-bold text-dark mb-0">Datos de Juntas y Reportes</h4>
@@ -571,6 +566,12 @@
     </div>
   </div>
 </div>
+
+      </div>
+    </div>
+  </div>
+
+
 
   <!-- MODAL ESTUDIANTE -->
   <div class="modal fade" id="modalEstudianteFicha" tabindex="-1" aria-hidden="true">
