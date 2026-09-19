@@ -1050,7 +1050,61 @@
       cambiarFiltro();
     }
 
-    }
+    function cambiarFiltro() {
+      const modo = document.getElementById('selectModo').value;
+      const cursoId = document.getElementById('selectCurso').value;
+      const asigId = document.getElementById('selectMateria').value.trim();
+      const trimestreVal = document.getElementById('selectTrimestre').value;
+      const vistaVal = document.getElementById('selectVista').value;
+      const controles = document.querySelectorAll('.btn-control');
+      const parcialAsistVal = document.getElementById('selectParcialAsistencia').value;
+      const parcialTutVal = document.getElementById('selectParcialTutoria').value;
+      
+      const accParcial = document.getElementById('accionesParcial');
+      const accComp = document.getElementById('accionesComportamiento');
+      const accResumen = document.getElementById('accionesResumen');
+      const accAnual = document.getElementById('accionesAnual');
+      const accAsist = document.getElementById('accionesAsistencia');
+      const accTutoria = document.getElementById('accionesTutoria');
+      const accCertificados = document.getElementById('accionesCertificados');
+      const accIncidencias = document.getElementById('accionesIncidencias');
+      const accNomina = document.getElementById('accionesNomina');
+
+      const accInfParcial = document.getElementById('accionesInformeParcial');
+      if (accInfParcial) accInfParcial.classList.add('d-none'); 
+      
+      const accActaJunta = document.getElementById('accionesActaJunta');
+      if (accActaJunta) accActaJunta.classList.add('d-none'); 
+      
+      if (accNomina) accNomina.classList.add('d-none');
+      
+      accParcial.classList.add('d-none'); accComp.classList.add('d-none'); accResumen.classList.add('d-none'); accAnual.classList.add('d-none'); accAsist.classList.add('d-none'); accTutoria.classList.add('d-none');
+      if (accCertificados) accCertificados.classList.add('d-none');
+      if (accIncidencias) accIncidencias.classList.add('d-none');
+
+      if (modo === 'informe_parcial') {
+        if (!cursoId || !asigId || !trimestreVal || !parcialAsistVal) { 
+            controles.forEach(b => b.disabled = true); 
+            document.getElementById('contenedorTabla').innerHTML = '<div class="py-4 text-muted text-center">Seleccione Curso, Materia, Trimestre y Parcial para generar el Informe.</div>'; 
+            return; 
+        }
+        if (accInfParcial) accInfParcial.classList.remove('d-none');
+        controles.forEach(b => b.disabled = false);
+        cargarVistaInformeParcial(); 
+        return;
+      }
+      
+      if (modo === 'acta_junta') { 
+        if (!cursoId || !trimestreVal) { 
+            controles.forEach(b => b.disabled = true); 
+            document.getElementById('contenedorTabla').innerHTML = '<div class="py-4 text-muted text-center">Seleccione Curso y Trimestre para generar el Acta.</div>'; 
+            return; 
+        }
+        if (accActaJunta) accActaJunta.classList.remove('d-none');
+        controles.forEach(b => b.disabled = false);
+        cargarVistaActaJunta(); 
+        return;
+      }
 
       if (modo === 'auditoria') { cargarVistaAuditoria(); return; }
       if (modo === 'nomina') { if (accNomina) accNomina.classList.remove('d-none'); cargarVistaNomina(); return; }
