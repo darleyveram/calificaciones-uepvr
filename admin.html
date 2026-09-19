@@ -98,6 +98,7 @@
             <li class="nav-item"><a href="#" class="nav-link" id="nav-titulos" onclick="mostrarModulo('titulos', this)"><i class="bi bi-mortarboard me-2"></i> Títulos Académicos</a></li>
             <li class="nav-item"><a href="#" class="nav-link" id="nav-actividades" onclick="mostrarModulo('actividades', this)"><i class="bi bi-list-check me-2"></i> Actividades</a></li>
             <li class="nav-item"><a href="#" class="nav-link" id="nav-control" onclick="mostrarModulo('control', this)"><i class="bi bi-lock-fill me-2"></i> Control de Notas</a></li>
+            <li class="nav-item"><a class="nav-link text-white cursor-pointer" id="btnMenuJuntas" onclick="mostrarSeccion('sec-juntas', this)"><i class="bi bi-calendar2-week me-2"></i> Datos de Juntas</a></li>
           </ul>
           
           <div class="mt-auto pt-4 border-top border-secondary w-100">
@@ -504,6 +505,72 @@
       </div>
     </div>
   </div>
+
+  <!-- SECCIÓN: DATOS DE JUNTAS -->
+<div id="sec-juntas" class="seccion-admin d-none">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <h4 class="fw-bold text-dark mb-0">Datos de Juntas y Reportes</h4>
+      <small class="text-muted">Configure secretarios, horarios y fechas para la generación de PDFs.</small>
+    </div>
+    <button class="btn btn-primary fw-bold px-4 shadow-sm" onclick="guardarDatosJuntas()">
+      <i class="bi bi-save me-2"></i>Guardar Juntas
+    </button>
+  </div>
+
+  <div class="card shadow-sm border-0 mb-3">
+    <div class="card-body bg-light">
+      <div class="row g-3 align-items-end">
+        <div class="col-md-4">
+          <label class="form-label fw-bold small text-primary">Trimestre / Ciclo</label>
+          <select id="juntaTrimestre" class="form-select fw-bold" onchange="validarFiltrosJunta()">
+            <option value="1">1er Trimestre</option>
+            <option value="2">2do Trimestre</option>
+            <option value="3">3er Trimestre</option>
+            <option value="4">Supletorios</option>
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-bold small text-primary">Evaluación / Parcial</label>
+          <select id="juntaParcial" class="form-select fw-bold">
+            <option value="1">1er Parcial</option>
+            <option value="2">2do Parcial</option>
+            <option value="3">Resumen Trimestral</option>
+          </select>
+        </div>
+        <div class="col-md-4">
+          <button class="btn btn-success w-100 fw-bold shadow-sm" onclick="cargarTablaJuntas()">
+            <i class="bi bi-search me-2"></i> Cargar Lista de Cursos
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card shadow-sm border-0">
+    <div class="table-responsive" style="max-height: 55vh; overflow-y: auto;">
+      <table class="table table-bordered table-hover align-middle text-center mb-0" style="font-size: 0.78rem;">
+        <thead class="table-dark sticky-top">
+          <tr>
+            <th style="min-width: 150px;">CURSO</th>
+            <th style="min-width: 150px;">TUTOR</th>
+            <th style="min-width: 160px;">SECRETARIO/A</th>
+            <th style="min-width: 140px;">INSPECTOR/A</th>
+            <th style="width: 100px;">SECCIÓN</th>
+            <th style="width: 120px;">FECHA</th>
+            <th style="width: 90px;">INICIO</th>
+            <th style="width: 90px;">FIN</th>
+          </tr>
+        </thead>
+        <tbody id="tablaJuntasCuerpo">
+          <tr>
+            <td colspan="8" class="py-5 text-muted fw-bold">Seleccione Trimestre y Parcial, y haga clic en "Cargar Lista de Cursos"</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
 
   <!-- MODAL ESTUDIANTE -->
   <div class="modal fade" id="modalEstudianteFicha" tabindex="-1" aria-hidden="true">
@@ -2266,6 +2333,133 @@
         btn.disabled = false;
         btn.innerHTML = '<i class="bi bi-save me-1"></i> Actualizar Clave';
       }
+    }
+    let perfilesMemoriaJuntas = []; // Para llenar los selectores de Secretarios
+
+    // Bloquear Parcial si es Supletorios
+    function validarFiltrosJunta() {
+        const trim = document.getElementById('juntaTrimestre').value;
+        const parcialSelect = document.getElementById('juntaParcial');
+        
+        if (trim === '4') { // Si es Supletorios
+            parcialSelect.value = '3'; // Forzamos a un valor único interno
+            parcialSelect.disabled = true;
+        } else {
+            parcialSelect.disabled = false;
+        }
+    }
+
+    // Cargar la tabla con la lista de cursos
+    async function cargarTablaJuntas() {
+        const btn = document.querySelector('button[onclick="cargarTablaJuntas()"]');
+        const originalHtml = btn.innerHTML;
+        btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Cargando...';
+        
+        const tbody = document.getElementById('tablaJuntasCuerpo');
+        const trim = document.getElementById('juntaTrimestre').value;
+        const parc = document.getElementById('juntaParcial').value;
+
+        try {
+            // 1. Obtener Perfiles (Docentes) para el select de Secretarios y Tutores
+            const { data: perfiles } = await supabaseClient.from('perfiles').select('id, titulo, nombres, apellidos').order('nombres');
+            perfilesMemoriaJuntas = perfiles || [];
+            
+            // 2. Obtener Cursos
+            const { data: cursos } = await supabaseClient.from('cursos').select('id, nombre, tutor_id').order('nombre');
+            
+            // 3. Obtener configuración existente de Juntas
+            const { data: juntasGuardadas } = await supabaseClient.from('juntas_config')
+                .select('*')
+                .eq('trimestre', trim)
+                .eq('parcial', parc);
+            
+            const juntasMap = {};
+            (juntasGuardadas || []).forEach(j => { juntasMap[j.curso_id] = j; });
+
+            if (!cursos || cursos.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="text-danger fw-bold py-4">No hay cursos registrados.</td></tr>';
+                return;
+            }
+
+            // Construir las opciones del selector de Secretarios
+            const opcionesSecretarios = perfilesMemoriaJuntas.map(p => 
+                `<option value="${p.id}">${p.titulo || ''} ${p.nombres} ${p.apellidos || ''}</option>`
+            ).join('');
+
+            // Dibujar la tabla
+            tbody.innerHTML = cursos.map(c => {
+                const j = juntasMap[c.id] || {}; // Datos guardados previamente si existen
+                
+                // Buscar nombre del tutor
+                const tutorObj = perfilesMemoriaJuntas.find(p => p.id === c.tutor_id);
+                const nombreTutor = tutorObj ? `${tutorObj.titulo || ''} ${tutorObj.nombres} ${tutorObj.apellidos || ''}`.trim() : '<span class="text-danger">Sin Tutor</span>';
+
+                return `
+                <tr data-curso-id="${c.id}">
+                    <td class="fw-bold text-start bg-light" style="font-size:0.75rem;">${c.nombre}</td>
+                    <td class="text-start text-muted bg-light" style="font-size:0.75rem;">${nombreTutor}</td>
+                    <td>
+                        <select class="form-select form-select-sm j-sec">
+                            <option value="">Seleccione Secretario/a...</option>
+                            ${opcionesSecretarios}
+                        </select>
+                        <!-- Pequeño script incrustado para autoseleccionar si ya estaba guardado -->
+                        <script>document.currentScript.previousElementSibling.value = "${j.secretario_id || ''}";<\/script>
+                    </td>
+                    <td><input type="text" class="form-control form-control-sm j-insp" placeholder="Ej. Lcda. Solange Saltos" value="${j.inspector_nombre || 'LCDA. SOLANGE SALTOS GILER'}"></td>
+                    <td>
+                        <select class="form-select form-select-sm j-secc">
+                            <option value="MATUTINA" ${j.seccion === 'MATUTINA' ? 'selected' : ''}>MATUTINA</option>
+                            <option value="VESPERTINA" ${j.seccion === 'VESPERTINA' ? 'selected' : (!j.seccion && c.nombre.includes('BÁSICA') ? 'selected' : '')}>VESPERTINA</option>
+                        </select>
+                    </td>
+                    <td><input type="date" class="form-control form-control-sm j-fecha" value="${j.fecha || ''}"></td>
+                    <td><input type="time" class="form-control form-control-sm j-ini" value="${j.hora_inicio || ''}"></td>
+                    <td><input type="time" class="form-control form-control-sm j-fin" value="${j.hora_fin || ''}"></td>
+                </tr>`;
+            }).join('');
+
+        } catch (err) {
+            alert("Error cargando los datos: " + err.message);
+        } finally {
+            btn.disabled = false; btn.innerHTML = originalHtml;
+        }
+    }
+
+    // Guardar los datos en la base de datos
+    async function guardarDatosJuntas() {
+        const trim = document.getElementById('juntaTrimestre').value;
+        const parc = document.getElementById('juntaParcial').value;
+        const filas = document.querySelectorAll('#tablaJuntasCuerpo tr[data-curso-id]');
+        
+        if (filas.length === 0) return alert("Primero cargue la lista de cursos.");
+
+        const payload = [];
+        filas.forEach(tr => {
+            const cursoId = tr.getAttribute('data-curso-id');
+            const secId = tr.querySelector('.j-sec').value;
+            
+            payload.push({
+                curso_id: parseInt(cursoId),
+                trimestre: parseInt(trim),
+                parcial: parseInt(parc),
+                secretario_id: secId ? secId : null,
+                inspector_nombre: tr.querySelector('.j-insp').value.trim(),
+                seccion: tr.querySelector('.j-secc').value,
+                fecha: tr.querySelector('.j-fecha').value || null,
+                hora_inicio: tr.querySelector('.j-ini').value || null,
+                hora_fin: tr.querySelector('.j-fin').value || null
+            });
+        });
+
+        try {
+            // Upsert (Actualiza si existe, inserta si no existe)
+            const { error } = await supabaseClient.from('juntas_config').upsert(payload, { onConflict: 'curso_id,trimestre,parcial' });
+            if (error) throw error;
+            alert("¡Datos de Juntas guardados correctamente!");
+        } catch (err) {
+            alert("Error al guardar: " + err.message);
+        }
     }
   </script>
 </body>
