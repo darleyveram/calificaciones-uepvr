@@ -996,7 +996,7 @@
         if (document.getElementById('selectTrimestre').value === 'anual') document.getElementById('selectTrimestre').value = '1';
         
         // AQUÍ SE AGREGA LA OPCIÓN 3 PARA EXÁMENES PENDIENTES
-        document.getElementById('selectParcialAsistencia').innerHTML = '<option value="" selected>Seleccione...</option><option value="1">1er Parcial</option><option value="2">2do Parcial</option><option value="3">Exámenes Pendientes</option>';
+        document.getElementById('selectParcialAsistencia').innerHTML = '<option value="" selected>Seleccione...</option><option value="1">1er Parcial</option><option value="2">2do Parcial</option><option value="3">Resumen Trimestral</option>';
         
         const cursosMap = new Map();
         todasAsignaciones.forEach(a => { if (a.cursos) cursosMap.set(String(a.cursos.id), a.cursos.nombre); });
@@ -5568,6 +5568,7 @@
             let trimMap = {};
             let nP1 = [];
             let nP2 = [];
+          let compT = [];
 
             if (!isExamenes) {
                 // Parcial 1 o 2
@@ -5587,6 +5588,8 @@
                 
                 const resP2 = await supabaseClient.from('notas_parcial_actividades').select('estudiante_id, nota_parcial, recomendacion').eq('asignacion_id', parseInt(asigId)).eq('trimestre', trimestre).eq('parcial', 2);
                 nP2 = resP2.data || [];
+              const resComp = await supabaseClient.from('comportamiento_parcial').select('estudiante_id, parcial, total_cuantitativo').eq('curso_id', parseInt(cursoId)).eq('trimestre', trimestre);
+compT = resComp.data || [];
             }
 
             let html = '';
@@ -5630,44 +5633,65 @@
                   </table>
                 `;
             } else {
+                // VISTA PARA RESUMEN TRIMESTRAL
                 html = `
                   <div class="alert alert-warning shadow-sm mb-3 text-dark">
-                     <i class="bi bi-exclamation-triangle-fill me-2"></i><strong>Resumen de Exámenes Pendientes:</strong> (La calificación del examen se ingresa en el módulo "Calificaciones Académicas").
+                     <i class="bi bi-exclamation-triangle-fill me-2"></i><strong>Resumen Trimestral:</strong> Historial académico y de comportamiento. Solo se habilitará el "Motivo" si la nota del examen es 0 o está vacía.
                   </div>
                   <table class="table table-bordered table-sm align-middle text-center" style="font-size: 0.75rem;">
                     <thead class="table-dark sticky-top">
                         <tr>
                             <th class="sticky-col-num">N°</th>
                             <th class="sticky-col-nombre text-start">Nómina del Estudiante</th>
-                            <th class="text-start">Dificultades Previas (P1 y P2)</th>
+                            <th style="width: 70px;">Promedio<br>(P1+P2)</th>
+                            <th class="text-start">Recomendaciones Académicas Previas</th>
+                            <th style="width: 120px;">Alertas de<br>Comportamiento</th>
                             <th style="width: 80px;" class="bg-primary text-white">Nota<br>Examen</th>
-                            <th class="bg-primary text-white" style="width: 250px;">Motivo Examen Pendiente</th>
+                            <th class="bg-primary text-white" style="width: 200px;">Motivo Examen Pendiente</th>
                         </tr>
                     </thead>
                     <tbody id="tablaCuerpoInformeParcial">
                         ${estudiantesListGlobalInf.map((est, i) => {
                             const t = trimMap[est.id] || {};
-                            
                             const p1 = nP1.find(x => x.estudiante_id === est.id) || {};
                             const p2 = nP2.find(x => x.estudiante_id === est.id) || {};
-                            let alertas = [];
-                            if (p1.nota_parcial !== undefined && parseFloat(p1.nota_parcial) < 7) alertas.push(`P1 (${parseFloat(p1.nota_parcial).toFixed(2)}):${p1.recomendacion || 'Sin rec.'}`);
-                            if (p2.nota_parcial !== undefined && parseFloat(p2.nota_parcial) < 7) alertas.push(`P2 (${parseFloat(p2.nota_parcial).toFixed(2)}):${p2.recomendacion || 'Sin rec.'}`);
-                            const textoAlertas = alertas.length > 0 ? alertas.join('<br>') : '<span class="text-success fst-italic">Sin alertas en el trimestre</span>';
+                            
+                            // 1. Promedio
+                            const n1 = parseFloat(p1.nota_parcial) || 0;
+                            const n2 = parseFloat(p2.nota_parcial) || 0;
+                            const promParciales = ((n1 + n2) / 2).toFixed(2);
 
+                            // 2. Alertas Académicas
+                            let alertas = [];
+                            if (p1.nota_parcial !== undefined && n1 < 7) alertas.push(`P1 (${n1.toFixed(2)}):${p1.recomendacion || 'Sin rec.'}`);
+                            if (p2.nota_parcial !== undefined && n2 < 7) alertas.push(`P2 (${n2.toFixed(2)}):${p2.recomendacion || 'Sin rec.'}`);
+                            const textoAlertas = alertas.length > 0 ? alertas.join('<br>') : '<span class="text-success fst-italic">Sin novedades</span>';
+
+                            // 3. Alertas Comportamiento (< 7)
+                            const misComp = compT.filter(c => c.estudiante_id === est.id);
+                            let alertasComp = [];
+                            misComp.forEach(c => {
+                                const valC = parseFloat(c.total_cuantitativo);
+                                if (valC < 7) alertasComp.push(`P${c.parcial}: ${valC.toFixed(2)} (${convertirCualitativo(valC)})`);
+                            });
+                            const textoComp = alertasComp.length > 0 ? alertasComp.join('<br>') : '<span class="text-success fst-italic">Normal</span>';
+
+                            // 4. Examen
                             const exNum = parseFloat(t.examen);
                             const tieneEx = !isNaN(exNum) && t.examen !== '';
                             const isPendiente = !tieneEx || exNum === 0;
                             const exVal = tieneEx ? exNum.toFixed(2) : '-';
-                            const reqExAttr = isPendiente ? '' : 'disabled placeholder="Examen rendido (No requiere motivo)"';
+                            const reqExAttr = isPendiente ? '' : 'disabled placeholder="Examen rendido"';
 
                             return `
                             <tr data-est-id="${est.id}">
                                 <td class="sticky-col-num text-muted fw-bold">${i + 1}</td>
                                 <td class="sticky-col-nombre text-start">${formatearNombreVisual(est.nombres)}</td>
+                                <td class="fw-bold ${obtenerClaseColor(promParciales, true)}">${promParciales}</td>
                                 <td class="text-start" style="font-size: 0.7rem; white-space: pre-wrap;">${textoAlertas}</td>
+                                <td class="fw-bold text-danger" style="font-size: 0.7rem;">${textoComp}</td>
                                 <td class="fw-bold ${!isPendiente ? 'text-success' : 'text-danger'} fs-6">${exVal}</td>
-                                <td><input type="text" class="form-control form-control-sm inf-motivo" value="${t.motivo_examen_pendiente || ''}" ${reqExAttr}></td>
+                                <td><input type="text" class="form-control form-control-sm inf-motivo" value="${t.motivo_examen_pendiente \vert{}\vert{} ''}" ${reqExAttr}></td>
                             </tr>`;
                         }).join('')}
                     </tbody>
@@ -5848,27 +5872,31 @@
                 currentY = doc.lastAutoTable.finalY + 8;
 
             } else {
-                // PDF DE EXÁMENES PENDIENTES
+                // PDF DE RESUMEN TRIMESTRAL
                 const tbEx = [];
                 document.querySelectorAll('#tablaCuerpoInformeParcial tr').forEach(tr => {
                     const nom = tr.querySelector('.sticky-col-nombre').innerText;
+                    const promP = tr.cells[2].innerText.trim();
+                    const recPrev = tr.cells[3].innerText.trim();
+                    const compAlert = tr.cells[4].innerText.trim();
+                    const notaEx = tr.cells[5].innerText.trim();
                     const inputMotivo = tr.querySelector('.inf-motivo');
                     
-                    if (!inputMotivo.disabled) {
-                        const resumenPrevio = tr.cells[2].innerText.trim();
-                        const notaEx = tr.cells[3].innerText.trim();
-                        tbEx.push([nom, resumenPrevio, notaEx, inputMotivo.value.trim() || 'Motivo no registrado']);
+                    // Condición: Si el estudiante tiene cualquier alerta académica, de comportamiento o un examen pendiente
+                    if (recPrev !== 'Sin novedades' || compAlert !== 'Normal' || !inputMotivo.disabled) {
+                        const motivo = !inputMotivo.disabled ? (inputMotivo.value.trim() || 'Motivo no registrado') : 'N/A';
+                        tbEx.push([nom, promP, recPrev, compAlert, notaEx, motivo]);
                     }
                 });
 
-                doc.setFont('helvetica', 'bold'); doc.text('Exámenes Pendientes e Historial de Dificultades:', 20, currentY);
+                doc.setFont('helvetica', 'bold'); doc.text('Resumen Trimestral de Novedades (Académico, Comportamiento y Examen):', 20, currentY);
                 doc.autoTable({
                     startY: currentY + 3,
-                    head: [['Nómina', 'Dificultades Previas (Parciales)', 'Nota Examen', 'Motivo del Examen Pendiente']],
-                    body: tbEx.length > 0 ? tbEx : [['N/A', '-', '-', 'No se registran estudiantes con exámenes pendientes']],
-                    theme: 'grid', styles: { fontSize: 7.5, cellPadding: 1.5, valign: 'middle' },
+                    head: [['Nómina', 'Promedio\n(P1+P2)', 'Recomendaciones\nPrevias', 'Alertas de\nComportamiento', 'Examen', 'Motivo (Si aplica)']],
+                    body: tbEx.length > 0 ? tbEx : [['N/A', '-', 'Sin novedades', 'Normal', '-', 'No se registran estudiantes con alertas ni exámenes pendientes']],
+                    theme: 'grid', styles: { fontSize: 7, cellPadding: 1.5, valign: 'middle' },
                     headStyles: { fillColor: [241, 245, 249], textColor: [15, 23, 42] },
-                    columnStyles: { 0: { cellWidth: 40 }, 1: { cellWidth: 55 }, 2: { cellWidth: 15, halign: 'center' }, 3: { cellWidth: 60 } }
+                    columnStyles: { 0: { cellWidth: 35 }, 1: { cellWidth: 15, halign: 'center' }, 2: { cellWidth: 45 }, 3: { cellWidth: 25 }, 4: { cellWidth: 15, halign: 'center' }, 5: { cellWidth: 35 } }
                 });
                 currentY = doc.lastAutoTable.finalY + 10;
             }
