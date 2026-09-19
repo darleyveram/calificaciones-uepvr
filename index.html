@@ -995,6 +995,9 @@
         
         if (document.getElementById('selectTrimestre').value === 'anual') document.getElementById('selectTrimestre').value = '1';
         
+        // AQUÍ SE AGREGA LA OPCIÓN 3 PARA EXÁMENES PENDIENTES
+        document.getElementById('selectParcialAsistencia').innerHTML = '<option value="" selected>Seleccione...</option><option value="1">1er Parcial</option><option value="2">2do Parcial</option><option value="3">Exámenes Pendientes</option>';
+        
         const cursosMap = new Map();
         todasAsignaciones.forEach(a => { if (a.cursos) cursosMap.set(String(a.cursos.id), a.cursos.nombre); });
         selectCurso.innerHTML = '<option value="">Seleccione curso...</option>' + Array.from(cursosMap).map(([id, nombre]) => `<option value="${id}">${nombre}</option>`).join('');
