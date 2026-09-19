@@ -502,6 +502,7 @@
           </div>
         </div>
           <!-- SECCIÓN: DATOS DE JUNTAS -->
+<!-- SECCIÓN: DATOS DE JUNTAS -->
 <div class="modulo d-none" id="mod-juntas">
   <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
@@ -516,27 +517,24 @@
   <div class="card shadow-sm border-0 mb-3">
     <div class="card-body bg-light">
       <div class="row g-3 align-items-end">
-        <div class="col-md-4">
+        <div class="col-md-6">
           <label class="form-label fw-bold small text-primary">Trimestre / Ciclo</label>
-          <select id="juntaTrimestre" class="form-select fw-bold" onchange="validarFiltrosJunta()">
+          <!-- Agregamos cargarTablaJuntas() al cambiar de opción -->
+          <select id="juntaTrimestre" class="form-select fw-bold" onchange="validarFiltrosJunta(); cargarTablaJuntas();">
             <option value="1">1er Trimestre</option>
             <option value="2">2do Trimestre</option>
             <option value="3">3er Trimestre</option>
             <option value="4">Supletorios</option>
           </select>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-6">
           <label class="form-label fw-bold small text-primary">Evaluación / Parcial</label>
-          <select id="juntaParcial" class="form-select fw-bold">
+          <!-- Agregamos cargarTablaJuntas() al cambiar de opción -->
+          <select id="juntaParcial" class="form-select fw-bold" onchange="cargarTablaJuntas()">
             <option value="1">1er Parcial</option>
             <option value="2">2do Parcial</option>
             <option value="3">Resumen Trimestral</option>
           </select>
-        </div>
-        <div class="col-md-4">
-          <button class="btn btn-success w-100 fw-bold shadow-sm" onclick="cargarTablaJuntas()">
-            <i class="bi bi-search me-2"></i> Cargar Lista de Cursos
-          </button>
         </div>
       </div>
     </div>
@@ -545,21 +543,22 @@
   <div class="card shadow-sm border-0">
     <div class="table-responsive" style="max-height: 55vh; overflow-y: auto;">
       <table class="table table-bordered table-hover align-middle text-center mb-0" style="font-size: 0.78rem;">
-        <thead class="table-dark sticky-top">
+        <!-- Se fuerza el fondo oscuro y texto blanco -->
+        <thead class="bg-dark text-white sticky-top" style="z-index: 2;">
           <tr>
-            <th style="min-width: 150px;">CURSO</th>
-            <th style="min-width: 150px;">TUTOR</th>
-            <th style="min-width: 160px;">SECRETARIO/A</th>
-            <th style="min-width: 140px;">INSPECTOR/A</th>
-            <th style="width: 100px;">SECCIÓN</th>
-            <th style="width: 120px;">FECHA</th>
-            <th style="width: 90px;">INICIO</th>
-            <th style="width: 90px;">FIN</th>
+            <th class="text-white bg-dark" style="min-width: 150px;">CURSO</th>
+            <th class="text-white bg-dark" style="min-width: 150px;">TUTOR</th>
+            <th class="text-white bg-dark" style="min-width: 160px;">SECRETARIO/A</th>
+            <th class="text-white bg-dark" style="min-width: 140px;">INSPECTOR/A</th>
+            <th class="text-white bg-dark" style="width: 100px;">SECCIÓN</th>
+            <th class="text-white bg-dark" style="width: 120px;">FECHA</th>
+            <th class="text-white bg-dark" style="width: 90px;">INICIO</th>
+            <th class="text-white bg-dark" style="width: 90px;">FIN</th>
           </tr>
         </thead>
         <tbody id="tablaJuntasCuerpo">
           <tr>
-            <td colspan="8" class="py-5 text-muted fw-bold">Seleccione Trimestre y Parcial, y haga clic en "Cargar Lista de Cursos"</td>
+            <td colspan="8" class="py-5 text-muted fw-bold">Cargando cursos...</td>
           </tr>
         </tbody>
       </table>
@@ -1195,6 +1194,7 @@
       if (id === 'titulos') cargarTitulos();
       if (id === 'actividades') cargarActividades();
       if (id === 'control') cargarControlAccesos();
+      if (id === 'juntas') cargarTablaJuntas(); // <--- LÍNEA NUEVA
     }
 
     async function verificarSesion() {
@@ -2352,23 +2352,18 @@
 
     // Cargar la tabla con la lista de cursos
     async function cargarTablaJuntas() {
-        const btn = document.querySelector('button[onclick="cargarTablaJuntas()"]');
-        const originalHtml = btn.innerHTML;
-        btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Cargando...';
-        
         const tbody = document.getElementById('tablaJuntasCuerpo');
+        tbody.innerHTML = '<tr><td colspan="8" class="py-5 text-center"><span class="spinner-border text-primary me-2"></span>Cargando datos...</td></tr>';
+        
         const trim = document.getElementById('juntaTrimestre').value;
         const parc = document.getElementById('juntaParcial').value;
 
         try {
-            // 1. Obtener Perfiles (Docentes) para el select de Secretarios y Tutores
             const { data: perfiles } = await supabaseClient.from('perfiles').select('id, titulo, nombres, apellidos').order('nombres');
             perfilesMemoriaJuntas = perfiles || [];
             
-            // 2. Obtener Cursos
             const { data: cursos } = await supabaseClient.from('cursos').select('id, nombre, tutor_id').order('nombre');
             
-            // 3. Obtener configuración existente de Juntas
             const { data: juntasGuardadas } = await supabaseClient.from('juntas_config')
                 .select('*')
                 .eq('trimestre', trim)
@@ -2382,16 +2377,12 @@
                 return;
             }
 
-            // Construir las opciones del selector de Secretarios
             const opcionesSecretarios = perfilesMemoriaJuntas.map(p => 
                 `<option value="${p.id}">${p.titulo || ''} ${p.nombres} ${p.apellidos || ''}</option>`
             ).join('');
 
-            // Dibujar la tabla
             tbody.innerHTML = cursos.map(c => {
-                const j = juntasMap[c.id] || {}; // Datos guardados previamente si existen
-                
-                // Buscar nombre del tutor
+                const j = juntasMap[c.id] || {}; 
                 const tutorObj = perfilesMemoriaJuntas.find(p => p.id === c.tutor_id);
                 const nombreTutor = tutorObj ? `${tutorObj.titulo || ''} ${tutorObj.nombres} ${tutorObj.apellidos || ''}`.trim() : '<span class="text-danger">Sin Tutor</span>';
 
@@ -2404,7 +2395,6 @@
                             <option value="">Seleccione Secretario/a...</option>
                             ${opcionesSecretarios}
                         </select>
-                        <!-- Pequeño script incrustado para autoseleccionar si ya estaba guardado -->
                         <script>document.currentScript.previousElementSibling.value = "${j.secretario_id || ''}";<\/script>
                     </td>
                     <td><input type="text" class="form-control form-control-sm j-insp" placeholder="Ej. Lcda. Solange Saltos" value="${j.inspector_nombre || 'LCDA. SOLANGE SALTOS GILER'}"></td>
@@ -2422,8 +2412,6 @@
 
         } catch (err) {
             alert("Error cargando los datos: " + err.message);
-        } finally {
-            btn.disabled = false; btn.innerHTML = originalHtml;
         }
     }
 
