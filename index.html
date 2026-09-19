@@ -5650,7 +5650,7 @@
                             let alertas = [];
                             if (p1.nota_parcial !== undefined && parseFloat(p1.nota_parcial) < 7) alertas.push(`P1 (${parseFloat(p1.nota_parcial).toFixed(2)}):${p1.recomendacion || 'Sin rec.'}`);
                             if (p2.nota_parcial !== undefined && parseFloat(p2.nota_parcial) < 7) alertas.push(`P2 (${parseFloat(p2.nota_parcial).toFixed(2)}):${p2.recomendacion || 'Sin rec.'}`);
-                            const textoAlertas = alertas.length > 0 ? alertas.join('\n') : '<span class="text-success fst-italic">Sin alertas en el trimestre</span>';
+                            const textoAlertas = alertas.length > 0 ? alertas.join('<br>') : '<span class="text-success fst-italic">Sin alertas en el trimestre</span>';
 
                             const exNum = parseFloat(t.examen);
                             const tieneEx = !isNaN(exNum) && t.examen !== '';
@@ -5664,7 +5664,7 @@
                                 <td class="sticky-col-nombre text-start">${formatearNombreVisual(est.nombres)}</td>
                                 <td class="text-start" style="font-size: 0.7rem; white-space: pre-wrap;">${textoAlertas}</td>
                                 <td class="fw-bold ${!isPendiente ? 'text-success' : 'text-danger'} fs-6">${exVal}</td>
-                                <td><input type="text" class="form-control form-control-sm inf-motivo" value="${t.motivo_examen_pendiente \vert{}\vert{} ''}" ${reqExAttr}></td>
+                                <td><input type="text" class="form-control form-control-sm inf-motivo" value="${t.motivo_examen_pendiente || ''}" ${reqExAttr}></td>
                             </tr>`;
                         }).join('')}
                     </tbody>
