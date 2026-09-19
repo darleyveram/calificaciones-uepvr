@@ -125,7 +125,7 @@
       </div>
       <div class="card-footer bg-light text-center py-2 text-muted small">
         <span class="header-dir-inst">Pichincha - Manabí - Ecuador</span><br>
-        <span style="font-size: 0.6rem; opacity: 0.5;">v1.0.24</span>
+        <span style="font-size: 0.6rem; opacity: 0.5;">v1.0.25</span>
       </div>
     </div>
   </div>
@@ -5789,40 +5789,47 @@
             }
 
             const imgLogoIzq = await obtenerBase64DesdeUrl(infoInstitucion?.logo_izquierdo || infoInstitucion?.logo_institucion);
+            const imgLogoDer = await obtenerBase64DesdeUrl(infoInstitucion?.logo_derecho || infoInstitucion?.escudo_nacional);
 
-            if (imgLogoIzq) doc.addImage(imgLogoIzq, 'PNG', 95, 10, 20, 25);
-            doc.setFont('helvetica', 'italic'); doc.setFontSize(10); doc.setTextColor(30, 64, 175);
-            doc.text(`"Educación de calidad para la vida, en paz y en democracia"`, 105, 42, { align: 'center' });
-            doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.setTextColor(0, 0, 0);
-            doc.text('UNIDAD EDUCATIVA', 105, 48, { align: 'center' });
-            doc.text('"VICENTE ROCAFUERTE"', 105, 53, { align: 'center' });
-            doc.setFont('helvetica', 'normal'); doc.setFontSize(8);
-            doc.text('Cantón Pichincha - Manabí - Ecuador', 105, 58, { align: 'center' });
-            doc.text('Correo: 13H03021@educacion.gob.ec | Código AMIE: 13H03021 | Teléfono: 05 2323232', 105, 62, { align: 'center' });
+            // CABECERA OFICIAL CON DOS LOGOS
+            if (imgLogoIzq) { try { doc.addImage(imgLogoIzq, 'PNG', 14, 10, 20, 20); } catch(e){} }
+            if (imgLogoDer) { try { doc.addImage(imgLogoDer, 'PNG', 176, 10, 20, 20); } catch(e){} }
+
+            const nomArriba = (infoInstitucion?.nombre_arriba || 'UNIDAD EDUCATIVA PARTICULA').toUpperCase();
+            const nomAbajo = (infoInstitucion?.nombre_abajo || '"VICENTE ROCAFUERTE"').toUpperCase();
+
+            doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.setTextColor(30, 41, 59);
+            doc.text(nomArriba, 105, 15, { align: 'center' });
+            doc.setFontSize(14); doc.text(nomAbajo, 105, 21, { align: 'center' });
+            doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(71, 85, 105);
+            doc.text('Cantón Pichincha - Manabí - Ecuador', 105, 26, { align: 'center' });
+            doc.text('Correo: 13H03021@educacion.gob.ec | Código AMIE: 13H03021 | Teléfono: 05 2323232', 105, 30, { align: 'center' });
             
-            doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
+            doc.setDrawColor(200, 200, 200); doc.line(14, 34, 196, 34);
+
+            doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(15, 23, 42);
             if (!isExamenes) {
-                doc.text(`INFORME DEL ${txtParcial} PARCIAL DEL ${txtTrimestre} TRIMESTRE`, 105, 72, { align: 'center' });
+                doc.text(`INFORME DEL ${txtParcial} PARCIAL DEL ${txtTrimestre} TRIMESTRE`, 105, 42, { align: 'center' });
             } else {
-                doc.text(`INFORME DE RESUMEN TRIMESTRAL DEL ${txtTrimestre} TRIMESTRE`, 105, 72, { align: 'center' });
+                doc.text(`INFORME DE RESUMEN TRIMESTRAL DEL ${txtTrimestre} TRIMESTRE`, 105, 42, { align: 'center' });
             }
 
             const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
             const hoy = new Date(); const dia = hoy.getDate(); const mes = meses[hoy.getMonth()]; const anio = hoy.getFullYear(); const hora = hoy.getHours() + ':' + String(hoy.getMinutes()).padStart(2, '0');
             
             const parrafoInicio = `En el cantón Pichincha, a los ${dia} días del mes de ${mes} del ${anio}, siendo las ${hora} en la sala de sesiones de la Unidad Educativa Particular "Vicente Rocafuerte" sección vespertina se inició la Junta de Cierre del ${!isExamenes ? txtParcial+' Parcial del ' : ''}${txtTrimestre} Trimestre de ${nomCurso} en la asignatura de: ${nomMateria} dirigida por el Tutor ${nomTutor} y la profesora de la asignatura, ${nomDocente}.`;
+            
             doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
-            const textLines = doc.splitTextToSize(parrafoInicio, 170);
-            doc.text(textLines, 20, 80);
+            // ALINEACIÓN PERFECTA: Texto justificado con márgenes 14 y ancho 182
+            doc.text(parrafoInicio, 14, 52, { maxWidth: 182, align: 'justify' });
+            let currentY = 52 + doc.getTextDimensions(parrafoInicio, { maxWidth: 182 }).h + 6;
 
             const parrafoIndicacion = !isExamenes 
                 ? `Resultados del análisis individual por estudiantes, detallamos solo los estudiantes que promedian PAR (está próximo alcanzar los aprendizajes requerido) y NAR (No alcanza los aprendizajes requeridos) de la escala de valoración Técnica.`
-                : `A continuación se detallan los estudiantes con alertas académicas, problemas de comportamiento, y exámenes pendientes o con calificación nula.`;
+                : `A continuación se detallan por separado los estudiantes con alertas académicas de bajo rendimiento, problemas o novedades de comportamiento, y exámenes pendientes o con calificación nula.`;
             
-            const indLines = doc.splitTextToSize(parrafoIndicacion, 170);
-            doc.text(indLines, 20, 85 + (textLines.length * 4));
-
-            let currentY = 90 + (textLines.length * 4) + (indLines.length * 4);
+            doc.text(parrafoIndicacion, 14, currentY, { maxWidth: 182, align: 'justify' });
+            currentY += doc.getTextDimensions(parrafoIndicacion, { maxWidth: 182 }).h + 8;
 
             if (!isExamenes) {
                 const tbNotas = [];
@@ -5838,14 +5845,15 @@
                     }
                 });
 
-                doc.setFont('helvetica', 'bold'); doc.text('Aprendizaje:', 20, currentY);
+                doc.setFont('helvetica', 'bold'); doc.text('Aprendizaje:', 14, currentY);
                 doc.autoTable({
                     startY: currentY + 3,
                     head: [['Nómina', 'Nota Cuant.', 'Nota Cualit.', 'Recomendaciones aplicables', 'Plan de mejoramiento académico']],
                     body: tbNotas.length > 0 ? tbNotas : [['N/A', '-', '-', 'No se registran estudiantes con promedios < 7', '-']],
                     theme: 'grid', styles: { fontSize: 7.5, cellPadding: 1.5, valign: 'middle' },
                     headStyles: { fillColor: [241, 245, 249], textColor: [15, 23, 42] },
-                    columnStyles: { 0: { cellWidth: 45 }, 1: { cellWidth: 15, halign: 'center' }, 2: { cellWidth: 15, halign: 'center' }, 3: { cellWidth: 47 }, 4: { cellWidth: 48 } }
+                    columnStyles: { 0: { cellWidth: 45 }, 1: { cellWidth: 15, halign: 'center' }, 2: { cellWidth: 15, halign: 'center' }, 3: { cellWidth: 53 }, 4: { cellWidth: 54 } },
+                    margin: { left: 14, right: 14 }
                 });
                 currentY = doc.lastAutoTable.finalY + 8;
 
@@ -5860,64 +5868,111 @@
                     }
                 });
 
-                doc.setFont('helvetica', 'bold'); doc.text('Comportamiento:', 20, currentY);
+                if (currentY > 240) { doc.addPage(); currentY = 20; }
+                doc.setFont('helvetica', 'bold'); doc.text('Comportamiento:', 14, currentY);
                 doc.autoTable({
                     startY: currentY + 3,
                     head: [['Nómina', 'Nota cuantitativa', 'Nota Equivalente']],
                     body: compList.length > 0 ? compList : [['N/A', '-', 'No se registran estudiantes con comportamiento C, D o E']],
                     theme: 'grid', styles: { fontSize: 7.5, cellPadding: 1.5, valign: 'middle' },
-                    headStyles: { fillColor: [241, 245, 249], textColor: [15, 23, 42] }
+                    headStyles: { fillColor: [241, 245, 249], textColor: [15, 23, 42] },
+                    margin: { left: 14, right: 14 }
                 });
                 currentY = doc.lastAutoTable.finalY + 8;
 
             } else {
-                // PDF DE RESUMEN TRIMESTRAL
-                const tbEx = [];
+                // PDF DE RESUMEN TRIMESTRAL (TRES TABLAS SEPARADAS)
+                const tbAcademico = [];
+                const tbComportamiento = [];
+                const tbExamenes = [];
+
                 document.querySelectorAll('#tablaCuerpoInformeParcial tr').forEach(tr => {
-                    const nom = tr.querySelector('.sticky-col-nombre').innerText;
+                    const nom = tr.querySelector('.sticky-col-nombre').innerText.trim();
                     const promP = tr.cells[2].innerText.trim();
                     const recPrev = tr.cells[3].innerText.trim();
                     const compAlert = tr.cells[4].innerText.trim();
                     const notaEx = tr.cells[5].innerText.trim();
                     const inputMotivo = tr.querySelector('.inf-motivo');
                     
-                    if (recPrev !== 'Sin novedades' || compAlert !== 'Normal' || !inputMotivo.disabled) {
-                        const motivo = !inputMotivo.disabled ? (inputMotivo.value.trim() || 'Motivo no registrado') : 'N/A';
-                        tbEx.push([nom, promP, recPrev, compAlert, notaEx, motivo]);
+                    // 1. Académico: Solo si tiene recomendaciones o si su promedio (P1+P2) < 7
+                    if (recPrev !== 'Sin novedades' || parseFloat(promP) < 7) {
+                        tbAcademico.push([nom, promP, recPrev]);
+                    }
+                    
+                    // 2. Comportamiento: Solo si la alerta de comportamiento no es "Normal"
+                    if (compAlert !== 'Normal') {
+                        tbComportamiento.push([nom, compAlert]);
+                    }
+                    
+                    // 3. Examen: Solo si está habilitado el input de motivo (nota = 0 o sin nota)
+                    if (!inputMotivo.disabled) {
+                        const motivo = inputMotivo.value.trim() || 'Motivo no registrado';
+                        tbExamenes.push([nom, notaEx, motivo]);
                     }
                 });
 
-                doc.setFont('helvetica', 'bold'); doc.text('Resumen Trimestral de Novedades (Académico, Comportamiento y Examen):', 20, currentY);
+                // TABLA 1: ACADÉMICO
+                if (currentY > 240) { doc.addPage(); currentY = 20; }
+                doc.setFont('helvetica', 'bold'); doc.text('1. Estudiantes con Bajo Rendimiento Académico:', 14, currentY);
                 doc.autoTable({
                     startY: currentY + 3,
-                    head: [['Nómina', 'Promedio\n(P1+P2)', 'Recomendaciones\nPrevias', 'Alertas de\nComportamiento', 'Examen', 'Motivo (Si aplica)']],
-                    body: tbEx.length > 0 ? tbEx : [['N/A', '-', 'Sin novedades', 'Normal', '-', 'No se registran estudiantes con alertas ni exámenes pendientes']],
+                    head: [['Nómina', 'Promedio\n(P1+P2)', 'Recomendaciones Previas']],
+                    body: tbAcademico.length > 0 ? tbAcademico : [['N/A', '-', 'No se registran estudiantes con bajo rendimiento']],
                     theme: 'grid', styles: { fontSize: 7, cellPadding: 1.5, valign: 'middle' },
                     headStyles: { fillColor: [241, 245, 249], textColor: [15, 23, 42] },
-                    columnStyles: { 0: { cellWidth: 35 }, 1: { cellWidth: 15, halign: 'center' }, 2: { cellWidth: 45 }, 3: { cellWidth: 25 }, 4: { cellWidth: 15, halign: 'center' }, 5: { cellWidth: 35 } }
+                    columnStyles: { 0: { cellWidth: 60 }, 1: { cellWidth: 20, halign: 'center' }, 2: { cellWidth: 102 } },
+                    margin: { left: 14, right: 14 }
                 });
-                currentY = doc.lastAutoTable.finalY + 10;
+                currentY = doc.lastAutoTable.finalY + 8;
+
+                // TABLA 2: COMPORTAMIENTO
+                if (currentY > 240) { doc.addPage(); currentY = 20; }
+                doc.setFont('helvetica', 'bold'); doc.text('2. Estudiantes con Novedades en Comportamiento:', 14, currentY);
+                doc.autoTable({
+                    startY: currentY + 3,
+                    head: [['Nómina', 'Alertas de Comportamiento']],
+                    body: tbComportamiento.length > 0 ? tbComportamiento : [['N/A', 'Todos los estudiantes presentan comportamiento normal']],
+                    theme: 'grid', styles: { fontSize: 7, cellPadding: 1.5, valign: 'middle' },
+                    headStyles: { fillColor: [241, 245, 249], textColor: [15, 23, 42] },
+                    columnStyles: { 0: { cellWidth: 60 }, 1: { cellWidth: 122 } },
+                    margin: { left: 14, right: 14 }
+                });
+                currentY = doc.lastAutoTable.finalY + 8;
+
+                // TABLA 3: EXÁMENES PENDIENTES
+                if (currentY > 240) { doc.addPage(); currentY = 20; }
+                doc.setFont('helvetica', 'bold'); doc.text('3. Estudiantes con Exámenes Pendientes (0 o Nulos):', 14, currentY);
+                doc.autoTable({
+                    startY: currentY + 3,
+                    head: [['Nómina', 'Nota Examen', 'Motivo (Si aplica)']],
+                    body: tbExamenes.length > 0 ? tbExamenes : [['N/A', '-', 'No se registran exámenes pendientes']],
+                    theme: 'grid', styles: { fontSize: 7, cellPadding: 1.5, valign: 'middle' },
+                    headStyles: { fillColor: [241, 245, 249], textColor: [15, 23, 42] },
+                    columnStyles: { 0: { cellWidth: 60 }, 1: { cellWidth: 20, halign: 'center' }, 2: { cellWidth: 102 } },
+                    margin: { left: 14, right: 14 }
+                });
+                currentY = doc.lastAutoTable.finalY + 12;
             }
 
-            // PIE Y FIRMAS (Igual para todos)
+            // PIE Y FIRMAS
             if (currentY > 240) { doc.addPage(); currentY = 30; }
             
             const horaFin = new Date(hoy.getTime() + 35*60000); 
             const horaFinTxt = horaFin.getHours() + ':' + String(horaFin.getMinutes()).padStart(2, '0');
             doc.setFont('helvetica', 'normal');
-            doc.text(`Siendo las ${horaFinTxt} del ${dia} de ${mes} del año lectivo ${periodo} se clausura la sesión:`, 20, currentY);
+            doc.text(`Siendo las ${horaFinTxt} del ${dia} de ${mes} del año lectivo ${periodo} se clausura la sesión:`, 14, currentY);
 
             currentY += 25;
             doc.setDrawColor(0); doc.setLineWidth(0.2);
-            doc.line(30, currentY, 90, currentY); doc.line(120, currentY, 180, currentY);
+            doc.line(24, currentY, 84, currentY); doc.line(126, currentY, 186, currentY);
             doc.setFontSize(8); doc.setFont('helvetica', 'bold');
-            doc.text(nomTutor, 60, currentY + 4, { align: 'center' }); doc.text('TUTOR DE CURSO', 60, currentY + 8, { align: 'center' });
-            doc.text(nomDocente, 150, currentY + 4, { align: 'center' }); doc.text('DOCENTE DE ASIGNATURA', 150, currentY + 8, { align: 'center' });
+            doc.text(nomTutor, 54, currentY + 4, { align: 'center' }); doc.text('TUTOR DE CURSO', 54, currentY + 8, { align: 'center' });
+            doc.text(nomDocente, 156, currentY + 4, { align: 'center' }); doc.text('DOCENTE DE ASIGNATURA', 156, currentY + 8, { align: 'center' });
 
             currentY += 25;
-            doc.line(30, currentY, 90, currentY); doc.line(120, currentY, 180, currentY);
-            doc.text('LCDA. SOLANGE SALTOS GILER', 60, currentY + 4, { align: 'center' }); doc.text('INSPECTORA GENERAL', 60, currentY + 8, { align: 'center' });
-            doc.text('ING. DÍDIMO SALTOS SABANDO', 150, currentY + 4, { align: 'center' }); doc.text('RECTOR', 150, currentY + 8, { align: 'center' });
+            doc.line(24, currentY, 84, currentY); doc.line(126, currentY, 186, currentY);
+            doc.text('LCDA. SOLANGE SALTOS GILER', 54, currentY + 4, { align: 'center' }); doc.text('INSPECTORA GENERAL', 54, currentY + 8, { align: 'center' });
+            doc.text('ING. DÍDIMO SALTOS SABANDO', 156, currentY + 4, { align: 'center' }); doc.text('RECTOR', 156, currentY + 8, { align: 'center' });
 
             const nombreArchivo = isExamenes ? `Resumen_Trimestral_${nomMateria.replace(/\s+/g, '_')}_T${trimestre}.pdf` : `Informe_Parcial_${parcial}_${nomMateria.replace(/\s+/g, '_')}_T${trimestre}.pdf`;
             doc.save(nombreArchivo);
