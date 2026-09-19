@@ -5691,7 +5691,7 @@
                                 <td class="text-start" style="font-size: 0.7rem; white-space: pre-wrap;">${textoAlertas}</td>
                                 <td class="fw-bold text-danger" style="font-size: 0.7rem;">${textoComp}</td>
                                 <td class="fw-bold ${!isPendiente ? 'text-success' : 'text-danger'} fs-6">${exVal}</td>
-                                <td><input type="text" class="form-control form-control-sm inf-motivo" value="${t.motivo_examen_pendiente \vert{}\vert{} ''}" ${reqExAttr}></td>
+                                <td><input type="text" class="form-control form-control-sm inf-motivo" value="${t.motivo_examen_pendiente || ''}" ${reqExAttr}></td>
                             </tr>`;
                         }).join('')}
                     </tbody>
