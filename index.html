@@ -167,6 +167,7 @@
             <select id="selectModo" class="form-select form-select-sm fw-bold border-primary text-primary" onchange="alCambiarModo()">
               <option value="calificaciones">📘 Calificaciones Académicas</option>
               <option value="informe_parcial" id="optModoInformeParcial" class="text-primary fw-bold">📝 Informe de Aprendizaje Parcial</option>
+              <option value="acta_junta" id="optModoActaJunta" class="text-primary fw-bold d-none">📝 Acta de Junta de Curso (Trimestral)</option>
               <option value="asistencia" id="optModoAsistencia" class="d-none">📅 Control Diario de Asistencia</option>
               <option value="comportamiento" id="optModoComportamiento" class="d-none">🤝 Evaluación de Comportamiento</option>
               <option value="tutoria" id="optModoTutoria" class="d-none">📊 Reportes y Libretas de Tutoría</option>
@@ -279,6 +280,11 @@
             <button class="btn btn-success btn-sm px-3 fw-bold btn-control" onclick="guardarInformeParcial()">💾 Guardar Informe</button>
             <button class="btn btn-danger btn-sm px-2 px-md-3 fw-bold btn-control ms-1" onclick="exportarInformeParcialPDF()"><i class="bi bi-file-pdf me-1"></i> Generar PDF Oficial</button>
           </div>
+
+          <div class="col-12 col-md-4 text-end pt-2 pt-md-3 d-none" id="accionesActaJunta">
+  <button class="btn btn-success btn-sm px-3 fw-bold btn-control" onclick="guardarTextosActa()"><i class="bi bi-save me-1"></i> Guardar Textos</button>
+  <button class="btn btn-danger btn-sm px-3 fw-bold btn-control ms-1" onclick="exportarActaJuntaPDF()"><i class="bi bi-file-pdf me-1"></i> Generar Acta PDF</button>
+</div>
 
          <div class="col-12 col-md-3 text-end pt-2 pt-md-3 d-none" id="accionesComportamiento">
             <button class="btn btn-outline-secondary btn-sm me-1 btn-control" onclick="llenarTodoCon10Comportamiento()" disabled><i class="bi bi-lightning-charge-fill"></i> Auto 10</button>
@@ -6000,6 +6006,352 @@
             doc.save(nombreArchivo);
         } catch (err) { alert('Error generando PDF: ' + err.message); } finally { btn.disabled = false; btn.innerHTML = '<i class="bi bi-file-pdf me-1"></i> Generar PDF Oficial'; }
     }
+    // 1. VARIABLE GLOBAL PARA LOS CURSOS DONDE SOY SECRETARIO
+let cursosSecretarioIds = [];
+
+// 2. ACTUALIZAR verificarSesion() PARA DETECTAR AL SECRETARIO
+// (Añade esto dentro de verificarSesion, justo después de cargar cursosTutor)
+const { data: misJuntas } = await supabaseClient.from('juntas_config').select('curso_id').eq('secretario_id', session.user.id);
+cursosSecretarioIds = (misJuntas || []).map(j => j.curso_id);
+
+if (esAdmin || esTutor || cursosSecretarioIds.length > 0) {
+    document.getElementById('optModoActaJunta').classList.remove('d-none');
+}
+
+// 3. ACTUALIZAR alCambiarModo()
+// (Añade este bloque 'else if' en tu función alCambiarModo)
+else if (modo === 'acta_junta') {
+    boxCurso.classList.remove('d-none'); boxMateria.classList.add('d-none'); boxVista.classList.add('d-none'); 
+    boxParcialAsist.classList.add('d-none'); boxParcialTut.classList.add('d-none'); optAnual.classList.add('d-none');
+    boxTrimestre.classList.remove('d-none'); 
+    if (document.getElementById('selectTrimestre').value === 'anual') document.getElementById('selectTrimestre').value = '1';
+    
+    // Filtra solo los cursos donde el docente actual es Tutor, Secretario o es Admin
+    let cursosPermitidos = todosCursos.filter(c => esAdmin || cursosTutor.some(ct => ct.id === c.id) || cursosSecretarioIds.includes(c.id));
+    selectCurso.innerHTML = '<option value="">Seleccione curso...</option>' + cursosPermitidos.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
+    return;
+}
+
+// 4. FUNCIONES DEL ACTA
+async function cargarVistaActaJunta() {
+    const cursoId = document.getElementById('selectCurso').value;
+    const trimestre = parseInt(document.getElementById('selectTrimestre').value);
+    const contenedor = document.getElementById('contenedorTabla');
+    
+    contenedor.innerHTML = '<div class="py-5 text-center"><div class="spinner-border text-primary me-2"></div>Cargando formulario del Acta...</div>';
+
+    try {
+        // Traemos las materias del curso
+        const { data: asignaciones } = await supabaseClient.from('curso_materia_docente').select('id, materias(nombre)').eq('curso_id', cursoId);
+        
+        // Traemos los datos guardados del acta
+        const { data: actaGuardada } = await supabaseClient.from('actas_junta_trimestral')
+            .select('*').eq('curso_id', cursoId).eq('trimestre', trimestre).maybeSingle();
+            
+        const obsMap = actaGuardada?.observaciones_materias || {};
+
+        let html = `
+        <div class="alert alert-info shadow-sm mb-3">
+            <i class="bi bi-info-circle-fill me-2"></i><strong>Llenado del Acta:</strong> Ingrese los reportes del DECE, las observaciones detalladas por asignatura y las recomendaciones. Los promedios, listados y cuadros estadísticos se calcularán automáticamente al generar el PDF.
+        </div>
+        <div class="row g-3">
+            <div class="col-12">
+                <label class="fw-bold text-primary mb-1">2. Informe del Departamento de Consejería Estudiantil (DECE)</label>
+                <textarea id="actaDece" class="form-control form-control-sm" rows="3">${actaGuardada?.informe_dece || 'Todos los inconvenientes académicos y disciplinarios que se suscitaron fueron resueltos internamente por la autoridad correspondiente.'}</textarea>
+            </div>
+            
+            <div class="col-12 mt-4">
+                <label class="fw-bold text-primary mb-2">4. Novedades y Observaciones por Asignatura</label>
+                <div class="row g-2">
+                    ${(asignaciones || []).map(a => `
+                        <div class="col-md-6">
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text bg-light fw-bold" style="width: 140px; font-size: 0.7rem;">${a.materias?.nombre}</span>
+                                <textarea class="form-control acta-obs-materia" data-asig-id="${a.id}" rows="2" placeholder="Novedades (Ej. Incumplimiento de tareas...)" >${obsMap[a.id] || 'La/El docente manifiesta no tener inconvenientes en el proceso de aprendizaje.'}</textarea>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+
+            <div class="col-12 mt-4">
+                <label class="fw-bold text-primary mb-1">8. Recomendaciones de la Junta</label>
+                <textarea id="actaRecomendaciones" class="form-control form-control-sm" rows="4">${actaGuardada?.recomendaciones || 'Se recomienda aplicar refuerzo pedagógico y solicitar acompañamiento constante a los representantes legales desde casa.'}</textarea>
+            </div>
+        </div>
+        `;
+        contenedor.innerHTML = html;
+        document.getElementById('accionesActaJunta').classList.remove('d-none');
+        
+    } catch (err) {
+        contenedor.innerHTML = `<div class="py-4 text-danger text-center fw-bold">Error: ${err.message}</div>`;
+    }
+}
+
+async function guardarTextosActa() {
+    const cursoId = document.getElementById('selectCurso').value;
+    const trimestre = parseInt(document.getElementById('selectTrimestre').value);
+    const btn = document.querySelector('#accionesActaJunta .btn-success');
+    btn.disabled = true; btn.innerHTML = 'Guardando...';
+
+    try {
+        const dece = document.getElementById('actaDece').value.trim();
+        const recomendaciones = document.getElementById('actaRecomendaciones').value.trim();
+        const obsNodes = document.querySelectorAll('.acta-obs-materia');
+        
+        let obsData = {};
+        obsNodes.forEach(node => {
+            obsData[node.getAttribute('data-asig-id')] = node.value.trim();
+        });
+
+        const payload = {
+            curso_id: parseInt(cursoId),
+            trimestre: trimestre,
+            informe_dece: dece,
+            recomendaciones: recomendaciones,
+            observaciones_materias: obsData
+        };
+
+        const { error } = await supabaseClient.from('actas_junta_trimestral').upsert(payload, { onConflict: 'curso_id,trimestre' });
+        if (error) throw error;
+        alert('Textos guardados correctamente.');
+    } catch (err) {
+        alert('Error al guardar: ' + err.message);
+    } finally {
+        btn.disabled = false; btn.innerHTML = '<i class="bi bi-save me-1"></i> Guardar Textos';
+    }
+}
+    async function exportarActaJuntaPDF() {
+    const cursoId = document.getElementById('selectCurso').value;
+    const trimestre = parseInt(document.getElementById('selectTrimestre').value);
+    const cursoInfo = todosCursos.find(c => String(c.id) === cursoId);
+    
+    if (!cursoId) return alert('Seleccione un curso.');
+
+    const btn = document.querySelector('#accionesActaJunta .btn-danger');
+    btn.disabled = true; btn.innerHTML = 'Generando...';
+
+    try {
+        // 1. RECOPILACIÓN DE METADATOS Y JUNTAS
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ compress: true, orientation: 'portrait', unit: 'mm', format: 'a4' });
+        
+        const { data: juntaConfig } = await supabaseClient.from('juntas_config').select('*').eq('curso_id', parseInt(cursoId)).eq('trimestre', trimestre).eq('parcial', 3).maybeSingle();
+        const { data: actaConfig } = await supabaseClient.from('actas_junta_trimestral').select('*').eq('curso_id', parseInt(cursoId)).eq('trimestre', trimestre).maybeSingle();
+        const { data: asignaciones } = await supabaseClient.from('curso_materia_docente').select('id, docente_id, es_optativa, materias(nombre)').eq('curso_id', parseInt(cursoId));
+        const { data: estData } = await supabaseClient.from('estudiantes').select('id, nombres, estado').eq('curso_id', parseInt(cursoId)).order('nombres');
+        
+        const estudiantesLista = procesarEstudiantesModalidad(estData || []);
+        const periodo = infoInstitucion?.periodo_lectivo || '2026-2027';
+        const txtTrimestre = trimestre === 1 ? 'PRIMER' : (trimestre === 2 ? 'SEGUNDO' : 'TERCER');
+        const nomCurso = (cursoInfo?.nombre_largo_mayuscula || cursoInfo?.nombre || '').toUpperCase();
+        
+        let nomTutor = 'TUTOR NO ASIGNADO';
+        if (cursoInfo?.tutor_id) {
+            const { data: profT } = await supabaseClient.from('perfiles').select('titulo, nombres, apellidos').eq('id', cursoInfo.tutor_id).maybeSingle();
+            if (profT) nomTutor = `${profT.titulo ? profT.titulo + ' ' : ''}${profT.nombres} ${profT.apellidos || ''}`.trim().toUpperCase();
+        }
+
+        let nombreSecretaria = 'SECRETARIO/A NO ASIGNADO';
+        if (juntaConfig?.secretario_id) {
+            const { data: secData } = await supabaseClient.from('perfiles').select('titulo, nombres, apellidos').eq('id', juntaConfig.secretario_id).maybeSingle();
+            if (secData) nombreSecretaria = `${secData.titulo ? secData.titulo + ' ' : ''}${secData.nombres} ${secData.apellidos || ''}`.trim().toUpperCase();
+        }
+
+        const fechaJuntaTexto = juntaConfig?.fecha ? formatearFechaTexto(juntaConfig.fecha) : '____ de ____________ del 202__';
+        const horaJuntaTexto = juntaConfig?.hora_inicio ? juntaConfig.hora_inicio.substring(0, 5) : '--:--';
+        
+        // 2. CONSTRUCCIÓN DE LA CABECERA OFICIAL
+        const imgLogoIzq = await obtenerBase64DesdeUrl(infoInstitucion?.logo_izquierdo || infoInstitucion?.logo_institucion);
+        if (imgLogoIzq) doc.addImage(imgLogoIzq, 'PNG', 85, 10, 40, 40);
+        
+        doc.setFont('helvetica', 'italic'); doc.setFontSize(14); doc.setTextColor(30, 64, 175);
+        doc.text('"Educación de calidad para la vida, en paz y en democracia"', 105, 55, { align: 'center' });
+        
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(0, 0, 0);
+        doc.text(`CURSO: ${nomCurso}`, 20, 65); doc.text(`TRIMESTRE: ${txtTrimestre}`, 20, 70);
+        doc.text(`TUTOR: ${nomTutor}`, 20, 75); doc.text(`AÑO LECTIVO: ${periodo}`, 140, 75);
+
+        doc.setFontSize(14); doc.text('UNIDAD EDUCATIVA', 105, 85, { align: 'center' });
+        doc.text('"VICENTE ROCAFUERTE"', 105, 91, { align: 'center' });
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(8);
+        doc.text('Cantón Pichincha - Manabí - Ecuador', 105, 96, { align: 'center' });
+        doc.text(`Correo: ${infoInstitucion?.correo_institucional || '13h03021@educacion.gob.ec'} | Código AMIE: 13H03021`, 105, 100, { align: 'center' });
+        
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(12);
+        doc.text('ACTA DE JUNTA DE CURSO', 105, 110, { align: 'center' });
+
+        // Párrafo de apertura
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
+        const parrafoApertura = `En el cantón Pichincha a los ${fechaJuntaTexto}, siendo las ${horaJuntaTexto} se realizó la Junta de Curso de Cierre de Trimestre de ${nomCurso} de la Unidad Educativa Particular "Vicente Rocafuerte" CÓDIGO AMIE 13H03021 del Cantón Pichincha, provincia de Manabí, con la asistencia de:`;
+        doc.text(parrafoApertura, 20, 120, { maxWidth: 170, align: 'justify' });
+
+        // TABLA ASISTENCIA DOCENTES
+        const tbDocentes = [
+            ['ING. DÍDIMO ABDÓN SALTOS SABANDO', 'REPRESENTANTE DEL D.E.C.E.', '-'],
+            [nombreSecretaria, 'SECRETARIO/A DE JUNTA', '-']
+        ];
+        
+        for (const a of asignaciones || []) {
+            let docName = 'No asignado';
+            if (a.docente_id) {
+                const { data: dProf } = await supabaseClient.from('perfiles').select('titulo, nombres, apellidos').eq('id', a.docente_id).maybeSingle();
+                if (dProf) docName = `${dProf.titulo ? dProf.titulo + ' ' : ''}${dProf.nombres} ${dProf.apellidos || ''}`.trim().toUpperCase();
+            }
+            tbDocentes.push([docName, a.docente_id === cursoInfo.tutor_id ? 'DOCENTE TUTOR' : 'DOCENTE', a.materias?.nombre?.toUpperCase() || '-']);
+        }
+        tbDocentes.push([juntaConfig?.inspector_nombre || 'LCDA. SOLANGE SALTOS GILER', 'INSPECTOR/A', '-']);
+
+        doc.autoTable({
+            startY: 132,
+            head: [['Nombres y Apellidos', 'Cargo', 'Asignatura']],
+            body: tbDocentes,
+            theme: 'grid', styles: { fontSize: 7, cellPadding: 1.5, valign: 'middle' },
+            headStyles: { fillColor: [241, 245, 249], textColor: [15, 23, 42] }
+        });
+
+        // ORDEN DEL DÍA Y DESARROLLO
+        doc.addPage();
+        let currentY = 20;
+        doc.setFont('helvetica', 'bold'); doc.text('Para tratar el siguiente orden del día:', 20, currentY);
+        doc.setFont('helvetica', 'normal');
+        const ordenTexto = `1. Constatación de asistencia.\n2. Lectura de Informe del Departamento de Consejería Estudiantil.\n3. Revisión de Informes de aprendizajes de los estudiantes presentado por los Docentes.\n4. Análisis de rendimiento académico.\n5. Análisis de comportamiento.\n6. Análisis de inasistencias recurrentes.\n7. Recomendaciones.`;
+        doc.text(ordenTexto, 25, currentY + 6);
+        currentY += 40;
+
+        doc.text('1. La Secretaría realiza la constatación de la asistencia de los miembros de la Junta académica, verificando la asistencia de la totalidad de los Docentes.', 20, currentY, { maxWidth: 170 });
+        currentY += 12;
+        doc.text('2. Lectura de Informe del Departamento de Consejería Estudiantil (DECE).', 20, currentY);
+        currentY += 6;
+        doc.text(`3. ${actaConfig?.informe_dece || 'Todos los inconvenientes académicos y disciplinarios fueron resueltos.'}`, 20, currentY, { maxWidth: 170 });
+        currentY += 12;
+        
+        doc.text('4. Se realiza la revisión de los informes de aprendizaje entregados por los Docentes, con las siguientes novedades:', 20, currentY, { maxWidth: 170 });
+        currentY += 8;
+
+        const obsData = actaConfig?.observaciones_materias || {};
+        const tbObs = (asignaciones || []).map(a => [a.materias?.nombre || '-', obsData[a.id] || 'La docente manifiesta no tener inconvenientes de aprendizaje.']);
+        
+        doc.autoTable({
+            startY: currentY,
+            head: [['Asignatura', 'Observación']],
+            body: tbObs,
+            theme: 'grid', styles: { fontSize: 7.5, cellPadding: 1.5 },
+            columnStyles: { 0: { cellWidth: 45 }, 1: { cellWidth: 125 } }
+        });
+
+        doc.addPage();
+        doc.setFont('helvetica', 'bold');
+        doc.text('5. Análisis de rendimiento académico', 20, 20);
+        doc.setFont('helvetica', 'normal');
+        doc.text('En base a los informes de aprendizaje presentados por los Docentes se realiza el análisis de rendimiento académico teniendo los siguientes resultados:', 20, 26, { maxWidth: 170 });
+
+        // CÁLCULOS ACADÉMICOS PARA TABLAS B Y C
+        // -------------------------------------------------------------
+        const { data: notasData } = await supabaseClient.from('notas_trimestre').select('*').in('asignacion_id', asignaciones.map(a=>a.id)).eq('trimestre', trimestre);
+        const promediosMateria = {};
+        const estudiantesBajos = {};
+        
+        asignaciones.forEach(a => {
+            let sum = 0; let count = 0;
+            const notasAsig = (notasData || []).filter(n => n.asignacion_id === a.id);
+            notasAsig.forEach(n => {
+                const promTrim = (parseFloat(n.p1_insumo1)*0.35) + (parseFloat(n.p2_insumo1)*0.35) + (parseFloat(n.examen)*0.30);
+                if (!isNaN(promTrim)) { sum += promTrim; count++; }
+                if (promTrim < 7) {
+                    if (!estudiantesBajos[n.estudiante_id]) estudiantesBajos[n.estudiante_id] = [];
+                    estudiantesBajos[n.estudiante_id].push({ mat: a.materias?.nombre, nota: promTrim });
+                }
+            });
+            promediosMateria[a.id] = count > 0 ? (sum/count).toFixed(2) : '0.00';
+        });
+
+        const estAltos = estudiantesLista.filter(e => !estudiantesBajos[e.id]);
+        const estBajosLista = estudiantesLista.filter(e => estudiantesBajos[e.id]);
+
+        // Tabla a) > 7
+        doc.setFont('helvetica', 'bold'); doc.text('a) Nómina de estudiantes que han alcanzado los logros académicos y no presentan inconvenientes:', 20, 38);
+        const txtAprobacion = "Los estudiantes detallados en esta nómina son quienes han alcanzado los logros académicos requeridos, gracias a sus deseos de superación, también agradecer a sus padres quienes están al pendiente del rendimiento académico y comportamiento de cada uno de ellos, se recomienda seguir con el proceso de superación siendo responsables, respetuosos, tolerantes y solidarios con toda la comunidad educativa.";
+        
+        const tbAltos = estAltos.map((e, idx) => [e.nombres, idx === 0 ? { content: txtAprobacion, rowSpan: estAltos.length, styles: { valign: 'middle', halign: 'justify' } } : '']);
+        
+        doc.autoTable({
+            startY: 42,
+            head: [['Nombres y apellidos', 'Análisis']],
+            body: tbAltos.length > 0 ? tbAltos : [['N/A', 'Todos presentan dificultades']],
+            theme: 'grid', styles: { fontSize: 7 }, columnStyles: { 0: { cellWidth: 70 }, 1: { cellWidth: 100 } }
+        });
+
+        // Tabla b) < 7
+        let currentY2 = doc.lastAutoTable.finalY + 8;
+        if (currentY2 > 240) { doc.addPage(); currentY2 = 20; }
+        doc.setFont('helvetica', 'bold'); doc.text('b) Nómina de los estudiantes que han presentado dificultad académica:', 20, currentY2);
+        
+        const tbBajos = [];
+        estBajosLista.forEach(e => {
+            const materias = estudiantesBajos[e.id];
+            materias.forEach((m, i) => {
+                tbBajos.push([
+                    i === 0 ? { content: e.nombres, rowSpan: materias.length } : '',
+                    m.mat, m.nota.toFixed(2),
+                    i === 0 ? { content: 'Bajo rendimiento por incumplimiento de actividades', rowSpan: materias.length } : '',
+                    i === 0 ? { content: 'SÍ', rowSpan: materias.length, styles: { halign: 'center' } } : ''
+                ]);
+            });
+        });
+
+        doc.autoTable({
+            startY: currentY2 + 4,
+            head: [['Nombre del estudiante', 'Asignatura', 'Resultado académico', 'Análisis', 'Se aplicó Refuerzo']],
+            body: tbBajos.length > 0 ? tbBajos : [['N/A', '-', '-', 'No existen estudiantes con dificultad', '-']],
+            theme: 'grid', styles: { fontSize: 7, valign: 'middle' }
+        });
+
+        // Tabla c) Promedios por materia
+        let currentY3 = doc.lastAutoTable.finalY + 8;
+        if (currentY3 > 240) { doc.addPage(); currentY3 = 20; }
+        doc.setFont('helvetica', 'bold'); doc.text('c) Promedio general del grado/curso', 20, currentY3);
+        
+        let sumCur = 0; let cCur = 0;
+        const tbProm = asignaciones.map(a => {
+            const prom = parseFloat(promediosMateria[a.id]);
+            if(!isNaN(prom)){ sumCur += prom; cCur++; }
+            let dName = 'No asignado';
+            if (a.docente_id) {
+                const dP = docentesList.find(d => d.id === a.docente_id);
+                if (dP) dName = `${dP.titulo || ''} ${dP.nombres} ${dP.apellidos || ''}`.trim().toUpperCase();
+            }
+            return [a.materias?.nombre?.toUpperCase(), dName, prom.toFixed(2)];
+        });
+        const promTotalCurso = cCur > 0 ? (sumCur/cCur).toFixed(2) : '0.00';
+        tbProm.push([{ content: 'PROMEDIO GENERAL', colSpan: 2, styles: { halign: 'right', fontStyle: 'bold' } }, { content: promTotalCurso, styles: { fontStyle: 'bold' } }]);
+
+        doc.autoTable({
+            startY: currentY3 + 4,
+            head: [['ASIGNATURA', 'DOCENTE', 'PROMEDIO']],
+            body: tbProm,
+            theme: 'grid', styles: { fontSize: 7, cellPadding: 1.5 }
+        });
+
+        // FIRMAS FINALES (Basadas estrictamente en la plantilla)
+        doc.addPage();
+        let firmaY = 30;
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(9);
+        doc.text('Para constancia de lo actuado firman los miembros de la Junta:', 20, 20);
+        
+        doc.autoTable({
+            startY: 25,
+            head: [['Nombres y Apellidos', 'Cargo', 'Asignatura', 'Firma']],
+            body: tbDocentes.map(d => [d[0], d[1], d[2], '____________________']),
+            theme: 'grid', styles: { fontSize: 7, cellPadding: 4, valign: 'middle' },
+            columnStyles: { 3: { halign: 'center' } }
+        });
+
+        doc.save(`Acta_Junta_Trimestral_${nomCurso.replace(/\s+/g, '_')}_T${trimestre}.pdf`);
+
+    } catch (err) { alert('Error generando PDF: ' + err.message); } finally { btn.disabled = false; btn.innerHTML = '<i class="bi bi-file-pdf me-1"></i> Generar Acta PDF'; }
+}
+    
   </script>
 </body>
 </html>
