@@ -5791,59 +5791,45 @@
             const imgLogoIzq = await obtenerBase64DesdeUrl(infoInstitucion?.logo_izquierdo || infoInstitucion?.logo_institucion);
             const imgLogoDer = await obtenerBase64DesdeUrl(infoInstitucion?.logo_derecho || infoInstitucion?.escudo_nacional);
 
-            // -------------------------------------------------------------------------
-            // 1. DICCIONARIO DE FECHAS OFICIALES DE JUNTAS
-            // -------------------------------------------------------------------------
-            let fechaJuntaTexto = "";
-            if (trimestre === 1 && parcial === 1) fechaJuntaTexto = "26 de junio del 2026";
-            else if (trimestre === 1 && parcial === 2) fechaJuntaTexto = "27 de julio del 2026";
-            else if (trimestre === 1 && parcial === 3) fechaJuntaTexto = "7 de agosto del 2026";
-            else if (trimestre === 2 && parcial === 1) fechaJuntaTexto = "25 de septiembre del 2026";
-            else if (trimestre === 2 && parcial === 2) fechaJuntaTexto = "4 de noviembre del 2026";
-            else if (trimestre === 2 && parcial === 3) fechaJuntaTexto = "20 de noviembre del 2026";
-            else if (trimestre === 3 && parcial === 1) fechaJuntaTexto = "28 de diciembre del 2026";
-            else if (trimestre === 3 && parcial === 2) fechaJuntaTexto = "5 de febrero del 2027";
-            else if (trimestre === 3 && parcial === 3) fechaJuntaTexto = "22 de febrero del 2027";
-            else fechaJuntaTexto = "(Fecha no definida)";
+            // =========================================================================
+            // LECTURA DINÁMICA DE DATOS DE LA JUNTA DESDE SUPABASE
+            // =========================================================================
+            const { data: juntaConfig } = await supabaseClient.from('juntas_config')
+                .select('*')
+                .eq('curso_id', parseInt(cursoId))
+                .eq('trimestre', trimestre)
+                .eq('parcial', parcial)
+                .maybeSingle();
 
-            // -------------------------------------------------------------------------
-            // 2. DICCIONARIO DE HORARIOS Y SECRETARIOS POR CURSO
-            // -------------------------------------------------------------------------
-            function obtenerDatosJuntaCurso(nombre) {
-                const c = nombre.toUpperCase();
-                if (c.includes("INICIAL 1")) return { h: "7:30", s: "PROF. DIANA MARIUXI MOREIRA CHONILLO" };
-                if (c.includes("INICIAL 2")) return { h: "8:00", s: "LCDA. DAMARYS CARRANZA BALDERRAMO" };
-                if (c.includes("1º") && c.includes("BÁSICA")) return { h: "8:30", s: "AUX. PARV. BLANCA ELIZABET CHOEZ GARCÍA" };
-                if (c.includes("2º") && c.includes("BÁSICA")) return { h: "9:00", s: "PROF. NANCY STEPHANIA ALARCON FERRIN" };
-                if (c.includes("3º") && c.includes("BÁSICA")) return { h: "9:30", s: "TNLGA JESSICA ELIZABETH SANCHEZ RAMIREZ" };
-                if (c.includes("4º") && c.includes("BÁSICA")) return { h: "10:00", s: "TNLGA. KAREN YULEXY ZAMBRANO LUCAS" };
-                if (c.includes("5º") && c.includes("BÁSICA")) return { h: "10:30", s: "C.P.A. MARÍA EUGENIA MACÍAS RIVAS" };
-                if (c.includes("6º") && c.includes("BÁSICA")) return { h: "11:00", s: "ING. ANTONIO TUÁREZ MENDOZA" };
-                if (c.includes("7º") && c.includes("BÁSICA")) return { h: "11:30", s: "LCDA. BELLA ESPERANZA HERMIDA HEREDIA" };
-                if (c.includes("8º") && c.includes("BÁSICA") && c.includes("A")) return { h: "13:30", s: "EGDA. ROSAURA JIMÉNEZ MAYORGA" };
-                if (c.includes("8º") && c.includes("BÁSICA") && c.includes("B")) return { h: "13:55", s: "LCDA. MARIA ISABEL SANTOS CHICA" };
-                if (c.includes("9º") && c.includes("BÁSICA") && c.includes("A")) return { h: "14:20", s: "TNLGA JESSICA ELIZABETH SANCHEZ RAMIREZ" };
-                if (c.includes("9º") && c.includes("BÁSICA") && c.includes("B")) return { h: "14:45", s: "PROF. JAIKER JASMANY VÉLEZ CEDEÑO" };
-                if (c.includes("10º") && c.includes("BÁSICA")) return { h: "15:10", s: "C.P.A. MARÍA EUGENIA MACÍAS RIVAS" };
-                if (c.includes("1º") && c.includes("CIENCIAS")) return { h: "15:35", s: "ING. GABRIEL STEPHANO ZAMORA MONTESDEOCA" };
-                if (c.includes("1º") && c.includes("TÉCNICO")) return { h: "16:00", s: "ING. DANIEL ANTONIO VELEZ MIRANDA" };
-                if (c.includes("2º") && c.includes("CIENCIAS")) return { h: "16:20", s: "ING. JOSÉ GREGORIO ALBÁN DE LA CRUZ" };
-                if (c.includes("2º") && c.includes("TÉCNICO")) return { h: "16:40", s: "LCDA. BETZY JESSENIA BASURTO CEDEÑO" };
-                if (c.includes("3º") && c.includes("CIENCIAS")) return { h: "17:00", s: "TNLGA. KAREN YULEXY ZAMBRANO LUCAS" };
-                if (c.includes("3º") && c.includes("TÉCNICO")) return { h: "17:20", s: "ING. JOSE ANTONIO TUAREZ MENDOZA" };
-                return { h: "12:00", s: "SECRETARIO/A NO ASIGNADO" }; // Por defecto si no coincide
+            let fechaJuntaTexto = "(Fecha no definida)";
+            let horaInicioTexto = "--:--";
+            let horaFinTexto = "--:--";
+            let nombreSecretaria = "SECRETARIO/A NO ASIGNADO";
+            const nombreRector = (infoInstitucion?.rector_nombre || 'ING. DÍDIMO A. SALTOS S.').toUpperCase();
+
+            if (juntaConfig) {
+                // Formateamos la fecha si existe usando la función auxiliar
+                if (juntaConfig.fecha) fechaJuntaTexto = formatearFechaTexto(juntaConfig.fecha);
+                
+                // Extraemos solo Horas y Minutos (HH:MM)
+                if (juntaConfig.hora_inicio) horaInicioTexto = juntaConfig.hora_inicio.substring(0, 5);
+                if (juntaConfig.hora_fin) horaFinTexto = juntaConfig.hora_fin.substring(0, 5);
+
+                // Buscamos el nombre del secretario
+                if (juntaConfig.secretario_id) {
+                    const { data: secData } = await supabaseClient.from('perfiles').select('titulo, nombres, apellidos').eq('id', juntaConfig.secretario_id).maybeSingle();
+                    if (secData) {
+                        nombreSecretaria = `${secData.titulo ? secData.titulo + ' ' : ''}${secData.nombres} ${secData.apellidos || ''}`.trim().toUpperCase();
+                    }
+                }
             }
-
-            const configJunta = obtenerDatosJuntaCurso(nomCurso);
-            const horaJuntaTexto = configJunta.h;
-            const nombreSecretaria = configJunta.s;
-            const nombreRector = 'ING. DÍDIMO A. SALTOS S.';
+            // =========================================================================
 
             // CABECERA OFICIAL CON DOS LOGOS
             if (imgLogoIzq) { try { doc.addImage(imgLogoIzq, 'PNG', 14, 10, 20, 20); } catch(e){} }
             if (imgLogoDer) { try { doc.addImage(imgLogoDer, 'PNG', 176, 10, 20, 20); } catch(e){} }
 
-            const nomArriba = (infoInstitucion?.nombre_arriba || 'UNIDAD EDUCATIVA PARTICULA').toUpperCase();
+            const nomArriba = (infoInstitucion?.nombre_arriba || 'UNIDAD EDUCATIVA PARTICULAR').toUpperCase();
             const nomAbajo = (infoInstitucion?.nombre_abajo || '"VICENTE ROCAFUERTE"').toUpperCase();
 
             doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.setTextColor(30, 41, 59);
@@ -5863,7 +5849,7 @@
             }
 
             // REDACCIÓN DEL PÁRRAFO UTILIZANDO LAS VARIABLES OFICIALES
-            const parrafoInicio = `En el cantón Pichincha, a los ${fechaJuntaTexto}, siendo las ${horaJuntaTexto} en la sala de sesiones de la Unidad Educativa Particular "Vicente Rocafuerte" sección vespertina se inició la Junta de Cierre del ${!isExamenes ? txtParcial+' Parcial del ' : ''}${txtTrimestre} Trimestre de ${nomCurso} en la asignatura de: ${nomMateria} dirigida por el Tutor ${nomTutor} y la profesora de la asignatura, ${nomDocente}.`;
+            const parrafoInicio = `En el cantón Pichincha, a los ${fechaJuntaTexto}, siendo las ${horaInicioTexto} en la sala de sesiones de la Unidad Educativa Particular "Vicente Rocafuerte" sección vespertina se inició la Junta de Cierre del ${!isExamenes ? txtParcial+' Parcial del ' : ''}${txtTrimestre} Trimestre de ${nomCurso} en la asignatura de: ${nomMateria} dirigida por el Tutor ${nomTutor} y la profesora de la asignatura, ${nomDocente}.`;
             
             doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
             doc.text(parrafoInicio, 14, 52, { maxWidth: 182, align: 'justify' });
@@ -5992,11 +5978,11 @@
                 currentY = doc.lastAutoTable.finalY + 12;
             }
 
-            // PIE Y FIRMAS (Con el Secretario Dinámico)
+            // PIE Y FIRMAS (Con el Secretario Dinámico y Horas Oficiales)
             if (currentY > 240) { doc.addPage(); currentY = 30; }
             
             doc.setFont('helvetica', 'normal');
-            doc.text(`Siendo las ${horaJuntaTexto} del ${fechaJuntaTexto} se clausura la sesión:`, 14, currentY);
+            doc.text(`Siendo las ${horaFinTexto} del ${fechaJuntaTexto} se clausura la sesión:`, 14, currentY);
 
             currentY += 25;
             doc.setDrawColor(0); doc.setLineWidth(0.2);
