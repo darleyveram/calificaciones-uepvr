@@ -5568,7 +5568,7 @@
             let trimMap = {};
             let nP1 = [];
             let nP2 = [];
-          let compT = [];
+            let compT = [];
 
             if (!isExamenes) {
                 // Parcial 1 o 2
@@ -5577,7 +5577,7 @@
                     .eq('asignacion_id', parseInt(asigId)).eq('trimestre', trimestre).eq('parcial', parcial);
                 (notasData || []).forEach(n => notasMap[n.estudiante_id] = n);
             } else {
-                // Exámenes Pendientes
+                // Resumen Trimestral
                 const { data: trimData } = await supabaseClient.from('notas_trimestre')
                     .select('estudiante_id, examen, motivo_examen_pendiente')
                     .eq('asignacion_id', parseInt(asigId)).eq('trimestre', trimestre);
@@ -5588,8 +5588,9 @@
                 
                 const resP2 = await supabaseClient.from('notas_parcial_actividades').select('estudiante_id, nota_parcial, recomendacion').eq('asignacion_id', parseInt(asigId)).eq('trimestre', trimestre).eq('parcial', 2);
                 nP2 = resP2.data || [];
-              const resComp = await supabaseClient.from('comportamiento_parcial').select('estudiante_id, parcial, total_cuantitativo').eq('curso_id', parseInt(cursoId)).eq('trimestre', trimestre);
-compT = resComp.data || [];
+
+                const resComp = await supabaseClient.from('comportamiento_parcial').select('estudiante_id, parcial, total_cuantitativo').eq('curso_id', parseInt(cursoId)).eq('trimestre', trimestre);
+                compT = resComp.data || [];
             }
 
             let html = '';
@@ -5633,7 +5634,6 @@ compT = resComp.data || [];
                   </table>
                 `;
             } else {
-                // VISTA PARA RESUMEN TRIMESTRAL
                 html = `
                   <div class="alert alert-warning shadow-sm mb-3 text-dark">
                      <i class="bi bi-exclamation-triangle-fill me-2"></i><strong>Resumen Trimestral:</strong> Historial académico y de comportamiento. Solo se habilitará el "Motivo" si la nota del examen es 0 o está vacía.
@@ -5656,18 +5656,18 @@ compT = resComp.data || [];
                             const p1 = nP1.find(x => x.estudiante_id === est.id) || {};
                             const p2 = nP2.find(x => x.estudiante_id === est.id) || {};
                             
-                            // 1. Promedio
+                            // Promedio
                             const n1 = parseFloat(p1.nota_parcial) || 0;
                             const n2 = parseFloat(p2.nota_parcial) || 0;
                             const promParciales = ((n1 + n2) / 2).toFixed(2);
 
-                            // 2. Alertas Académicas
+                            // Alertas Académicas
                             let alertas = [];
                             if (p1.nota_parcial !== undefined && n1 < 7) alertas.push(`P1 (${n1.toFixed(2)}):${p1.recomendacion || 'Sin rec.'}`);
                             if (p2.nota_parcial !== undefined && n2 < 7) alertas.push(`P2 (${n2.toFixed(2)}):${p2.recomendacion || 'Sin rec.'}`);
                             const textoAlertas = alertas.length > 0 ? alertas.join('<br>') : '<span class="text-success fst-italic">Sin novedades</span>';
 
-                            // 3. Alertas Comportamiento (< 7)
+                            // Alertas Comportamiento (< 7)
                             const misComp = compT.filter(c => c.estudiante_id === est.id);
                             let alertasComp = [];
                             misComp.forEach(c => {
@@ -5676,7 +5676,7 @@ compT = resComp.data || [];
                             });
                             const textoComp = alertasComp.length > 0 ? alertasComp.join('<br>') : '<span class="text-success fst-italic">Normal</span>';
 
-                            // 4. Examen
+                            // Examen
                             const exNum = parseFloat(t.examen);
                             const tieneEx = !isNaN(exNum) && t.examen !== '';
                             const isPendiente = !tieneEx || exNum === 0;
@@ -5772,7 +5772,7 @@ compT = resComp.data || [];
             const periodo = infoInstitucion?.periodo_lectivo || '2026-2027';
             const txtTrimestre = trimestre === 1 ? 'PRIMER' : (trimestre === 2 ? 'SEGUNDO' : 'TERCER');
             const isExamenes = (parcial === 3);
-            const txtParcial = isExamenes ? 'EXÁMENES PENDIENTES' : (parcial === 1 ? 'PRIMER' : 'SEGUNDO');
+            const txtParcial = isExamenes ? 'RESUMEN TRIMESTRAL Y EXÁMENES' : (parcial === 1 ? 'PRIMER' : 'SEGUNDO');
             
             const nomCurso = (cursoInfo?.nombre_largo_mayuscula || cursoInfo?.nombre || '').toUpperCase();
             const nomMateria = (asig?.materias?.nombre || '').toUpperCase();
@@ -5804,7 +5804,7 @@ compT = resComp.data || [];
             if (!isExamenes) {
                 doc.text(`INFORME DEL ${txtParcial} PARCIAL DEL ${txtTrimestre} TRIMESTRE`, 105, 72, { align: 'center' });
             } else {
-                doc.text(`INFORME DE EXÁMENES PENDIENTES DEL ${txtTrimestre} TRIMESTRE`, 105, 72, { align: 'center' });
+                doc.text(`INFORME DE RESUMEN TRIMESTRAL DEL ${txtTrimestre} TRIMESTRE`, 105, 72, { align: 'center' });
             }
 
             const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
@@ -5817,7 +5817,7 @@ compT = resComp.data || [];
 
             const parrafoIndicacion = !isExamenes 
                 ? `Resultados del análisis individual por estudiantes, detallamos solo los estudiantes que promedian PAR (está próximo alcanzar los aprendizajes requerido) y NAR (No alcanza los aprendizajes requeridos) de la escala de valoración Técnica.`
-                : `A continuación se detallan los estudiantes con exámenes pendientes no rendidos o con calificación de cero, junto con un resumen de los inconvenientes y sugerencias previamente reportadas en los parciales de este trimestre.`;
+                : `A continuación se detallan los estudiantes con alertas académicas, problemas de comportamiento, y exámenes pendientes o con calificación nula.`;
             
             const indLines = doc.splitTextToSize(parrafoIndicacion, 170);
             doc.text(indLines, 20, 85 + (textLines.length * 4));
@@ -5825,7 +5825,6 @@ compT = resComp.data || [];
             let currentY = 90 + (textLines.length * 4) + (indLines.length * 4);
 
             if (!isExamenes) {
-                // PDF DE PARCIAL 1 O 2 (LIMPIO)
                 const tbNotas = [];
                 document.querySelectorAll('#tablaCuerpoInformeParcial tr').forEach(tr => {
                     const nom = tr.querySelector('.sticky-col-nombre').innerText;
@@ -5850,7 +5849,7 @@ compT = resComp.data || [];
                 });
                 currentY = doc.lastAutoTable.finalY + 8;
 
-                // TABLA DE COMPORTAMIENTO
+                // TABLA DE COMPORTAMIENTO (Solo Parcial)
                 const { data: compData } = await supabaseClient.from('comportamiento_parcial').select('estudiante_id, total_cuantitativo').eq('curso_id', cursoInfo.id).eq('trimestre', trimestre).eq('parcial', parcial);
                 const compList = [];
                 (compData || []).forEach(c => {
@@ -5882,7 +5881,6 @@ compT = resComp.data || [];
                     const notaEx = tr.cells[5].innerText.trim();
                     const inputMotivo = tr.querySelector('.inf-motivo');
                     
-                    // Condición: Si el estudiante tiene cualquier alerta académica, de comportamiento o un examen pendiente
                     if (recPrev !== 'Sin novedades' || compAlert !== 'Normal' || !inputMotivo.disabled) {
                         const motivo = !inputMotivo.disabled ? (inputMotivo.value.trim() || 'Motivo no registrado') : 'N/A';
                         tbEx.push([nom, promP, recPrev, compAlert, notaEx, motivo]);
@@ -5921,7 +5919,7 @@ compT = resComp.data || [];
             doc.text('LCDA. SOLANGE SALTOS GILER', 60, currentY + 4, { align: 'center' }); doc.text('INSPECTORA GENERAL', 60, currentY + 8, { align: 'center' });
             doc.text('ING. DÍDIMO SALTOS SABANDO', 150, currentY + 4, { align: 'center' }); doc.text('RECTOR', 150, currentY + 8, { align: 'center' });
 
-            const nombreArchivo = isExamenes ? `Examenes_Pendientes_${nomMateria.replace(/\s+/g, '_')}_T${trimestre}.pdf` : `Informe_Parcial_${parcial}_${nomMateria.replace(/\s+/g, '_')}_T${trimestre}.pdf`;
+            const nombreArchivo = isExamenes ? `Resumen_Trimestral_${nomMateria.replace(/\s+/g, '_')}_T${trimestre}.pdf` : `Informe_Parcial_${parcial}_${nomMateria.replace(/\s+/g, '_')}_T${trimestre}.pdf`;
             doc.save(nombreArchivo);
         } catch (err) { alert('Error generando PDF: ' + err.message); } finally { btn.disabled = false; btn.innerHTML = '<i class="bi bi-file-pdf me-1"></i> Generar PDF Oficial'; }
     }
