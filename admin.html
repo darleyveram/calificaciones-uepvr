@@ -2359,7 +2359,7 @@
         const parc = document.getElementById('juntaParcial').value;
 
         try {
-            // AÑADIDO: Traemos 'puede_gestionar_asistencia' de la BD
+            // Traemos 'puede_gestionar_asistencia' de la BD
             const { data: perfiles } = await supabaseClient.from('perfiles').select('id, titulo, nombres, apellidos, puede_gestionar_asistencia').order('nombres');
             perfilesMemoriaJuntas = perfiles || [];
             
@@ -2396,7 +2396,6 @@
                 const tutorObj = perfilesMemoriaJuntas.find(p => p.id === c.tutor_id);
                 const nombreTutor = tutorObj ? `${tutorObj.titulo || ''} ${tutorObj.nombres} ${tutorObj.apellidos || ''}`.trim() : '<span class="text-danger">Sin Tutor</span>';
 
-                // Normalizamos el valor de la base de datos por si antes se guardó en mayúsculas
                 const secStr = j.seccion ? j.seccion.toLowerCase() : '';
 
                 return `
@@ -2404,18 +2403,18 @@
                     <td class="fw-bold text-start bg-light" style="font-size:0.75rem;">${c.nombre}</td>
                     <td class="text-start text-muted bg-light" style="font-size:0.75rem;">${nombreTutor}</td>
                     <td>
-                        <select class="form-select form-select-sm j-sec">
+                        <!-- Guardamos el valor en un data-attribute (data-val) -->
+                        <select class="form-select form-select-sm j-sec" data-val="${j.secretario_id || ''}">
                             <option value="">Seleccione Secretario/a...</option>
                             ${opcionesSecretarios}
                         </select>
-                        <script>document.currentScript.previousElementSibling.value = "${j.secretario_id || ''}";<\/script>
                     </td>
                     <td>
-                        <select class="form-select form-select-sm j-insp">
+                        <!-- Guardamos el valor en un data-attribute (data-val) -->
+                        <select class="form-select form-select-sm j-insp" data-val="${j.inspector_nombre || ''}">
                             <option value="">Seleccione Inspector/a...</option>
                             ${opcionesInspectores}
                         </select>
-                        <script>document.currentScript.previousElementSibling.value = "${j.inspector_nombre || ''}";<\/script>
                     </td>
                     <td>
                         <select class="form-select form-select-sm j-secc">
@@ -2428,6 +2427,19 @@
                     <td><input type="time" class="form-control form-control-sm j-fin" value="${j.hora_fin || ''}"></td>
                 </tr>`;
             }).join('');
+
+            // ASIGNACIÓN SEGURA POST-RENDERIZADO
+            document.querySelectorAll('#tablaJuntasCuerpo tr').forEach(tr => {
+                const selSec = tr.querySelector('.j-sec');
+                const selInsp = tr.querySelector('.j-insp');
+                
+                if (selSec && selSec.getAttribute('data-val')) {
+                    selSec.value = selSec.getAttribute('data-val');
+                }
+                if (selInsp && selInsp.getAttribute('data-val')) {
+                    selInsp.value = selInsp.getAttribute('data-val');
+                }
+            });
 
         } catch (err) {
             alert("Error cargando los datos: " + err.message);
