@@ -2359,7 +2359,8 @@
         const parc = document.getElementById('juntaParcial').value;
 
         try {
-            const { data: perfiles } = await supabaseClient.from('perfiles').select('id, titulo, nombres, apellidos').order('nombres');
+            // AÑADIDO: Traemos 'puede_gestionar_asistencia' de la BD
+            const { data: perfiles } = await supabaseClient.from('perfiles').select('id, titulo, nombres, apellidos, puede_gestionar_asistencia').order('nombres');
             perfilesMemoriaJuntas = perfiles || [];
             
             const { data: cursos } = await supabaseClient.from('cursos').select('id, nombre, tutor_id').order('nombre');
@@ -2377,14 +2378,26 @@
                 return;
             }
 
+            // Opciones de todos los docentes para Secretario/a
             const opcionesSecretarios = perfilesMemoriaJuntas.map(p => 
                 `<option value="${p.id}">${p.titulo || ''} ${p.nombres} ${p.apellidos || ''}</option>`
             ).join('');
+
+            // Opciones EXCLUSIVAS de Inspectores (solo los que tienen permisos de asistencia)
+            const opcionesInspectores = perfilesMemoriaJuntas
+                .filter(p => p.puede_gestionar_asistencia)
+                .map(p => {
+                    const nombreComp = `${p.titulo || ''} ${p.nombres} ${p.apellidos || ''}`.trim();
+                    return `<option value="${nombreComp}">${nombreComp}</option>`;
+                }).join('');
 
             tbody.innerHTML = cursos.map(c => {
                 const j = juntasMap[c.id] || {}; 
                 const tutorObj = perfilesMemoriaJuntas.find(p => p.id === c.tutor_id);
                 const nombreTutor = tutorObj ? `${tutorObj.titulo || ''} ${tutorObj.nombres} ${tutorObj.apellidos || ''}`.trim() : '<span class="text-danger">Sin Tutor</span>';
+
+                // Normalizamos el valor de la base de datos por si antes se guardó en mayúsculas
+                const secStr = j.seccion ? j.seccion.toLowerCase() : '';
 
                 return `
                 <tr data-curso-id="${c.id}">
@@ -2397,11 +2410,17 @@
                         </select>
                         <script>document.currentScript.previousElementSibling.value = "${j.secretario_id || ''}";<\/script>
                     </td>
-                    <td><input type="text" class="form-control form-control-sm j-insp" placeholder="Ej. Lcda. Solange Saltos" value="${j.inspector_nombre || 'LCDA. SOLANGE SALTOS GILER'}"></td>
+                    <td>
+                        <select class="form-select form-select-sm j-insp">
+                            <option value="">Seleccione Inspector/a...</option>
+                            ${opcionesInspectores}
+                        </select>
+                        <script>document.currentScript.previousElementSibling.value = "${j.inspector_nombre || ''}";<\/script>
+                    </td>
                     <td>
                         <select class="form-select form-select-sm j-secc">
-                            <option value="MATUTINA" ${j.seccion === 'MATUTINA' ? 'selected' : ''}>MATUTINA</option>
-                            <option value="VESPERTINA" ${j.seccion === 'VESPERTINA' ? 'selected' : (!j.seccion && c.nombre.includes('BÁSICA') ? 'selected' : '')}>VESPERTINA</option>
+                            <option value="Matutina" ${secStr === 'matutina' ? 'selected' : ''}>Matutina</option>
+                            <option value="Vespertina" ${secStr === 'vespertina' ? 'selected' : (!j.seccion && c.nombre.includes('BÁSICA') ? 'selected' : '')}>Vespertina</option>
                         </select>
                     </td>
                     <td><input type="date" class="form-control form-control-sm j-fecha" value="${j.fecha || ''}"></td>
