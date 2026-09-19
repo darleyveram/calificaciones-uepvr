@@ -5553,11 +5553,9 @@
         contenedor.innerHTML = '<div class="py-5 text-center"><div class="spinner-border text-primary me-2"></div><div class="mt-3 fw-bold text-muted">Cargando datos para el informe...</div></div>';
 
         try {
-            // CORRECCIÓN: Volvemos a usar "estudiantes" para que se conecte con el resto del código
             const { data: estData } = await supabaseClient.from('estudiantes').select('id, nombres').eq('curso_id', parseInt(cursoId)).order('nombres');
             if (reqId !== currentViewRequestId) return;
             estudiantes = procesarEstudiantesModalidad(estData || []);
-            // Actualizamos la variable global que usa el PDF y el HTML
             estudiantesListGlobalInf = estudiantes;
 
             const isExamenes = (parcial === 3);
@@ -5587,9 +5585,30 @@
             }
 
             let html = '';
+            let filasHtml = '';
 
             if (!isExamenes) {
-                // VISTA PARA 1ER Y 2DO PARCIAL
+                // CONSTRUIR FILAS DEL PARCIAL 1 Y 2
+                filasHtml = estudiantesListGlobalInf.map((est, i) => {
+                    const n = notasMap[est.id] || {};
+                    const notaNum = parseFloat(n.nota_parcial);
+                    const tieneNota = !isNaN(notaNum);
+                    const requiereMejora = tieneNota && notaNum < 7.00;
+                    const notaCualit = tieneNota ? obtenerEscalaCualitativa(notaNum) : '-';
+                    const reqMejAttr = requiereMejora ? '' : 'disabled placeholder="N/A (Supera el 7.00)"';
+
+                    return `
+                    <tr data-est-id="${est.id}">
+                        <td class="sticky-col-num text-muted fw-bold">${i + 1}</td>
+                        <td class="sticky-col-nombre text-start">${formatearNombreVisual(est.nombres)}</td>
+                        <td class="fw-bold ${obtenerClaseColor(notaNum, true)}">${tieneNota ? notaNum.toFixed(2) : '-'}</td>
+                        <td class="fw-bold ${obtenerClaseColor(notaNum, true)}">${notaCualit}</td>
+                        <td><textarea class="form-control form-control-sm inf-rec" rows="1" ${reqMejAttr}>${n.recomendacion || ''}</textarea></td>
+                        <td><textarea class="form-control form-control-sm inf-plan" rows="1" ${reqMejAttr}>${n.plan_mejoramiento || ''}</textarea></td>
+                    </tr>`;
+                }).join('');
+
+                // INSERTAR EN LA TABLA
                 html = `
                   <div class="alert alert-info shadow-sm mb-3">
                      <i class="bi bi-info-circle-fill me-2"></i><strong>Importante:</strong> Solo los estudiantes con calificación inferior a 7.00 tendrán habilitadas las casillas de Recomendaciones y Plan de Mejoramiento.
@@ -5606,29 +5625,44 @@
                         </tr>
                     </thead>
                     <tbody id="tablaCuerpoInformeParcial">
-                        ${estudiantesListGlobalInf.map((est, i) => {
-                            const n = notasMap[est.id] || {};
-                            const notaNum = parseFloat(n.nota_parcial);
-                            const tieneNota = !isNaN(notaNum);
-                            const requiereMejora = tieneNota && notaNum < 7.00;
-                            const notaCualit = tieneNota ? obtenerEscalaCualitativa(notaNum) : '-';
-                            const reqMejAttr = requiereMejora ? '' : 'disabled placeholder="N/A (Supera el 7.00)"';
-
-                            return `
-<tr data-est-id="${est.id}">
-    <td class="sticky-col-num text-muted fw-bold">${i + 1}</td>
-    <td class="sticky-col-nombre text-start">${formatearNombreVisual(est.nombres)}</td>
-    <td class="fw-bold ${obtenerClaseColor(notaNum, true)}">${tieneNota ? notaNum.toFixed(2) : '-'}</td>
-    <td class="fw-bold ${obtenerClaseColor(notaNum, true)}">${notaCualit}</td>
-    <td><textarea class="form-control form-control-sm inf-rec" rows="1" ${reqMejAttr}>${n.recomendacion || ''}</textarea></td>
-    <td><textarea class="form-control form-control-sm inf-plan" rows="1" ${reqMejAttr}>${n.plan_mejoramiento || ''}</textarea></td>
-</tr>`;
-                        }).join('')}
+                        ${filasHtml}
                     </tbody>
                   </table>
                 `;
             } else {
-                // VISTA PARA EXÁMENES PENDIENTES
+                // CONSTRUIR FILAS DE EXÁMENES PENDIENTES
+                filasHtml = estudiantesListGlobalInf.map((est, i) => {
+                    const t = trimMap[est.id] || {};
+                    
+                    // Buscar alertas previas para el resumen
+                    const p1 = nP1.find(x => x.estudiante_id === est.id) || {};
+                    const p2 = nP2.find(x => x.estudiante_id === est.id) || {};
+                    let alertas = [];
+                    if (p1.nota_parcial !== undefined && parseFloat(p1.nota_parcial) < 7) {
+                        alertas.push(`P1 (${parseFloat(p1.nota_parcial).toFixed(2)}): ${p1.recomendacion || 'Sin rec.'}`);
+                    }
+                    if (p2.nota_parcial !== undefined && parseFloat(p2.nota_parcial) < 7) {
+                        alertas.push(`P2 (${parseFloat(p2.nota_parcial).toFixed(2)}): ${p2.recomendacion || 'Sin rec.'}`);
+                    }
+                    const textoAlertas = alertas.length > 0 ? alertas.join('<br><br>') : '<span class="text-success fst-italic">Sin alertas en el trimestre</span>';
+
+                    const exNum = parseFloat(t.examen);
+                    const tieneEx = !isNaN(exNum) && t.examen !== '';
+                    const isPendiente = !tieneEx || exNum === 0; // Habilita el motivo si está en 0 o vacío
+                    const exVal = tieneEx ? exNum.toFixed(2) : '-';
+                    const reqExAttr = isPendiente ? '' : 'disabled placeholder="Examen rendido (No requiere motivo)"';
+
+                    return `
+                    <tr data-est-id="${est.id}">
+                        <td class="sticky-col-num text-muted fw-bold">${i + 1}</td>
+                        <td class="sticky-col-nombre text-start">${formatearNombreVisual(est.nombres)}</td>
+                        <td class="text-start" style="font-size: 0.7rem; white-space: normal;">${textoAlertas}</td>
+                        <td class="fw-bold ${!isPendiente ? 'text-success' : 'text-danger'} fs-6">${exVal}</td>
+                        <td><input type="text" class="form-control form-control-sm inf-motivo" value="${t.motivo_examen_pendiente || ''}" ${reqExAttr}></td>
+                    </tr>`;
+                }).join('');
+
+                // INSERTAR EN LA TABLA
                 html = `
                   <div class="alert alert-warning shadow-sm mb-3 text-dark">
                      <i class="bi bi-exclamation-triangle-fill me-2"></i><strong>Resumen del Trimestre y Exámenes Pendientes:</strong> Se muestra el historial de dificultades del estudiante. Solo se habilitará el "Motivo" para aquellos con calificación de 0 o examen vacío.
@@ -5644,36 +5678,7 @@
                         </tr>
                     </thead>
                     <tbody id="tablaCuerpoInformeParcial">
-                        ${estudiantesListGlobalInf.map((est, i) => {
-                            const t = trimMap[est.id] || {};
-                            
-                            // Buscar alertas previas para el resumen
-                            const p1 = nP1.find(x => x.estudiante_id === est.id) || {};
-                            const p2 = nP2.find(x => x.estudiante_id === est.id) || {};
-                            let alertas = [];
-                            if (p1.nota_parcial !== undefined && parseFloat(p1.nota_parcial) < 7) {
-    alertas.push(`P1 (${parseFloat(p1.nota_parcial).toFixed(2)}): ${p1.recomendacion || 'Sin rec.'}`);
-}
-if (p2.nota_parcial !== undefined && parseFloat(p2.nota_parcial) < 7) {
-    alertas.push(`P2 (${parseFloat(p2.nota_parcial).toFixed(2)}): ${p2.recomendacion || 'Sin rec.'}`);
-}
-                            const textoAlertas = alertas.length > 0 ? alertas.join('\\n') : '<span class="text-success fst-italic">Sin alertas en el trimestre</span>';
-
-                            const exNum = parseFloat(t.examen);
-                            const tieneEx = !isNaN(exNum) && t.examen !== '';
-                            const isPendiente = !tieneEx || exNum === 0;
-                            const exVal = tieneEx ? exNum.toFixed(2) : '-';
-                            const reqExAttr = isPendiente ? '' : 'disabled placeholder="Examen rendido (No requiere motivo)"';
-
-                           return `
-<tr data-est-id="${est.id}">
-    <td class="sticky-col-num text-muted fw-bold">${i + 1}</td>
-    <td class="sticky-col-nombre text-start">${formatearNombreVisual(est.nombres)}</td>
-    <td class="text-start" style="font-size: 0.7rem; white-space: pre-wrap;">${textoAlertas}</td>
-    <td class="fw-bold ${!isPendiente ? 'text-success' : 'text-danger'} fs-6">${exVal}</td>
-    <td><input type="text" class="form-control form-control-sm inf-motivo" value="${t.motivo_examen_pendiente || ''}" ${reqExAttr}></td>
-</tr>`;
-                        }).join('')}
+                        ${filasHtml}
                     </tbody>
                   </table>
                 `;
