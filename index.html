@@ -83,6 +83,15 @@
     thead th.sticky-col-num, thead th.sticky-col-nombre {
         z-index: 16 !important; 
     }
+    /* Animación del botón de tareas */
+    .btn-pulse {
+        animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+        0% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7); }
+        70% { box-shadow: 0 0 0 6px rgba(220, 53, 69, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
+    }
   </style>
 </head>
 <body class="bg-light py-2">
@@ -147,6 +156,10 @@
           </div>
           <div class="d-flex align-items-center gap-2 ms-auto">
             <img id="appLogoDer" class="logo-header d-none d-sm-block" alt="Logo Derecho">
+            <!-- NUEVO BOTÓN DE TAREAS EN EL HEADER -->
+            <button class="btn btn-danger btn-sm px-2 py-1 fw-bold d-none me-1" id="btnAlertaTareas" onclick="abrirModalTareas()" style="font-size: 0.75rem;" title="Tareas Pendientes">
+              <i class="bi bi-bell-fill"></i> <span id="badgeTareasHeader" class="badge bg-white text-danger ms-1 rounded-pill">0</span>
+            </button>
             <button class="btn btn-outline-warning btn-sm px-2 py-1 text-dark fw-bold me-2" onclick="abrirModalCambiarMiClave()" style="font-size: 0.75rem;" title="Cambiar mi Contraseña">
               <i class="bi bi-key-fill"></i><span class="d-none d-sm-inline ms-1">Clave</span>
             </button>
@@ -481,6 +494,31 @@
       </div>
     </div>
   </div>
+
+  <!-- NUEVO: MODAL DE TAREAS PENDIENTES DEL DOCENTE -->
+  <div class="modal fade" id="modalTareasPendientes" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content border-0 shadow">
+        <div class="modal-header bg-danger text-white py-2">
+          <h6 class="modal-title fw-bold"><i class="bi bi-card-checklist me-2"></i>Tareas y Calificaciones Pendientes</h6>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body bg-light p-0">
+          <div class="p-3 border-bottom bg-white">
+            <p class="mb-0 text-muted small"><i class="bi bi-info-circle-fill text-primary me-1"></i> A continuación se muestran los cursos en los que no ha guardado calificaciones o tiene informes de aprendizaje incompletos (estudiantes con notas menores a 7) para los <b>periodos que se encuentran habilitados actualmente</b>.</p>
+          </div>
+          <div class="list-group list-group-flush" id="listaTareasPendientes">
+            <!-- Se llena con JS -->
+          </div>
+        </div>
+        <div class="modal-footer bg-light py-2">
+            <button type="button" class="btn btn-secondary btn-sm fw-bold px-4" data-bs-dismiss="modal">Cerrar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  
   
   <script>
     const SUPABASE_URL = 'https://sbomuqwntosvdsojlfyr.supabase.co';
@@ -802,6 +840,8 @@
         await cargarCatalogo();
         await cargarPeriodosAsistenciaDB();
         await cargarCursosYMaterias(session.user.id, perfil?.rol, perfil?.puede_gestionar_asistencia);
+
+        revisarTareasPendientes();
       } else {
         document.getElementById('pantallaCarga').classList.add('d-none');
         document.getElementById('seccionLogin').classList.remove('d-none');
@@ -5385,6 +5425,152 @@
             }).eq('id', usuarioActualPerfil.id);
         }
     }
+
+    // === NUEVO MÓDULO: ALERTA DE TAREAS PENDIENTES ===
+    async function revisarTareasPendientes() {
+        if (!usuarioActualPerfil) return;
+        
+        // Filtramos las asignaciones del docente actual
+        const misAsignaciones = todasAsignaciones.filter(a => a.docente_id === usuarioActualPerfil.id || a.docente_id_2 === usuarioActualPerfil.id || a.docente_id_3 === usuarioActualPerfil.id);
+        if (misAsignaciones.length === 0) return;
+
+        const hoyStr = new Date().toLocaleString("sv-SE", { timeZone: "America/Guayaquil" }).substring(0, 10);
+        
+        // Traer solo los periodos que estén ABIERTOS
+        const { data: periodosActivos } = await supabaseClient.from('periodos_calificaciones')
+            .select('*')
+            .lte('fecha_apertura', hoyStr)
+            .gte('fecha_cierre', hoyStr);
+
+        if (!periodosActivos || periodosActivos.length === 0) return;
+
+        let tareasHtml = '';
+        let contadorTareas = 0;
+
+        for (const per of periodosActivos) {
+            const trim = per.trimestre;
+            const parc = per.parcial; 
+
+            for (const asig of misAsignaciones) {
+                let faltanNotas = false;
+                let faltanInformes = false;
+
+                if (parc === 1 || parc === 2) {
+                    // Ver si guardó notas (evaluando si la cabecera existe)
+                    const { data: config } = await supabaseClient.from('config_parcial_cabeceras')
+                        .select('id')
+                        .eq('asignacion_id', asig.id).eq('trimestre', trim).eq('parcial', parc).maybeSingle();
+                    
+                    if (!config) faltanNotas = true;
+
+                    // Ver si guardó informes (evaluando notas < 7 sin recomendación)
+                    if (!faltanNotas) {
+                        const { data: notasBajas } = await supabaseClient.from('notas_parcial_actividades')
+                            .select('recomendacion')
+                            .eq('asignacion_id', asig.id).eq('trimestre', trim).eq('parcial', parc)
+                            .lt('nota_parcial', 7);
+                            
+                        if (notasBajas && notasBajas.some(n => !n.recomendacion || n.recomendacion.trim() === '')) {
+                            faltanInformes = true;
+                        }
+                    }
+                } else if (parc === 3) {
+                    // Trimestral (Ver si existe al menos un examen guardado)
+                    const { data: examenes } = await supabaseClient.from('notas_trimestre')
+                        .select('examen')
+                        .eq('asignacion_id', asig.id).eq('trimestre', trim)
+                        .not('examen', 'is', null).limit(1);
+                        
+                    if (!examenes || examenes.length === 0) faltanNotas = true;
+                }
+
+                const txtParcial = parc === 3 ? 'Examen/Resumen Trimestral' : `Parcial ${parc}`;
+                const nombreCurso = asig.cursos?.nombre || 'Curso';
+                const nombreMateria = asig.materias?.nombre || 'Materia';
+                
+                if (faltanNotas) {
+                    contadorTareas++;
+                    tareasHtml += `
+                        <div class="list-group-item list-group-item-action d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 py-3">
+                            <div>
+                                <h6 class="mb-1 fw-bold text-danger"><i class="bi bi-exclamation-circle-fill me-2"></i>Calificaciones Pendientes</h6>
+                                <p class="mb-0 text-muted" style="font-size: 0.8rem;">${nombreCurso} - <b>${nombreMateria}</b><br>Trimestre ${trim} - ${txtParcial}</p>
+                            </div>
+                            <button class="btn btn-sm btn-outline-danger fw-bold text-nowrap" onclick="irATarea('calificaciones', ${asig.curso_id}, ${asig.id}, ${trim}, ${parc})">Ir al Registro <i class="bi bi-arrow-right"></i></button>
+                        </div>
+                    `;
+                }
+
+                if (faltanInformes) {
+                    contadorTareas++;
+                    tareasHtml += `
+                        <div class="list-group-item list-group-item-action d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 py-3 bg-warning bg-opacity-10">
+                            <div>
+                                <h6 class="mb-1 fw-bold text-warning text-dark"><i class="bi bi-file-earmark-text-fill me-2"></i>Informes de Aprendizaje Incompletos</h6>
+                                <p class="mb-0 text-muted" style="font-size: 0.8rem;">${nombreCurso} - <b>${nombreMateria}</b><br>Trimestre ${trim} - ${txtParcial} (Alumnos con nota < 7)</p>
+                            </div>
+                            <button class="btn btn-sm btn-outline-warning text-dark fw-bold text-nowrap" onclick="irATarea('informe_parcial', ${asig.curso_id}, ${asig.id}, ${trim}, ${parc})">Ir al Informe <i class="bi bi-arrow-right"></i></button>
+                        </div>
+                    `;
+                }
+            }
+        }
+
+        const btnAlerta = document.getElementById('btnAlertaTareas');
+        const badgeHeader = document.getElementById('badgeTareasHeader');
+        
+        if (contadorTareas > 0) {
+            document.getElementById('listaTareasPendientes').innerHTML = tareasHtml;
+            badgeHeader.innerText = contadorTareas;
+            btnAlerta.classList.remove('d-none');
+            btnAlerta.classList.add('btn-pulse');
+            
+            // Mostrar Modal Automáticamente al entrar
+            const modalTareas = new bootstrap.Modal(document.getElementById('modalTareasPendientes'));
+            modalTareas.show();
+        } else {
+            document.getElementById('listaTareasPendientes').innerHTML = '<div class="py-4 text-center text-success fw-bold"><i class="bi bi-check-circle-fill fs-3 d-block mb-2"></i>¡Excelente! No tienes tareas pendientes en los periodos habilitados actualmente.</div>';
+            badgeHeader.innerText = '0';
+            btnAlerta.classList.add('d-none');
+            btnAlerta.classList.remove('btn-pulse');
+        }
+    }
+
+    function abrirModalTareas() {
+        const modalTareas = new bootstrap.Modal(document.getElementById('modalTareasPendientes'));
+        modalTareas.show();
+    }
+
+    function irATarea(modo, cursoId, asignacionId, trimestre, parcial) {
+        // Cierra el modal actual
+        const modalEl = document.getElementById('modalTareasPendientes');
+        const modalInst = bootstrap.Modal.getInstance(modalEl);
+        if(modalInst) modalInst.hide();
+
+        // Configura los filtros de la vista principal en cadena
+        document.getElementById('selectModo').value = modo;
+        alCambiarModo(); 
+        
+        document.getElementById('selectCurso').value = cursoId;
+        alCambiarCurso(); 
+        
+        // Timeout para que se llene dinámicamente el select de materias
+        setTimeout(() => {
+            document.getElementById('selectMateria').value = asignacionId;
+            document.getElementById('selectTrimestre').value = trimestre;
+            
+            if (modo === 'calificaciones') {
+                if(parcial === 1) document.getElementById('selectVista').value = 'p1';
+                else if(parcial === 2) document.getElementById('selectVista').value = 'p2';
+                else document.getElementById('selectVista').value = 'resumen_trimestre';
+            } else if (modo === 'informe_parcial') {
+                document.getElementById('selectParcialAsistencia').value = parcial; 
+            }
+            
+            cambiarFiltro(); // Dispara la visualización de la tabla
+        }, 150);
+    }
+    // ==========================================================
 
     async function cargarVistaMonitoreo() {
       const reqId = ++currentViewRequestId;
