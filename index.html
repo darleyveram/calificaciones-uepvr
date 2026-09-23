@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sistema de Calificaciones, Asistencia y Tutoría - UEPVR</title>
+  <title>UEP "Vicente Rocafuerte" - Portal Docente</title>
+  <link id="favicon" rel="icon" href="https://cdn-icons-png.flaticon.com/512/1164/1164620.png" type="image/png">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -103,38 +104,44 @@
     </div>
   </div>
 
-  <div class="container d-none" id="seccionLogin" style="max-width: 440px; margin-top: 50px;">
-    <div class="card shadow border-0">
-      <div class="card-header bg-primary text-white text-center py-3">
-        <div class="d-flex justify-content-center align-items-center gap-3 mb-2">
-          <img id="loginLogoIzq" class="logo-login d-none" alt="Logo Colegio">
-          <img id="loginLogoDer" class="logo-login d-none" alt="Escudo">
+  <div class="container d-none" id="seccionLogin" style="max-width: 420px; margin-top: 8vh;">
+    <div class="card shadow-lg border-0 rounded-4 overflow-hidden">
+      <div class="card-header bg-primary bg-gradient text-white text-center pt-4 pb-3 border-0">
+        <!-- Contenedor circular blanco para resaltar el logo del colegio -->
+        <div class="bg-white rounded-circle d-inline-flex justify-content-center align-items-center shadow-sm mb-3" style="width: 90px; height: 90px;">
+          <img id="loginLogoIzq" class="logo-login d-none" alt="Logo Colegio" style="max-width: 65px; max-height: 65px; object-fit: contain;">
         </div>
-        <h5 class="mb-0 fw-bold header-nombre-inst">UEP Vicente Rocafuerte</h5>
-        <small class="header-lema-inst text-light">Portal Docente y Tutorías</small>
+        <h4 class="mb-1 fw-bold header-nombre-inst" style="letter-spacing: 0.5px;">UEP Vicente Rocafuerte</h4>
+        <p class="header-lema-inst text-white-50 mb-0 small">Portal Docente y Tutorías</p>
       </div>
-      <div class="card-body p-4">
+      <div class="card-body p-4 bg-white">
         <form onsubmit="iniciarSesion(event)">
           <div class="mb-3">
-            <label class="form-label fw-bold">Correo institucional</label>
-            <input type="email" id="loginEmail" class="form-control" placeholder="docente@uepvr.edu.ec" required>
-          </div>
-          <div class="mb-3">
-            <label class="form-label fw-bold">Contraseña</label>
-            <div class="position-relative">
-              <input type="password" id="loginPassword" class="form-control pe-5" required>
-              <i class="bi bi-eye-slash text-muted position-absolute" id="iconoClaveLogin" 
-                 style="right: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; font-size: 1.1rem;" 
-                 onclick="alternarVisibilidadClave('loginPassword', 'iconoClaveLogin')"></i>
+            <label class="form-label fw-bold text-secondary small">Correo institucional</label>
+            <div class="input-group shadow-sm">
+              <span class="input-group-text bg-light border-end-0 text-primary"><i class="bi bi-envelope-fill"></i></span>
+              <input type="email" id="loginEmail" class="form-control bg-light border-start-0 ps-0" placeholder="docente@uepvr.edu.ec" required>
             </div>
           </div>
-          <div id="loginError" class="alert alert-danger py-2 d-none"></div>
-          <button type="submit" class="btn btn-primary w-100 fw-bold" id="btnLogin">Ingresar al Sistema</button>
+          <div class="mb-4">
+            <label class="form-label fw-bold text-secondary small">Contraseña</label>
+            <div class="input-group shadow-sm position-relative">
+              <span class="input-group-text bg-light border-end-0 text-primary"><i class="bi bi-lock-fill"></i></span>
+              <input type="password" id="loginPassword" class="form-control bg-light border-start-0 border-end-0 ps-0" placeholder="••••••••" required>
+              <span class="input-group-text bg-light cursor-pointer border-start-0" onclick="alternarVisibilidadClave('loginPassword', 'iconoClaveLogin')">
+                  <i class="bi bi-eye-slash text-muted" id="iconoClaveLogin"></i>
+              </span>
+            </div>
+          </div>
+          <div id="loginError" class="alert alert-danger py-2 d-none fw-semibold text-center shadow-sm" style="font-size: 0.85rem;"></div>
+          <button type="submit" class="btn btn-primary w-100 fw-bold py-2 rounded-3 shadow-sm" id="btnLogin" style="font-size: 1.1rem;">
+            Ingresar al Sistema <i class="bi bi-box-arrow-in-right ms-1"></i>
+          </button>
         </form>
       </div>
-      <div class="card-footer bg-light text-center py-2 text-muted small">
-        <span class="header-dir-inst">Pichincha - Manabí - Ecuador</span><br>
-        <span style="font-size: 0.6rem; opacity: 0.5;">v1.0.28</span>
+      <div class="card-footer bg-light text-center py-3 border-0">
+        <small class="text-muted fw-semibold header-dir-inst d-block">Pichincha - Manabí - Ecuador</small>
+        <small class="text-muted" style="font-size: 0.65rem; opacity: 0.6;">v1.0.28</small>
       </div>
     </div>
   </div>
@@ -749,8 +756,23 @@
         document.querySelectorAll('.header-periodo-badge').forEach(el => el.innerText = data.periodo_lectivo || '2026-2027');
         const logoIzq = data.logo_izquierdo || data.logo_institucion;
         const logoDer = data.logo_derecho || data.escudo_nacional;
-        if (logoIzq) { const l1 = document.getElementById('loginLogoIzq'); if (l1) { l1.src = logoIzq; l1.classList.remove('d-none'); } const a1 = document.getElementById('appLogoIzq'); if (a1) { a1.src = logoIzq; a1.classList.remove('d-none'); } }
-        if (logoDer) { const l2 = document.getElementById('loginLogoDer'); if (l2) { l2.src = logoDer; l2.classList.remove('d-none'); } const a2 = document.getElementById('appLogoDer'); if (a2) { a2.src = logoDer; a2.classList.remove('d-none'); } }
+        
+        if (logoIzq) { 
+            const l1 = document.getElementById('loginLogoIzq'); 
+            if (l1) { l1.src = logoIzq; l1.classList.remove('d-none'); } 
+            const a1 = document.getElementById('appLogoIzq'); 
+            if (a1) { a1.src = logoIzq; a1.classList.remove('d-none'); } 
+            
+            // NUEVO: Asignar el logo de la base de datos al ícono de la pestaña
+            const favicon = document.getElementById('favicon');
+            if (favicon) favicon.href = logoIzq;
+        }
+        if (logoDer) { 
+            const l2 = document.getElementById('loginLogoDer'); 
+            if (l2) { l2.src = logoDer; l2.classList.remove('d-none'); } 
+            const a2 = document.getElementById('appLogoDer'); 
+            if (a2) { a2.src = logoDer; a2.classList.remove('d-none'); } 
+        }
       }
     }
 
