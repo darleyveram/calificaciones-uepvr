@@ -134,7 +134,7 @@
       </div>
       <div class="card-footer bg-light text-center py-2 text-muted small">
         <span class="header-dir-inst">Pichincha - Manabí - Ecuador</span><br>
-        <span style="font-size: 0.6rem; opacity: 0.5;">v1.0.27</span>
+        <span style="font-size: 0.6rem; opacity: 0.5;">v1.0.28</span>
       </div>
     </div>
   </div>
@@ -251,11 +251,11 @@
           </div>
           
           <div class="col-6 col-md-3 d-none" id="boxTipoAuditoria">
-            <label class="form-label mb-1 fw-bold small">Estado del Docente:</label>
+            <label class="form-label mb-1 fw-bold small">Estado / Revisión:</label>
             <select id="selectTipoAuditoria" class="form-select form-select-sm fw-bold text-dark" onchange="cambiarFiltro()">
-              <option value="incumplidos" class="text-danger">❌ Docentes Incumplidos</option>
-              <option value="cumplidos_notas" class="text-primary">📘 100% Calificaciones Llenas</option>
-              <option value="cumplidos_todo" class="text-success">✅ 100% Todo (Notas e Informes)</option>
+              <option value="incumplidos" class="text-danger">❌ Faltan Calificaciones</option>
+              <option value="cumplidos" class="text-success">✅ Calificaciones al 100%</option>
+              <option value="informes" class="text-warning">⚠️ Informes de Aprendizaje</option>
             </select>
           </div>
 
@@ -4495,7 +4495,7 @@
       const reqId = ++currentViewRequestId;
       const contenedor = document.getElementById('contenedorTabla');
       
-      contenedor.innerHTML = '<div class="py-5 text-center"><div class="spinner-border text-primary me-2" style="width: 3rem; height: 3rem;"></div><div class="mt-3 fw-bold text-muted">Consultando bases de datos y analizando informes...</div></div>';
+      contenedor.innerHTML = '<div class="py-5 text-center"><div class="spinner-border text-primary me-2" style="width: 3rem; height: 3rem;"></div><div class="mt-3 fw-bold text-muted">Consultando bases de datos y analizando registros...</div></div>';
 
       const trim = parseInt(document.getElementById('selectTrimestre').value);
       const vistaVal = document.getElementById('selectVista').value; 
@@ -4521,8 +4521,9 @@
         });
 
         let savedAsigIds = new Set();
-        let asigConInformesPendientes = new Set();
-
+        let asigInformesFaltantes = new Set();
+        let asigInformesCompletos = new Set();
+        
         if (parc === 1 || parc === 2) {
             // Verificar si ingresaron calificaciones
             let fetchMore = true; let start = 0;
@@ -4536,22 +4537,22 @@
                 } else fetchMore = false;
             }
 
-            // Verificar si faltan informes (nota < 7 sin recomendación)
-            fetchMore = true; start = 0;
-            while (fetchMore) {
-                const { data: notasBajas } = await supabaseClient.from('notas_parcial_actividades')
-                    .select('asignacion_id, recomendacion')
-                    .eq('trimestre', trim).eq('parcial', parc).lt('nota_parcial', 7)
-                    .range(start, start + 999);
-                if (notasBajas && notasBajas.length > 0) {
-                    notasBajas.forEach(n => {
-                        if (!n.recomendacion || n.recomendacion.trim() === '') {
-                            asigConInformesPendientes.add(n.asignacion_id);
-                        }
-                    });
-                    start += 1000;
-                    if (notasBajas.length < 1000) fetchMore = false;
-                } else fetchMore = false;
+            // Si es auditoría de Informes, buscamos a los que tienen nota menor a 7
+            if (tipoAud === 'informes') {
+                fetchMore = true; start = 0;
+                while (fetchMore) {
+                    const { data: notas } = await supabaseClient.from('notas_parcial_actividades')
+                        .select('asignacion_id, recomendacion')
+                        .eq('trimestre', trim).eq('parcial', parc).lt('nota_parcial', 7).range(start, start + 999);
+                    if (notas && notas.length > 0) {
+                        notas.forEach(n => {
+                            if (!n.recomendacion || n.recomendacion.trim() === '') asigInformesFaltantes.add(n.asignacion_id);
+                            else asigInformesCompletos.add(n.asignacion_id);
+                        });
+                        start += 1000;
+                        if (notas.length < 1000) fetchMore = false;
+                    } else fetchMore = false;
+                }
             }
         } else if (parc === 3) {
             let fetchMore = true; let start = 0;
@@ -4563,11 +4564,14 @@
                     examen.forEach(e => {
                         const exNum = parseFloat(e.examen);
                         const hasExamen = !isNaN(exNum) && e.examen !== null && e.examen !== '';
-                        const isPendiente = !hasExamen || exNum === 0;
-
                         if (hasExamen) savedAsigIds.add(e.asignacion_id);
-                        if (isPendiente && (!e.motivo_examen_pendiente || e.motivo_examen_pendiente.trim() === '')) {
-                            asigConInformesPendientes.add(e.asignacion_id);
+
+                        if (tipoAud === 'informes') {
+                            const isPendiente = !hasExamen || exNum === 0;
+                            if (isPendiente) {
+                                if (!e.motivo_examen_pendiente || e.motivo_examen_pendiente.trim() === '') asigInformesFaltantes.add(e.asignacion_id);
+                                else asigInformesCompletos.add(e.asignacion_id);
+                            }
                         }
                     });
                     start += 1000;
@@ -4583,91 +4587,66 @@
             if (!auditMap.has(asig.docente_id)) {
                 auditMap.set(asig.docente_id, {
                     nombre: docentesMap.get(asig.docente_id) || 'Docente Desconocido',
-                    totalAsignaciones: 0,
-                    faltanNotasLista: [],
-                    faltanInformesLista: [],
-                    completadasLista: []
+                    faltanNotas: [], completadasNotas: [],
+                    faltanInformes: [], completadasInformes: []
                 });
             }
             
             const docData = auditMap.get(asig.docente_id);
-            docData.totalAsignaciones++;
+            const infoClase = { curso: asig.cursos?.nombre || '-', materia: asig.materias?.nombre || '-' };
             
-            const infoClase = { cursoId: asig.curso_id, asigId: asig.id, curso: asig.cursos?.nombre || '-', materia: asig.materias?.nombre || '-' };
-            
-            let faltanNotas = !savedAsigIds.has(asig.id);
-            let faltanInformes = asigConInformesPendientes.has(asig.id);
+            // Asignación de Notas
+            if (savedAsigIds.has(asig.id)) docData.completadasNotas.push(infoClase);
+            else docData.faltanNotas.push(infoClase);
 
-            if (faltanNotas) {
-                infoClase.causa = 'Calificaciones';
-                docData.faltanNotasLista.push(infoClase);
-            } else if (faltanInformes) {
-                infoClase.causa = 'Informes';
-                docData.faltanInformesLista.push(infoClase);
-            } else {
-                docData.completadasLista.push(infoClase);
-            }
+            // Asignación de Informes
+            if (asigInformesFaltantes.has(asig.id)) docData.faltanInformes.push(infoClase);
+            else if (asigInformesCompletos.has(asig.id)) docData.completadasInformes.push(infoClase);
         });
 
-        // Filtrar según el tipo de auditoría seleccionado
+        // Filtrar según la pestaña activa
         const listaMostrar = [];
-        
         for (const [id, data] of auditMap.entries()) {
-            if (tipoAud === 'incumplidos') {
-                if (data.faltanNotasLista.length > 0 || data.faltanInformesLista.length > 0) {
-                    listaMostrar.push(data);
-                }
-            } else if (tipoAud === 'cumplidos_notas') {
-                // Si faltanNotasLista está vacía, llenó el 100% de Calificaciones
-                if (data.faltanNotasLista.length === 0) {
-                    listaMostrar.push(data);
-                }
-            } else if (tipoAud === 'cumplidos_todo') {
-                // Si ambas están vacías, hizo TODO
-                if (data.faltanNotasLista.length === 0 && data.faltanInformesLista.length === 0) {
-                    listaMostrar.push(data);
-                }
+            if (tipoAud === 'cumplidos') {
+                if (data.faltanNotas.length === 0) listaMostrar.push(data);
+            } else if (tipoAud === 'incumplidos') {
+                if (data.faltanNotas.length > 0) listaMostrar.push(data);
+            } else if (tipoAud === 'informes') {
+                if (data.faltanInformes.length > 0 || data.completadasInformes.length > 0) listaMostrar.push(data);
             }
         }
 
         listaMostrar.sort((a,b) => a.nombre.localeCompare(b.nombre));
 
-        // Renderizado del HTML
+        // Renderizado del HTML interactivo
         let html = '';
-        if (tipoAud === 'cumplidos_notas' || tipoAud === 'cumplidos_todo') {
+        
+        if (tipoAud === 'cumplidos') {
             if (listaMostrar.length === 0) {
-                html = '<div class="py-5 text-center text-muted fw-bold">Aún no hay docentes que cumplan con este criterio al 100%.</div>';
+                html = '<div class="py-5 text-center text-muted fw-bold">Aún no hay docentes que hayan completado el 100% de sus calificaciones.</div>';
             } else {
-                const titulo = tipoAud === 'cumplidos_notas' 
-                    ? 'DOCENTES CON 100% DE CALIFICACIONES ACADÉMICAS' 
-                    : 'DOCENTES CON 100% DE CALIFICACIONES E INFORMES';
-                const colorClass = tipoAud === 'cumplidos_notas' ? 'primary' : 'success';
-                const iconClass = tipoAud === 'cumplidos_notas' ? 'bi-journal-check' : 'bi-check-circle-fill';
-
                 html = `
                 <div class="list-group shadow-sm mt-2 mx-auto" style="max-width: 800px;">
-                    <div class="list-group-item list-group-item-${colorClass} fw-bold p-3 text-center fs-5">
-                        <i class="bi ${iconClass} me-2"></i>${titulo} (${listaMostrar.length})
+                    <div class="list-group-item list-group-item-success fw-bold p-3 text-center fs-5">
+                        <i class="bi bi-check-circle-fill me-2"></i>DOCENTES CON 100% DE CALIFICACIONES INGRESADAS (${listaMostrar.length})
                     </div>
                     ${listaMostrar.map((d, i) => `
-                        <div class="list-group-item d-flex justify-content-between align-items-center py-3 px-4">
+                        <div class="list-group-item d-flex flex-column flex-sm-row justify-content-between align-items-sm-center py-3 px-4 gap-2">
                             <div><span class="badge bg-secondary me-3">${i+1}</span> <span class="fw-bold fs-6">${d.nombre}</span></div>
-                            <span class="badge bg-${colorClass} rounded-pill px-3 py-2">
-                                <i class="bi bi-check2-all me-1"></i> ${d.totalAsignaciones} Materias Completadas
-                            </span>
+                            <span class="badge bg-success rounded-pill px-3 py-2"><i class="bi bi-check2-all me-1"></i> ${d.completadasNotas.length} Materias Completadas</span>
                         </div>
                     `).join('')}
                 </div>`;
             }
-        } else {
-            // INCUMPLIDOS
+        } 
+        else if (tipoAud === 'incumplidos') {
             if (listaMostrar.length === 0) {
-                html = '<div class="py-5 text-center text-success fs-5 fw-bold"><i class="bi bi-stars me-2 fs-3 d-block mb-2"></i>¡Excelente! Ningún docente tiene tareas pendientes.</div>';
+                html = '<div class="py-5 text-center text-success fs-5 fw-bold"><i class="bi bi-stars me-2 fs-3 d-block mb-2"></i>¡Excelente! Ningún docente tiene calificaciones pendientes.</div>';
             } else {
                 html = `
                 <div class="accordion shadow-sm mt-2 mx-auto" id="accordionIncumplidos" style="max-width: 800px;">
                     <div class="list-group-item list-group-item-danger fw-bold p-3 text-center fs-5 border-bottom rounded-top">
-                        <i class="bi bi-x-circle-fill me-2"></i>DOCENTES CON PENDIENTES (${listaMostrar.length})
+                        <i class="bi bi-x-circle-fill me-2"></i>DOCENTES CON CALIFICACIONES PENDIENTES (${listaMostrar.length})
                     </div>
                     ${listaMostrar.map((d, i) => `
                         <div class="accordion-item border-0 border-bottom">
@@ -4675,61 +4654,79 @@
                                 <button class="accordion-button collapsed fw-bold text-danger bg-white py-3 px-4" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAud${i}">
                                     <span class="badge bg-danger me-3">${i+1}</span> 
                                     <span class="fs-6">${d.nombre}</span>
-                                    <span class="ms-auto badge bg-warning text-dark rounded-pill px-3 me-3"><i class="bi bi-exclamation-triangle-fill me-1"></i> ${d.faltanNotasLista.length + d.faltanInformesLista.length} Pendientes</span>
+                                    <span class="ms-auto badge bg-warning text-dark rounded-pill px-3 me-3"><i class="bi bi-exclamation-triangle-fill me-1"></i> Faltan ${d.faltanNotas.length}</span>
                                 </button>
                             </h2>
                             <div id="collapseAud${i}" class="accordion-collapse collapse" data-bs-parent="#accordionIncumplidos">
                                 <div class="accordion-body bg-light p-0">
-                                    
-                                    <!-- LISTA DE LO QUE FALTAN NOTAS -->
-                                    ${d.faltanNotasLista.length > 0 ? `
-                                    <div class="bg-white px-3 py-2 border-bottom fw-bold text-danger small"><i class="bi bi-x-circle me-1"></i> Faltan Calificaciones:</div>
+                                    <div class="bg-white px-3 py-2 border-bottom fw-bold text-danger small"><i class="bi bi-x-circle me-1"></i> Faltan por llenar calificaciones en:</div>
                                     <ul class="list-group list-group-flush">
-                                        ${d.faltanNotasLista.map(f => `
+                                        ${d.faltanNotas.map(f => `
                                             <li class="list-group-item bg-transparent text-dark py-2 px-4" style="font-size: 0.85rem;">
-                                                <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center w-100 gap-2">
-                                                    <div><i class="bi bi-arrow-return-right me-2 text-muted"></i><strong>${f.curso}</strong> —${f.materia}</div>
-                                                    <div class="d-flex align-items-center gap-2">
-                                                        <button class="btn btn-sm btn-danger py-0 px-2 fw-bold text-nowrap shadow-sm" onclick="irATarea('calificaciones', ${f.cursoId},${f.asigId}, ${trim},${parc})">Ir a Notas <i class="bi bi-arrow-right"></i></button>
-                                                    </div>
-                                                </div>
+                                                <i class="bi bi-arrow-return-right me-2 text-muted"></i><strong>${f.curso}</strong> — ${f.materia}
                                             </li>
                                         `).join('')}
                                     </ul>
-                                    ` : ''}
-
-                                    <!-- LISTA DE LO QUE FALTAN INFORMES -->
-                                    ${d.faltanInformesLista.length > 0 ? `
-                                    <div class="bg-white px-3 py-2 border-bottom ${d.faltanNotasLista.length > 0 ? 'border-top' : ''} fw-bold text-warning text-dark small mt-2"><i class="bi bi-file-earmark-text me-1"></i> Faltan Informes de Aprendizaje:</div>
-                                    <ul class="list-group list-group-flush">
-                                        ${d.faltanInformesLista.map(f => `
-                                            <li class="list-group-item bg-transparent text-dark py-2 px-4" style="font-size: 0.85rem;">
-                                                <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center w-100 gap-2">
-                                                    <div><i class="bi bi-arrow-return-right me-2 text-muted"></i><strong>${f.curso}</strong> —${f.materia}</div>
-                                                    <div class="d-flex align-items-center gap-2">
-                                                        <button class="btn btn-sm btn-warning text-dark py-0 px-2 fw-bold text-nowrap shadow-sm" onclick="irATarea('informe_parcial', ${f.cursoId},${f.asigId}, ${trim},${parc})">Ir a Informe <i class="bi bi-arrow-right"></i></button>
-                                                    </div>
-                                                </div>
-                                            </li>
-                                        `).join('')}
-                                    </ul>
-                                    ` : ''}
                                     
-                                    <!-- LISTA DE LO QUE YA HICIERON -->
-                                    ${d.completadasLista.length > 0 ? `
-                                    <div class="bg-white px-3 py-2 border-bottom border-top fw-bold text-success small mt-2"><i class="bi bi-check-circle me-1"></i> Ya completaron:</div>
+                                    ${d.completadasNotas.length > 0 ? `
+                                    <div class="bg-white px-3 py-2 border-bottom border-top fw-bold text-success small mt-2"><i class="bi bi-check-circle me-1"></i> Ya ingresaron calificaciones en:</div>
                                     <ul class="list-group list-group-flush">
-                                        ${d.completadasLista.map(c => `
+                                        ${d.completadasNotas.map(c => `
                                             <li class="list-group-item bg-transparent text-dark py-2 px-4" style="font-size: 0.85rem; opacity: 0.8;">
-                                                <div class="d-flex justify-content-between align-items-center w-100">
-                                                    <div><i class="bi bi-check2 text-success me-2"></i><strong>${c.curso}</strong> —${c.materia}</div>
-                                                    <button class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="irATarea('calificaciones', ${c.cursoId},${c.asigId}, ${trim},${parc})" title="Ver registro"><i class="bi bi-eye"></i></button>
-                                                </div>
+                                                <i class="bi bi-check2 text-success me-2"></i><strong>${c.curso}</strong> —${c.materia}
                                             </li>
                                         `).join('')}
                                     </ul>
                                     ` : ''}
-
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>`;
+            }
+        }
+        else if (tipoAud === 'informes') {
+            if (listaMostrar.length === 0) {
+                html = '<div class="py-5 text-center text-primary fs-5 fw-bold"><i class="bi bi-info-circle me-2 fs-3 d-block mb-2"></i>No hay estudiantes con nota menor a 7 en este periodo, no se requieren informes.</div>';
+            } else {
+                html = `
+                <div class="accordion shadow-sm mt-2 mx-auto" id="accordionInformes" style="max-width: 800px;">
+                    <div class="list-group-item list-group-item-warning fw-bold p-3 text-center fs-5 border-bottom rounded-top">
+                        <i class="bi bi-file-earmark-text-fill me-2"></i>AUDITORÍA DE INFORMES DE APRENDIZAJE (${listaMostrar.length} Docentes)
+                    </div>
+                    ${listaMostrar.map((d, i) => `
+                        <div class="accordion-item border-0 border-bottom">
+                            <h2 class="accordion-header" id="headingInf${i}">
+                                <button class="accordion-button collapsed fw-bold text-dark bg-white py-3 px-4" type="button" data-bs-toggle="collapse" data-bs-target="#collapseInf${i}">
+                                    <span class="badge bg-secondary me-3">${i+1}</span> 
+                                    <span class="fs-6">${d.nombre}</span>${d.faltanInformes.length > 0 
+                                        ? `<span class="ms-auto badge bg-danger rounded-pill px-3 me-3"><i class="bi bi-x-circle me-1"></i> Faltan ${d.faltanInformes.length}</span>` 
+                                        : `<span class="ms-auto badge bg-success rounded-pill px-3 me-3"><i class="bi bi-check-circle me-1"></i> Informes al 100%</span>`}
+                                </button>
+                            </h2>
+                            <div id="collapseInf${i}" class="accordion-collapse collapse" data-bs-parent="#accordionInformes">
+                                <div class="accordion-body bg-light p-0">
+                                    ${d.faltanInformes.length > 0 ? `
+                                    <div class="bg-white px-3 py-2 border-bottom fw-bold text-danger small"><i class="bi bi-exclamation-triangle-fill me-1"></i> Estudiantes con notas < 7 sin recomendación en:</div>
+                                    <ul class="list-group list-group-flush">
+                                        ${d.faltanInformes.map(f => `
+                                            <li class="list-group-item bg-transparent text-dark py-2 px-4" style="font-size: 0.85rem;">
+                                                <i class="bi bi-arrow-return-right me-2 text-danger"></i><strong>${f.curso}</strong> —${f.materia}
+                                            </li>
+                                        `).join('')}
+                                    </ul>
+                                    ` : ''}
+                                    
+                                    ${d.completadasInformes.length > 0 ? `
+                                    <div class="bg-white px-3 py-2 border-bottom border-top fw-bold text-success small mt-2"><i class="bi bi-check-circle me-1"></i> Informes correctamente llenados en:</div>
+                                    <ul class="list-group list-group-flush">
+                                        ${d.completadasInformes.map(c => `
+                                            <li class="list-group-item bg-transparent text-dark py-2 px-4" style="font-size: 0.85rem; opacity: 0.8;">
+                                                <i class="bi bi-check2 text-success me-2"></i><strong>${c.curso}</strong> —${c.materia}
+                                            </li>
+                                        `).join('')}
+                                    </ul>
+                                    ` : ''}
                                 </div>
                             </div>
                         </div>
