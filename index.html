@@ -143,7 +143,7 @@
       </div>
       <div class="card-footer bg-light text-center py-3 border-0">
         <small class="text-muted fw-semibold header-dir-inst d-block">Pichincha - Manabí - Ecuador</small>
-        <small class="text-muted" style="font-size: 0.65rem; opacity: 0.6;">v1.0.28 (Actualizado el 22/09/2026 23:24)</small>
+        <small class="text-muted" style="font-size: 0.65rem; opacity: 0.6;">v1.0.29 (Actualizado el 24/09/2026 22:11)</small>
       </div>
     </div>
   </div>
@@ -4796,7 +4796,7 @@
           <div class="p-2">
             <ul class="nav nav-tabs mb-3" id="incidenciasTabs" role="tablist">
               <li class="nav-item" role="presentation">
-                <button class="nav-link active fw-bold text-danger" data-bs-toggle="tab" data-bs-target="#form-inc">📝 Nueva Incidencia</button>
+                <button class="nav-link active fw-bold text-danger" data-bs-toggle="tab" data-bs-target="#form-inc" onclick="prepararNuevaIncidencia()">📝 Nueva Incidencia</button>
               </li>
               <li class="nav-item" role="presentation">
                 <button class="nav-link fw-bold text-primary" data-bs-toggle="tab" data-bs-target="#hist-inc" onclick="cargarHistorialIncidencias()">🔍 Historial Global</button>
@@ -4892,6 +4892,16 @@
       }
     }
 
+    let incidenciaEditandoId = null;
+
+    function prepararNuevaIncidencia() {
+      incidenciaEditandoId = null;
+      document.getElementById('btnGuardarInc').innerHTML = '<i class="bi bi-save me-1"></i> Guardar Reporte';
+      const form = document.querySelector('#form-inc form');
+      if(form) form.reset();
+      document.querySelectorAll('.check-incidencia-est').forEach(c => c.checked = false);
+    }
+
     async function guardarIncidencia(e) {
       e.preventDefault();
       const cursoId = document.getElementById('selectCurso').value;
@@ -4925,14 +4935,30 @@
       };
 
       try {
-        const { error } = await supabaseClient.from('incidencias').insert([payload]);
-        if (error) throw error;
-        alert('Reporte de incidencia guardado correctamente.');
-        cargarVistaIncidencias(); 
+        if (incidenciaEditandoId) {
+            const { error } = await supabaseClient.from('incidencias').update(payload).eq('id', incidenciaEditandoId);
+            if (error) throw error;
+            alert('Reporte actualizado correctamente.');
+            incidenciaEditandoId = null;
+            document.getElementById('btnGuardarInc').innerHTML = '<i class="bi bi-save me-1"></i> Guardar Reporte';
+        } else {
+            const { error } = await supabaseClient.from('incidencias').insert([payload]);
+            if (error) throw error;
+            alert('Reporte de incidencia guardado correctamente.');
+        }
+        
+        prepararNuevaIncidencia();
+        cargarHistorialIncidencias();
+        
+        // Cambiar a la pestaña de historial automáticamente
+        const triggerEl = document.querySelector('button[data-bs-target="#hist-inc"]');
+        if(triggerEl) bootstrap.Tab.getOrCreateInstance(triggerEl).show();
+        
       } catch (err) {
         alert('Error al guardar: ' + err.message);
       } finally {
-        btn.disabled = false; btn.innerHTML = '<i class="bi bi-save me-1"></i> Guardar Reporte';
+        btn.disabled = false;
+        if (!incidenciaEditandoId) btn.innerHTML = '<i class="bi bi-save me-1"></i> Guardar Reporte';
       }
     }
 
@@ -4981,8 +5007,14 @@
             <td class="fw-bold text-primary">${inc.nombres_estudiantes}<br><small class="text-muted fw-normal">${nombreCurso}</small></td>
             <td>${inc.observaciones}</td>
             <td><small>${docName}</small></td>
-            <td>
-              <button class="btn btn-sm btn-outline-danger py-0 px-2" onclick="eliminarIncidencia(${inc.id})" title="Eliminar registro">
+            <td style="white-space: nowrap;">
+              <button class="btn btn-sm btn-outline-primary py-0 px-1 mb-1" onclick="editarIncidencia(${inc.id})" title="Editar registro">
+                <i class="bi bi-pencil-square"></i>
+              </button>
+              <button class="btn btn-sm btn-outline-danger py-0 px-1 mb-1" onclick="exportarIncidenciaIndividualPDF(${inc.id})" title="Descargar PDF del Reporte">
+                <i class="bi bi-file-pdf"></i>
+              </button>
+              <button class="btn btn-sm btn-outline-secondary py-0 px-1 mb-1" onclick="eliminarIncidencia(${inc.id})" title="Eliminar registro">
                 <i class="bi bi-trash-fill"></i>
               </button>
             </td>
@@ -5015,6 +5047,115 @@
         cargarHistorialIncidencias(); // Recargar la tabla automáticamente
       } catch (err) {
         alert('Error al eliminar: ' + err.message);
+      }
+    }
+
+    async function editarIncidencia(id) {
+      const trimestre = parseInt(document.getElementById('selectTrimestre').value);
+      const parcialVal = document.getElementById('selectVista').value;
+      const parcial = parcialVal === 'p2' ? 2 : (parcialVal === 'resumen_trimestre' ? 3 : 1);
+      
+      const estadoBloqueo = await verificarBloqueoCalificaciones(0, trimestre, parcial);
+      if (estadoBloqueo.bloqueado) {
+          return alert(`El sistema está bloqueado. ${estadoBloqueo.mensaje} No se pueden editar registros.`);
+      }
+
+      const inc = historialIncidenciasGlobal.find(i => i.id === id);
+      if (!inc) return;
+
+      incidenciaEditandoId = id;
+
+      document.getElementById('incTipo').value = inc.tipo_incidencia;
+      document.getElementById('incContexto').value = inc.contexto;
+      
+      // Ajuste de zona horaria para el input datetime-local
+      const tzOffset = (new Date()).getTimezoneOffset() * 60000;
+      const localISOTime = (new Date(new Date(inc.fecha_hora) - tzOffset)).toISOString().slice(0,16);
+      document.getElementById('incFechaHora').value = localISOTime;
+
+      document.getElementById('incObservaciones').value = inc.observaciones;
+
+      document.querySelectorAll('.check-incidencia-est').forEach(chk => {
+        chk.checked = inc.estudiantes_ids.includes(parseInt(chk.value));
+      });
+
+      document.getElementById('btnGuardarInc').innerHTML = '<i class="bi bi-arrow-repeat me-1"></i> Actualizar Reporte';
+
+      // Cambiar a la pestaña del formulario
+      const triggerEl = document.querySelector('button[data-bs-target="#form-inc"]');
+      if(triggerEl) bootstrap.Tab.getOrCreateInstance(triggerEl).show();
+    }
+
+    async function exportarIncidenciaIndividualPDF(id) {
+      const inc = historialIncidenciasGlobal.find(i => i.id === id);
+      if (!inc) return;
+
+      try {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ compress: true, orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+        const nomArriba = (infoInstitucion?.nombre_arriba || 'Unidad Educativa Particular').toUpperCase();
+        const nomAbajo = (infoInstitucion?.nombre_abajo || '"Vicente Rocafuerte"').toUpperCase();
+        const imgLogoIzq = await obtenerBase64DesdeUrl(infoInstitucion?.logo_izquierdo || infoInstitucion?.logo_institucion);
+        const imgLogoDer = await obtenerBase64DesdeUrl(infoInstitucion?.logo_derecho || infoInstitucion?.escudo_nacional);
+
+        if (imgLogoIzq) { try { doc.addImage(imgLogoIzq, 'PNG', 14, 10, 20, 20); } catch(e){} }
+        if (imgLogoDer) { try { doc.addImage(imgLogoDer, 'PNG', 176, 10, 20, 20); } catch(e){} }
+
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.setTextColor(30, 41, 59);
+        doc.text(nomArriba, 105, 15, { align: 'center' });
+        doc.setFontSize(14); doc.text(nomAbajo, 105, 21, { align: 'center' });
+        doc.setDrawColor(200, 200, 200); doc.line(14, 34, 196, 34);
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(14);
+        doc.text('REPORTE DE INCIDENCIA DISCIPLINARIA', 105, 45, { align: 'center' });
+
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Fecha y Hora del Suceso:', 20, 60);
+        doc.setFont('helvetica', 'normal');
+        doc.text(new Date(inc.fecha_hora).toLocaleString('es-EC', { dateStyle: 'long', timeStyle: 'short' }), 65, 60);
+
+        doc.setFont('helvetica', 'bold');
+        doc.text('Tipo de Incidencia:', 20, 68);
+        doc.setFont('helvetica', 'normal');
+        doc.text(inc.tipo_incidencia, 55, 68);
+
+        doc.setFont('helvetica', 'bold');
+        doc.text('Contexto / Ubicación:', 20, 76);
+        doc.setFont('helvetica', 'normal');
+        doc.text(inc.contexto, 60, 76);
+
+        doc.setFont('helvetica', 'bold');
+        doc.text('Estudiantes Involucrados:', 20, 84);
+        
+        const cursoInfo = todosCursos.find(c => String(c.id) === String(inc.curso_id));
+        const nombreCurso = cursoInfo ? cursoInfo.nombre : '';
+        doc.setFont('helvetica', 'normal');
+        doc.text(`${inc.nombres_estudiantes} (${nombreCurso})`, 20, 90, { maxWidth: 170 });
+
+        doc.setFont('helvetica', 'bold');
+        doc.text('Observaciones / Narrativa de los hechos:', 20, 105);
+        
+        doc.setFont('helvetica', 'normal');
+        doc.text(inc.observaciones, 20, 112, { maxWidth: 170, align: 'justify' });
+
+        // Firmas
+        const docInfo = docentesList.find(d => d.id === inc.docente_id);
+        const docName = docInfo ? `${docInfo.titulo || ''} ${docInfo.nombres} ${docInfo.apellidos || ''}`.trim() : 'Docente';
+        
+        const footerY = 220;
+        doc.setLineWidth(0.2);
+        doc.line(65, footerY, 145, footerY);
+        doc.setFont('helvetica', 'normal');
+        doc.text(docName.toUpperCase(), 105, footerY + 5, { align: 'center' });
+        doc.setFont('helvetica', 'bold');
+        doc.text('DOCENTE / AUTORIDAD QUE REPORTA', 105, footerY + 10, { align: 'center' });
+
+        doc.save(`Reporte_Incidencia_${new Date(inc.fecha_hora).getTime()}.pdf`);
+      } catch(e) {
+        alert('Error generando PDF: ' + e.message);
       }
     }
 
