@@ -4530,6 +4530,25 @@
       else if (vistaVal === 'resumen_trimestre') parc = 3;
 
       try {
+        // --- NUEVO: OBTENER ESTUDIANTES VÁLIDOS (IGNORANDO RETIRADOS/DISTANCIA SEGÚN FILTROS) ---
+        const { data: allEst } = await supabaseClient.from('estudiantes').select('id, estado, modalidad');
+        const estValidos = new Set();
+        
+        const toggleDist = document.getElementById('toggleDistancia');
+        const toggleRet = document.getElementById('toggleRetirados');
+        const verDistancia = toggleDist ? toggleDist.checked : false;
+        const verRetirados = toggleRet ? toggleRet.checked : false;
+        
+        (allEst || []).forEach(e => {
+            let pasaModalidad = true;
+            if (!verDistancia && e.modalidad === 'DISTANCIA') pasaModalidad = false;
+            let pasaEstado = true;
+            if (!verRetirados && e.estado === 'RETIRADO') pasaEstado = false;
+            
+            if (pasaModalidad && pasaEstado) estValidos.add(e.id);
+        });
+        // ----------------------------------------------------------------------------------------
+
         const { data: asignaciones } = await supabaseClient.from('curso_materia_docente').select(`
             id, curso_id, materia_id, docente_id,
             cursos(nombre), materias(nombre)
@@ -4566,12 +4585,15 @@
                 fetchMore = true; start = 0;
                 while (fetchMore) {
                     const { data: notas } = await supabaseClient.from('notas_parcial_actividades')
-                        .select('asignacion_id, recomendacion')
+                        .select('asignacion_id, recomendacion, estudiante_id')
                         .eq('trimestre', trim).eq('parcial', parc).lt('nota_parcial', 7).range(start, start + 999);
                     if (notas && notas.length > 0) {
                         notas.forEach(n => {
-                            if (!n.recomendacion || n.recomendacion.trim() === '') asigInformesFaltantes.add(n.asignacion_id);
-                            else asigInformesCompletos.add(n.asignacion_id);
+                            // SOLO EVALUAR SI EL ESTUDIANTE ES VÁLIDO (NO RETIRADO/DISTANCIA)
+                            if (estValidos.has(n.estudiante_id)) {
+                                if (!n.recomendacion || n.recomendacion.trim() === '') asigInformesFaltantes.add(n.asignacion_id);
+                                else asigInformesCompletos.add(n.asignacion_id);
+                            }
                         });
                         start += 1000;
                         if (notas.length < 1000) fetchMore = false;
@@ -4582,19 +4604,22 @@
             let fetchMore = true; let start = 0;
             while (fetchMore) {
                 const { data: examen } = await supabaseClient.from('notas_trimestre')
-                    .select('asignacion_id, examen, motivo_examen_pendiente').eq('trimestre', trim).range(start, start + 999);
+                    .select('asignacion_id, examen, motivo_examen_pendiente, estudiante_id').eq('trimestre', trim).range(start, start + 999);
                 
                 if (examen && examen.length > 0) {
                     examen.forEach(e => {
-                        const exNum = parseFloat(e.examen);
-                        const hasExamen = !isNaN(exNum) && e.examen !== null && e.examen !== '';
-                        if (hasExamen) savedAsigIds.add(e.asignacion_id);
+                        // SOLO EVALUAR SI EL ESTUDIANTE ES VÁLIDO
+                        if (estValidos.has(e.estudiante_id)) {
+                            const exNum = parseFloat(e.examen);
+                            const hasExamen = !isNaN(exNum) && e.examen !== null && e.examen !== '';
+                            if (hasExamen) savedAsigIds.add(e.asignacion_id);
 
-                        if (tipoAud === 'informes') {
-                            const isPendiente = !hasExamen || exNum === 0;
-                            if (isPendiente) {
-                                if (!e.motivo_examen_pendiente || e.motivo_examen_pendiente.trim() === '') asigInformesFaltantes.add(e.asignacion_id);
-                                else asigInformesCompletos.add(e.asignacion_id);
+                            if (tipoAud === 'informes') {
+                                const isPendiente = !hasExamen || exNum === 0;
+                                if (isPendiente) {
+                                    if (!e.motivo_examen_pendiente || e.motivo_examen_pendiente.trim() === '') asigInformesFaltantes.add(e.asignacion_id);
+                                    else asigInformesCompletos.add(e.asignacion_id);
+                                }
                             }
                         }
                     });
@@ -4617,7 +4642,7 @@
             }
             
             const docData = auditMap.get(asig.docente_id);
-            const infoClase = { curso: asig.cursos?.nombre || '-', materia: asig.materias?.nombre || '-' };
+            const infoClase = { cursoId: asig.curso_id, asigId: asig.id, curso: asig.cursos?.nombre || '-', materia: asig.materias?.nombre || '-' };
             
             // Asignación de Notas
             if (savedAsigIds.has(asig.id)) docData.completadasNotas.push(infoClase);
@@ -4687,7 +4712,12 @@
                                     <ul class="list-group list-group-flush">
                                         ${d.faltanNotas.map(f => `
                                             <li class="list-group-item bg-transparent text-dark py-2 px-4" style="font-size: 0.85rem;">
-                                                <i class="bi bi-arrow-return-right me-2 text-muted"></i><strong>${f.curso}</strong> — ${f.materia}
+                                                <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center w-100 gap-2">
+                                                    <div><i class="bi bi-arrow-return-right me-2 text-muted"></i><strong>${f.curso}</strong> — ${f.materia}</div>
+                                                    <div class="d-flex align-items-center gap-2">
+                                                        <button class="btn btn-sm btn-danger py-0 px-2 fw-bold text-nowrap shadow-sm" onclick="irATarea('calificaciones', ${f.cursoId}, ${f.asigId}, ${trim}, ${parc})">Ir a Notas <i class="bi bi-arrow-right"></i></button>
+                                                    </div>
+                                                </div>
                                             </li>
                                         `).join('')}
                                     </ul>
@@ -4735,7 +4765,12 @@
                                     <ul class="list-group list-group-flush">
                                         ${d.faltanInformes.map(f => `
                                             <li class="list-group-item bg-transparent text-dark py-2 px-4" style="font-size: 0.85rem;">
-                                                <i class="bi bi-arrow-return-right me-2 text-danger"></i><strong>${f.curso}</strong> —${f.materia}
+                                                <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center w-100 gap-2">
+                                                    <div><i class="bi bi-arrow-return-right me-2 text-danger"></i><strong>${f.curso}</strong> —${f.materia}</div>
+                                                    <div class="d-flex align-items-center gap-2">
+                                                        <button class="btn btn-sm btn-warning text-dark py-0 px-2 fw-bold text-nowrap shadow-sm" onclick="irATarea('informe_parcial', ${f.cursoId},${f.asigId}, ${trim},${parc})">Ir a Informe <i class="bi bi-arrow-right"></i></button>
+                                                    </div>
+                                                </div>
                                             </li>
                                         `).join('')}
                                     </ul>
