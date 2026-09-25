@@ -6322,7 +6322,7 @@
             let currentY = 52 + doc.getTextDimensions(parrafoInicio, { maxWidth: 182 }).h + 6;
 
             const parrafoIndicacion = !isExamenes 
-                ? `Resultados del análisis individual por estudiantes, detallamos solo los estudiantes que promedian C+, C-, D+, D-, E+, E-, F.`
+                ? `Resultados del análisis individual por estudiantes, detallamos solo los estudiantes que promedian C+, C-, D+, D-, E+, E-, F, de la escala de valoración Técnica`
                 : `A continuación se detallan por separado los estudiantes con alertas académicas de bajo rendimiento, problemas o novedades de comportamiento, y exámenes pendientes o con calificación nula.`;
             
             doc.text(parrafoIndicacion, 14, currentY, { maxWidth: 182, align: 'justify' });
