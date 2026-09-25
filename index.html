@@ -6041,13 +6041,11 @@
             let compT = [];
 
             if (!isExamenes) {
-                // Parcial 1 o 2
                 const { data: notasData } = await supabaseClient.from('notas_parcial_actividades')
                     .select('estudiante_id, nota_parcial, recomendacion, plan_mejoramiento')
                     .eq('asignacion_id', parseInt(asigId)).eq('trimestre', trimestre).eq('parcial', parcial);
                 (notasData || []).forEach(n => notasMap[n.estudiante_id] = n);
             } else {
-                // Resumen Trimestral
                 const { data: trimData } = await supabaseClient.from('notas_trimestre')
                     .select('estudiante_id, examen, motivo_examen_pendiente')
                     .eq('asignacion_id', parseInt(asigId)).eq('trimestre', trimestre);
@@ -6126,21 +6124,17 @@
                             const p1 = nP1.find(x => x.estudiante_id === est.id) || {};
                             const p2 = nP2.find(x => x.estudiante_id === est.id) || {};
                             
-                            // Notas
                             const n1 = parseFloat(p1.nota_parcial) || 0;
                             const n2 = parseFloat(p2.nota_parcial) || 0;
                             const exNum = parseFloat(t.examen) || 0;
                             
-                            // Promedio Trimestral (35% + 35% + 30%)
                             const promTrimestral = ((n1 * 0.35) + (n2 * 0.35) + (exNum * 0.30)).toFixed(2);
 
-                            // Alertas Académicas (Evaluando P1 y P2)
                             let alertas = [];
                             if (p1.nota_parcial !== undefined && n1 < 7) alertas.push(`P1 (${n1.toFixed(2)}):${p1.recomendacion || 'Sin rec.'}`);
                             if (p2.nota_parcial !== undefined && n2 < 7) alertas.push(`P2 (${n2.toFixed(2)}):${p2.recomendacion || 'Sin rec.'}`);
                             const textoAlertas = alertas.length > 0 ? alertas.join('<br>') : '<span class="text-success fst-italic">Sin novedades</span>';
 
-                            // Alertas Comportamiento (< 7)
                             const misComp = compT.filter(c => c.estudiante_id === est.id);
                             let alertasComp = [];
                             misComp.forEach(c => {
@@ -6149,7 +6143,6 @@
                             });
                             const textoComp = alertasComp.length > 0 ? alertasComp.join('<br>') : '<span class="text-success fst-italic">Normal</span>';
 
-                            // Examen
                             const tieneEx = !isNaN(parseFloat(t.examen)) && t.examen !== null && t.examen !== '';
                             const isPendiente = !tieneEx || exNum === 0;
                             const exVal = tieneEx ? exNum.toFixed(2) : '-';
@@ -6263,7 +6256,6 @@
             const imgLogoIzq = await obtenerBase64DesdeUrl(infoInstitucion?.logo_izquierdo || infoInstitucion?.logo_institucion);
             const imgLogoDer = await obtenerBase64DesdeUrl(infoInstitucion?.logo_derecho || infoInstitucion?.escudo_nacional);
 
-            // LECTURA DINÁMICA DE DATOS DE LA JUNTA DESDE SUPABASE
             const { data: juntaConfig } = await supabaseClient.from('juntas_config')
                 .select('*')
                 .eq('curso_id', parseInt(cursoId))
@@ -6292,7 +6284,6 @@
                 }
             }
 
-            // CABECERA OFICIAL CON DOS LOGOS
             if (imgLogoIzq) { try { doc.addImage(imgLogoIzq, 'PNG', 14, 10, 20, 20); } catch(e){} }
             if (imgLogoDer) { try { doc.addImage(imgLogoDer, 'PNG', 176, 10, 20, 20); } catch(e){} }
 
@@ -6329,7 +6320,6 @@
             currentY += doc.getTextDimensions(parrafoIndicacion, { maxWidth: 182 }).h + 8;
 
             if (!isExamenes) {
-                // TABLA DE APRENDIZAJE 1ER Y 2DO PARCIAL
                 const tbNotas = [];
                 document.querySelectorAll('#tablaCuerpoInformeParcial tr').forEach(tr => {
                     const nom = tr.querySelector('.sticky-col-nombre').innerText;
@@ -6355,7 +6345,6 @@
                 });
                 currentY = doc.lastAutoTable.finalY + 8;
 
-                // TABLA DE COMPORTAMIENTO
                 const { data: compData } = await supabaseClient.from('comportamiento_parcial').select('estudiante_id, total_cuantitativo').eq('curso_id', cursoInfo.id).eq('trimestre', trimestre).eq('parcial', parcial);
                 const compList = [];
                 (compData || []).forEach(c => {
@@ -6379,7 +6368,6 @@
                 currentY = doc.lastAutoTable.finalY + 8;
 
             } else {
-                // PDF DE RESUMEN TRIMESTRAL (TRES TABLAS SEPARADAS)
                 const tbAcademico = [];
                 const tbComportamiento = [];
                 const tbExamenes = [];
@@ -6444,7 +6432,6 @@
                 currentY = doc.lastAutoTable.finalY + 12;
             }
 
-            // PIE Y FIRMAS: Añadida la firma del Inspector (3 columnas en la fila superior, 2 en la inferior)
             if (currentY > 240) { doc.addPage(); currentY = 30; }
             
             doc.setFont('helvetica', 'normal');
@@ -6453,7 +6440,6 @@
             currentY += 25;
             doc.setDrawColor(0); doc.setLineWidth(0.2);
             
-            // Fila 1 de Firmas (Docente, Tutor e Inspector)
             doc.line(14, currentY, 68, currentY); 
             doc.line(78, currentY, 132, currentY); 
             doc.line(142, currentY, 196, currentY);
@@ -6468,7 +6454,6 @@
             doc.text(nombreInspector, 169, currentY + 4, { align: 'center', maxWidth: 54 }); 
             doc.text('INSPECTOR/A GENERAL', 169, currentY + 8, { align: 'center' });
 
-            // Fila 2 de Firmas (Secretario y Rector)
             currentY += 25;
             doc.line(40, currentY, 100, currentY); 
             doc.line(110, currentY, 170, currentY);
