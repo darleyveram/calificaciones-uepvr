@@ -6113,7 +6113,7 @@
                         <tr>
                             <th class="sticky-col-num">N°</th>
                             <th class="sticky-col-nombre text-start">Nómina del Estudiante</th>
-                            <th style="width: 70px;">Promedio<br>(P1+P2)</th>
+                            <th style="width: 70px;">Promedio<br>Trimestral</th>
                             <th class="text-start">Recomendaciones Académicas Previas</th>
                             <th style="width: 120px;">Alertas de<br>Comportamiento</th>
                             <th style="width: 80px;" class="bg-primary text-white">Nota<br>Examen</th>
@@ -6126,12 +6126,15 @@
                             const p1 = nP1.find(x => x.estudiante_id === est.id) || {};
                             const p2 = nP2.find(x => x.estudiante_id === est.id) || {};
                             
-                            // Promedio
+                            // Notas
                             const n1 = parseFloat(p1.nota_parcial) || 0;
                             const n2 = parseFloat(p2.nota_parcial) || 0;
-                            const promParciales = ((n1 + n2) / 2).toFixed(2);
+                            const exNum = parseFloat(t.examen) || 0;
+                            
+                            // Promedio Trimestral (35% + 35% + 30%)
+                            const promTrimestral = ((n1 * 0.35) + (n2 * 0.35) + (exNum * 0.30)).toFixed(2);
 
-                            // Alertas Académicas
+                            // Alertas Académicas (Evaluando P1 y P2)
                             let alertas = [];
                             if (p1.nota_parcial !== undefined && n1 < 7) alertas.push(`P1 (${n1.toFixed(2)}):${p1.recomendacion || 'Sin rec.'}`);
                             if (p2.nota_parcial !== undefined && n2 < 7) alertas.push(`P2 (${n2.toFixed(2)}):${p2.recomendacion || 'Sin rec.'}`);
@@ -6147,8 +6150,7 @@
                             const textoComp = alertasComp.length > 0 ? alertasComp.join('<br>') : '<span class="text-success fst-italic">Normal</span>';
 
                             // Examen
-                            const exNum = parseFloat(t.examen);
-                            const tieneEx = !isNaN(exNum) && t.examen !== '';
+                            const tieneEx = !isNaN(parseFloat(t.examen)) && t.examen !== null && t.examen !== '';
                             const isPendiente = !tieneEx || exNum === 0;
                             const exVal = tieneEx ? exNum.toFixed(2) : '-';
                             const reqExAttr = isPendiente ? '' : 'disabled placeholder="Examen rendido"';
@@ -6157,7 +6159,7 @@
                             <tr data-est-id="${est.id}">
                                 <td class="sticky-col-num text-muted fw-bold">${i + 1}</td>
                                 <td class="sticky-col-nombre text-start">${formatearNombreVisual(est.nombres)}</td>
-                                <td class="fw-bold ${obtenerClaseColor(promParciales, true)}">${promParciales}</td>
+                                <td class="fw-bold ${obtenerClaseColor(promTrimestral, true)}">${promTrimestral}</td>
                                 <td class="text-start" style="font-size: 0.7rem; white-space: pre-wrap;">${textoAlertas}</td>
                                 <td class="fw-bold text-danger" style="font-size: 0.7rem;">${textoComp}</td>
                                 <td class="fw-bold ${!isPendiente ? 'text-success' : 'text-danger'} fs-6">${exVal}</td>
@@ -6261,9 +6263,7 @@
             const imgLogoIzq = await obtenerBase64DesdeUrl(infoInstitucion?.logo_izquierdo || infoInstitucion?.logo_institucion);
             const imgLogoDer = await obtenerBase64DesdeUrl(infoInstitucion?.logo_derecho || infoInstitucion?.escudo_nacional);
 
-            // =========================================================================
             // LECTURA DINÁMICA DE DATOS DE LA JUNTA DESDE SUPABASE
-            // =========================================================================
             const { data: juntaConfig } = await supabaseClient.from('juntas_config')
                 .select('*')
                 .eq('curso_id', parseInt(cursoId))
@@ -6275,17 +6275,15 @@
             let horaInicioTexto = "--:--";
             let horaFinTexto = "--:--";
             let nombreSecretaria = "SECRETARIO/A NO ASIGNADO";
+            let nombreInspector = "LCDA. SOLANGE SALTOS GILER";
             const nombreRector = (infoInstitucion?.rector_nombre || 'ING. DÍDIMO A. SALTOS S.').toUpperCase();
 
             if (juntaConfig) {
-                // Formateamos la fecha si existe usando la función auxiliar
                 if (juntaConfig.fecha) fechaJuntaTexto = formatearFechaTexto(juntaConfig.fecha);
-                
-                // Extraemos solo Horas y Minutos (HH:MM)
                 if (juntaConfig.hora_inicio) horaInicioTexto = juntaConfig.hora_inicio.substring(0, 5);
                 if (juntaConfig.hora_fin) horaFinTexto = juntaConfig.hora_fin.substring(0, 5);
+                if (juntaConfig.inspector_nombre) nombreInspector = juntaConfig.inspector_nombre.toUpperCase();
 
-                // Buscamos el nombre del secretario
                 if (juntaConfig.secretario_id) {
                     const { data: secData } = await supabaseClient.from('perfiles').select('titulo, nombres, apellidos').eq('id', juntaConfig.secretario_id).maybeSingle();
                     if (secData) {
@@ -6293,7 +6291,6 @@
                     }
                 }
             }
-            // =========================================================================
 
             // CABECERA OFICIAL CON DOS LOGOS
             if (imgLogoIzq) { try { doc.addImage(imgLogoIzq, 'PNG', 14, 10, 20, 20); } catch(e){} }
@@ -6318,7 +6315,6 @@
                 doc.text(`INFORME DE RESUMEN TRIMESTRAL DEL ${txtTrimestre} TRIMESTRE`, 105, 42, { align: 'center' });
             }
 
-            // REDACCIÓN DEL PÁRRAFO UTILIZANDO LAS VARIABLES OFICIALES
             const parrafoInicio = `En el cantón Pichincha, a los ${fechaJuntaTexto}, siendo las ${horaInicioTexto} en la sala de sesiones de la Unidad Educativa Particular "Vicente Rocafuerte" sección vespertina se inició la Junta de Cierre del ${!isExamenes ? txtParcial+' Parcial del ' : ''}${txtTrimestre} Trimestre de ${nomCurso} en la asignatura de: ${nomMateria} dirigida por el Tutor ${nomTutor} y la profesora de la asignatura, ${nomDocente}.`;
             
             doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
@@ -6390,14 +6386,14 @@
 
                 document.querySelectorAll('#tablaCuerpoInformeParcial tr').forEach(tr => {
                     const nom = tr.querySelector('.sticky-col-nombre').innerText.trim();
-                    const promP = tr.cells[2].innerText.trim();
+                    const promTrim = tr.cells[2].innerText.trim();
                     const recPrev = tr.cells[3].innerText.trim();
                     const compAlert = tr.cells[4].innerText.trim();
                     const notaEx = tr.cells[5].innerText.trim();
                     const inputMotivo = tr.querySelector('.inf-motivo');
                     
-                    if (recPrev !== 'Sin novedades' || parseFloat(promP) < 7) {
-                        tbAcademico.push([nom, promP, recPrev]);
+                    if (recPrev !== 'Sin novedades' || parseFloat(promTrim) < 7) {
+                        tbAcademico.push([nom, promTrim, recPrev]);
                     }
                     if (compAlert !== 'Normal') {
                         tbComportamiento.push([nom, compAlert]);
@@ -6412,7 +6408,7 @@
                 doc.setFont('helvetica', 'bold'); doc.text('1. Estudiantes con Bajo Rendimiento Académico:', 14, currentY);
                 doc.autoTable({
                     startY: currentY + 3,
-                    head: [['Nómina', 'Promedio\n(P1+P2)', 'Recomendaciones Previas']],
+                    head: [['Nómina', 'Promedio\nTrimestral', 'Recomendaciones Previas']],
                     body: tbAcademico.length > 0 ? tbAcademico : [['N/A', '-', 'No se registran estudiantes con bajo rendimiento']],
                     theme: 'grid', styles: { fontSize: 7, cellPadding: 1.5, valign: 'middle' },
                     headStyles: { fillColor: [241, 245, 249], textColor: [15, 23, 42] },
@@ -6448,7 +6444,7 @@
                 currentY = doc.lastAutoTable.finalY + 12;
             }
 
-            // PIE Y FIRMAS (Con el Secretario Dinámico y Horas Oficiales)
+            // PIE Y FIRMAS: Añadida la firma del Inspector (3 columnas en la fila superior, 2 en la inferior)
             if (currentY > 240) { doc.addPage(); currentY = 30; }
             
             doc.setFont('helvetica', 'normal');
@@ -6456,15 +6452,32 @@
 
             currentY += 25;
             doc.setDrawColor(0); doc.setLineWidth(0.2);
-            doc.line(24, currentY, 84, currentY); doc.line(126, currentY, 186, currentY);
-            doc.setFontSize(8); doc.setFont('helvetica', 'bold');
-            doc.text(nomTutor, 54, currentY + 4, { align: 'center' }); doc.text('TUTOR DE CURSO', 54, currentY + 8, { align: 'center' });
-            doc.text(nomDocente, 156, currentY + 4, { align: 'center' }); doc.text('DOCENTE DE ASIGNATURA', 156, currentY + 8, { align: 'center' });
+            
+            // Fila 1 de Firmas (Docente, Tutor e Inspector)
+            doc.line(14, currentY, 68, currentY); 
+            doc.line(78, currentY, 132, currentY); 
+            doc.line(142, currentY, 196, currentY);
+            
+            doc.setFontSize(7.5); doc.setFont('helvetica', 'bold');
+            doc.text(nomDocente, 41, currentY + 4, { align: 'center', maxWidth: 54 }); 
+            doc.text('DOCENTE DE ASIGNATURA', 41, currentY + 8, { align: 'center' });
+            
+            doc.text(nomTutor, 105, currentY + 4, { align: 'center', maxWidth: 54 }); 
+            doc.text('TUTOR DE CURSO', 105, currentY + 8, { align: 'center' });
+            
+            doc.text(nombreInspector, 169, currentY + 4, { align: 'center', maxWidth: 54 }); 
+            doc.text('INSPECTOR/A GENERAL', 169, currentY + 8, { align: 'center' });
 
+            // Fila 2 de Firmas (Secretario y Rector)
             currentY += 25;
-            doc.line(24, currentY, 84, currentY); doc.line(126, currentY, 186, currentY);
-            doc.text(nombreSecretaria, 54, currentY + 4, { align: 'center' }); doc.text('SECRETARIO/A DE JUNTA', 54, currentY + 8, { align: 'center' });
-            doc.text(nombreRector, 156, currentY + 4, { align: 'center' }); doc.text('RECTOR', 156, currentY + 8, { align: 'center' });
+            doc.line(40, currentY, 100, currentY); 
+            doc.line(110, currentY, 170, currentY);
+            
+            doc.text(nombreSecretaria, 70, currentY + 4, { align: 'center', maxWidth: 60 }); 
+            doc.text('SECRETARIO/A DE JUNTA', 70, currentY + 8, { align: 'center' });
+            
+            doc.text(nombreRector, 140, currentY + 4, { align: 'center', maxWidth: 60 }); 
+            doc.text('RECTOR / DIRECTOR', 140, currentY + 8, { align: 'center' });
 
             const nombreArchivo = isExamenes ? `Resumen_Trimestral_${nomMateria.replace(/\s+/g, '_')}_T${trimestre}.pdf` : `Informe_Parcial_${parcial}_${nomMateria.replace(/\s+/g, '_')}_T${trimestre}.pdf`;
             doc.save(nombreArchivo);
