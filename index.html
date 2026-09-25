@@ -143,7 +143,7 @@
       </div>
       <div class="card-footer bg-light text-center py-3 border-0">
         <small class="text-muted fw-semibold header-dir-inst d-block">Pichincha - Manabí - Ecuador</small>
-        <small class="text-muted" style="font-size: 0.65rem; opacity: 0.6;">v1.0.29 (Actualizado el 24/09/2026 22:11)</small>
+        <small class="text-muted" style="font-size: 0.65rem; opacity: 0.6;">v1.0.29 (Actualizado el 24/09/2026 22:26)</small>
       </div>
     </div>
   </div>
@@ -4779,7 +4779,6 @@
       const cursoId = document.getElementById('selectCurso').value;
       const contenedor = document.getElementById('contenedorTabla');
       
-      // --- Obtenemos trimestre y parcial para el bloqueo ---
       const trimestre = parseInt(document.getElementById('selectTrimestre').value);
       const parcial = parseInt(document.getElementById('selectParcialAsistencia').value) || 1;
 
@@ -4788,7 +4787,7 @@
       const localISOTime = (new Date(hoy - tzOffset)).toISOString().slice(0,16);
 
       try {
-        const { data: estData } = await supabaseClient.from('estudiantes').select('id, nombres').eq('curso_id', parseInt(cursoId)).order('nombres');
+        const { data: estData } = await supabaseClient.from('estudiantes').select('id, nombres, modalidad, estado').eq('curso_id', parseInt(cursoId)).order('nombres');
         if (reqId !== currentViewRequestId) return;
         const listaEstudiantes = procesarEstudiantesModalidad(estData || []);
 
@@ -4870,7 +4869,7 @@
                 <div class="table-responsive" style="max-height: 50vh;">
                   <table class="table table-bordered table-hover table-sm align-middle mb-0" style="font-size: 0.75rem;">
                     <thead class="table-dark sticky-top">
-                      <tr><th>Fecha y Hora</th><th>Tipo</th><th>Contexto</th><th>Estudiantes Involucrados</th><th>Observaciones</th><th>Reportado por</th><th style="width: 60px;">Acción</th></tr>
+                      <tr><th>Fecha y Hora</th><th>Tipo</th><th>Contexto</th><th>Estudiantes Involucrados</th><th>Observaciones</th><th>Reportado por</th><th style="width: 80px;">Acción</th></tr>
                     </thead>
                     <tbody id="tablaHistorialIncidencias">
                       <tr><td colspan="7" class="text-center py-4">Haga clic en 'Historial Global' para buscar en la base de datos...</td></tr>
@@ -4883,9 +4882,9 @@
         `;
         if (reqId === currentViewRequestId) {
             contenedor.innerHTML = html;
-            // --- ACTIVAMOS EL BLOQUEO AQUÍ ---
-            const estadoBloqueo = await verificarBloqueoCalificaciones(0, trimestre, parcial);
-            aplicarCierreVisual(estadoBloqueo, 'btnGuardarInc');
+            // Nos aseguramos de borrar cualquier alerta de bloqueo residual
+            const oldAlert = document.getElementById('alertaBloqueoNotas');
+            if (oldAlert) oldAlert.remove();
         }
       } catch (err) {
         if (reqId === currentViewRequestId) contenedor.innerHTML = `<div class="py-4 text-danger text-center fw-bold">Error: ${err.message}</div>`;
@@ -5030,16 +5029,6 @@
     }
 
     async function eliminarIncidencia(id) {
-      // 1. Verificar si el sistema está bloqueado antes de permitir eliminar
-      const trimestre = parseInt(document.getElementById('selectTrimestre').value);
-      const parcialVal = document.getElementById('selectVista').value;
-      const parcial = parcialVal === 'p2' ? 2 : (parcialVal === 'resumen_trimestre' ? 3 : 1);
-      
-      const estadoBloqueo = await verificarBloqueoCalificaciones(0, trimestre, parcial);
-      if (estadoBloqueo.bloqueado) {
-          return alert(`El sistema está bloqueado. ${estadoBloqueo.mensaje} No se pueden eliminar registros.`);
-      }
-
       if (!confirm('¿Está seguro de eliminar permanentemente este reporte de incidencia?')) return;
       try {
         const { error } = await supabaseClient.from('incidencias').delete().eq('id', id);
@@ -5051,15 +5040,6 @@
     }
 
     async function editarIncidencia(id) {
-      const trimestre = parseInt(document.getElementById('selectTrimestre').value);
-      const parcialVal = document.getElementById('selectVista').value;
-      const parcial = parcialVal === 'p2' ? 2 : (parcialVal === 'resumen_trimestre' ? 3 : 1);
-      
-      const estadoBloqueo = await verificarBloqueoCalificaciones(0, trimestre, parcial);
-      if (estadoBloqueo.bloqueado) {
-          return alert(`El sistema está bloqueado. ${estadoBloqueo.mensaje} No se pueden editar registros.`);
-      }
-
       const inc = historialIncidenciasGlobal.find(i => i.id === id);
       if (!inc) return;
 
@@ -5081,7 +5061,7 @@
 
       document.getElementById('btnGuardarInc').innerHTML = '<i class="bi bi-arrow-repeat me-1"></i> Actualizar Reporte';
 
-      // Cambiar a la pestaña del formulario
+      // Cambiar a la pestaña del formulario automáticamente
       const triggerEl = document.querySelector('button[data-bs-target="#form-inc"]');
       if(triggerEl) bootstrap.Tab.getOrCreateInstance(triggerEl).show();
     }
