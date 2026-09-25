@@ -5749,6 +5749,7 @@
     }
 
     // === NUEVO MÓDULO: ALERTA DE TAREAS PENDIENTES ===
+    // === NUEVO MÓDULO: ALERTA DE TAREAS PENDIENTES ===
     async function revisarTareasPendientes() {
         if (!usuarioActualPerfil) return;
         
@@ -5765,6 +5766,17 @@
             .gte('fecha_cierre', hoyStr);
 
         if (!periodosActivos || periodosActivos.length === 0) return;
+
+        // --- NUEVO: OBTENER ESTUDIANTES VÁLIDOS ---
+        // Para evitar que la campanita pida informes de estudiantes Retirados o A Distancia
+        const { data: allEst } = await supabaseClient.from('estudiantes').select('id, estado, modalidad');
+        const estValidos = new Set();
+        (allEst || []).forEach(e => {
+            if (e.estado !== 'RETIRADO' && e.modalidad !== 'DISTANCIA') {
+                estValidos.add(e.id);
+            }
+        });
+        // ------------------------------------------
 
         let tareasHtml = '';
         let contadorTareas = 0;
@@ -5785,25 +5797,44 @@
                     
                     if (!config) faltanNotas = true;
 
-                    // Ver si guardó informes (evaluando notas < 7 sin recomendación)
+                    // Ver si guardó informes (evaluando notas < 7 sin recomendación, SOLO EN ESTUDIANTES VÁLIDOS)
                     if (!faltanNotas) {
                         const { data: notasBajas } = await supabaseClient.from('notas_parcial_actividades')
-                            .select('recomendacion')
+                            .select('estudiante_id, recomendacion')
                             .eq('asignacion_id', asig.id).eq('trimestre', trim).eq('parcial', parc)
                             .lt('nota_parcial', 7);
                             
-                        if (notasBajas && notasBajas.some(n => !n.recomendacion || n.recomendacion.trim() === '')) {
-                            faltanInformes = true;
+                        if (notasBajas && notasBajas.length > 0) {
+                            const faltan = notasBajas.some(n => 
+                                estValidos.has(n.estudiante_id) && (!n.recomendacion || n.recomendacion.trim() === '')
+                            );
+                            if (faltan) faltanInformes = true;
                         }
                     }
                 } else if (parc === 3) {
-                    // Trimestral (Ver si existe al menos un examen guardado)
+                    // Trimestral (Ver si existe al menos un examen guardado y si hay informes pendientes, SOLO ESTUDIANTES VÁLIDOS)
                     const { data: examenes } = await supabaseClient.from('notas_trimestre')
-                        .select('examen')
-                        .eq('asignacion_id', asig.id).eq('trimestre', trim)
-                        .not('examen', 'is', null).limit(1);
+                        .select('estudiante_id, examen, motivo_examen_pendiente')
+                        .eq('asignacion_id', asig.id).eq('trimestre', trim);
                         
-                    if (!examenes || examenes.length === 0) faltanNotas = true;
+                    let tieneExamenes = false;
+                    let informesPendientes = false;
+
+                    (examenes || []).forEach(e => {
+                        if (estValidos.has(e.estudiante_id)) {
+                            const exNum = parseFloat(e.examen);
+                            const hasExamen = !isNaN(exNum) && e.examen !== null && e.examen !== '';
+                            if (hasExamen) tieneExamenes = true;
+
+                            const isPendiente = !hasExamen || exNum === 0;
+                            if (isPendiente && (!e.motivo_examen_pendiente || e.motivo_examen_pendiente.trim() === '')) {
+                                informesPendientes = true;
+                            }
+                        }
+                    });
+
+                    if (!tieneExamenes) faltanNotas = true;
+                    if (!faltanNotas && informesPendientes) faltanInformes = true;
                 }
 
                 const txtParcial = parc === 3 ? 'Examen/Resumen Trimestral' : `Parcial ${parc}`;
