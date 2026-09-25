@@ -6459,25 +6459,34 @@
             doc.line(142, currentY, 196, currentY);
             
             doc.setFontSize(7.5); doc.setFont('helvetica', 'bold');
-            doc.text(nomDocente, 41, currentY + 4, { align: 'center', maxWidth: 54 }); 
-            doc.text('DOCENTE DE ASIGNATURA', 41, currentY + 8, { align: 'center' });
+
+            // Truco: Calculamos dinámicamente las líneas que ocupa cada nombre
+            const lineasDocente = doc.splitTextToSize(nomDocente, 52);
+            const lineasTutor = doc.splitTextToSize(nomTutor, 52);
+            const lineasInsp = doc.splitTextToSize(nombreInspector, 52);
             
-            doc.text(nomTutor, 105, currentY + 4, { align: 'center', maxWidth: 54 }); 
-            doc.text('TUTOR DE CURSO', 105, currentY + 8, { align: 'center' });
+            doc.text(lineasDocente, 41, currentY + 4, { align: 'center' }); 
+            doc.text('DOCENTE DE ASIGNATURA', 41, currentY + 4 + (lineasDocente.length * 3.5), { align: 'center' });
             
-            doc.text(nombreInspector, 169, currentY + 4, { align: 'center', maxWidth: 54 }); 
-            doc.text('INSPECTOR/A GENERAL', 169, currentY + 8, { align: 'center' });
+            doc.text(lineasTutor, 105, currentY + 4, { align: 'center' }); 
+            doc.text('TUTOR DE CURSO', 105, currentY + 4 + (lineasTutor.length * 3.5), { align: 'center' });
+            
+            doc.text(lineasInsp, 169, currentY + 4, { align: 'center' }); 
+            doc.text('INSPECTOR/A GENERAL', 169, currentY + 4 + (lineasInsp.length * 3.5), { align: 'center' });
 
             // Fila 2 de Firmas (Secretario y Rector)
-            currentY += 25;
+            currentY += 28; // Espacio extra para que no choquen si los nombres de arriba son muy largos
             doc.line(40, currentY, 100, currentY); 
             doc.line(110, currentY, 170, currentY);
             
-            doc.text(nombreSecretaria, 70, currentY + 4, { align: 'center', maxWidth: 60 }); 
-            doc.text('SECRETARIO/A DE JUNTA', 70, currentY + 8, { align: 'center' });
+            const lineasSec = doc.splitTextToSize(nombreSecretaria, 58);
+            const lineasRec = doc.splitTextToSize(nombreRector, 58);
             
-            doc.text(nombreRector, 140, currentY + 4, { align: 'center', maxWidth: 60 }); 
-            doc.text('RECTOR / DIRECTOR', 140, currentY + 8, { align: 'center' });
+            doc.text(lineasSec, 70, currentY + 4, { align: 'center' }); 
+            doc.text('SECRETARIO/A DE JUNTA', 70, currentY + 4 + (lineasSec.length * 3.5), { align: 'center' });
+            
+            doc.text(lineasRec, 140, currentY + 4, { align: 'center' }); 
+            doc.text('RECTOR / DIRECTOR', 140, currentY + 4 + (lineasRec.length * 3.5), { align: 'center' });
 
             const nombreArchivo = isExamenes ? `Resumen_Trimestral_${nomMateria.replace(/\s+/g, '_')}_T${trimestre}.pdf` : `Informe_Parcial_${parcial}_${nomMateria.replace(/\s+/g, '_')}_T${trimestre}.pdf`;
             doc.save(nombreArchivo);
