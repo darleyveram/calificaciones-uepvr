@@ -4106,7 +4106,7 @@
       const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
       const partes = fechaIso.split('-');
       if (partes.length !== 3) return fechaIso;
-      return `${meses[parseInt(partes[1]) - 1]} ${parseInt(partes[2])} del ${partes[0]}`;
+      return `${parseInt(partes[2])} de ${meses[parseInt(partes[1]) - 1]} del ${partes[0]}`;
     }
 
     async function cargarVistaCertificados() {
