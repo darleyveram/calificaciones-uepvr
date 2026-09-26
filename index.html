@@ -6381,7 +6381,7 @@
                 doc.text(`INFORME DE RESUMEN TRIMESTRAL DEL ${txtTrimestre} TRIMESTRE`, 105, 42, { align: 'center' });
             }
 
-            const parrafoInicio = `En el cantón Pichincha, el ${fechaJuntaTexto}, siendo las ${horaInicioTexto} en la sala de sesiones de la Unidad Educativa Particular "Vicente Rocafuerte" sección vespertina se inició la Junta de Cierre del ${!isExamenes ? txtParcial+' Parcial del ' : ''}${txtTrimestre} Trimestre de ${nomCurso} en la asignatura de: ${nomMateria} dirigida por el Tutor ${nomTutor} y la profesora de la asignatura, ${nomDocente}.`;
+            const parrafoInicio = `En el cantón Pichincha, el ${fechaJuntaTexto}, siendo las ${horaInicioTexto} en la sala de sesiones de la Unidad Educativa Particular "Vicente Rocafuerte" sección vespertina se inició la Junta de Cierre del ${!isExamenes ? txtParcial+' Parcial del ' : ''}${txtTrimestre} Trimestre de ${nomCurso} en la asignatura de: ${nomMateria} dirigida por el Tutor ${nomTutor} y el/la profesor(a) de la asignatura, ${nomDocente}.`;
             
             doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
             doc.text(parrafoInicio, 14, 52, { maxWidth: 182, align: 'justify' });
