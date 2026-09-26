@@ -6437,7 +6437,7 @@
                 doc.autoTable({
                     startY: currentY + 3,
                     head: [['Nómina', 'Nota cuantitativa', 'Nota Equivalente']],
-                    body: compList.length > 0 ? compList : [['N/A', '-', 'No se registran estudiantes con comportamiento C, D o E']],
+                    body: compList.length > 0 ? compList : [['N/A', '-', 'No se registran estudiantes con comportamiento C+, C-, D+, D-, E+, E-, F']],
                     theme: 'grid', styles: { fontSize: 7.5, cellPadding: 1.5, valign: 'middle' },
                     headStyles: { fillColor: [241, 245, 249], textColor: [15, 23, 42] },
                     margin: { left: 14, right: 14 }
@@ -6511,7 +6511,7 @@
             }
 
             // PIE Y FIRMAS: Añadida la firma del Inspector (3 columnas en la fila superior, 2 en la inferior)
-            if (currentY > 240) { doc.addPage(); currentY = 30; }
+            if (currentY > 210) { doc.addPage(); currentY = 30; }
             
             doc.setFont('helvetica', 'normal');
             doc.text(`Siendo las ${horaFinTexto} del ${fechaJuntaTexto} se clausura la sesión:`, 14, currentY);
@@ -6553,6 +6553,16 @@
             
             doc.text(lineasRec, 140, currentY + 4, { align: 'center' }); 
             doc.text('RECTOR / DIRECTOR', 140, currentY + 4 + (lineasRec.length * 3.5), { align: 'center' });
+
+            const totalPages = doc.internal.getNumberOfPages();
+            for (let i = 1; i <= totalPages; i++) {
+                doc.setPage(i);
+                doc.setFont('helvetica', 'italic');
+                doc.setFontSize(8);
+                doc.setTextColor(100, 100, 100);
+                // Coloca el texto centrado en la parte inferior de la página (Y = 290)
+                doc.text(`Página ${i} de ${totalPages}`, 105, 290, { align: 'center' });
+            }
 
             const nombreArchivo = isExamenes ? `Resumen_Trimestral_${nomMateria.replace(/\s+/g, '_')}_T${trimestre}.pdf` : `Informe_Parcial_${parcial}_${nomMateria.replace(/\s+/g, '_')}_T${trimestre}.pdf`;
             doc.save(nombreArchivo);
