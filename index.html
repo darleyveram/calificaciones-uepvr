@@ -1427,24 +1427,29 @@
         const asigIds = listaAsignaciones.map(a => a.id);
         let notasP1 = {}, notasP2 = {};
         if (asigIds.length > 0) {
-          // SOLUCIÓN: Ciclo materia por materia para evitar límite de 1000 registros
           let nData = [];
           for (let id of asigIds) {
+            // AHORA TAMBIÉN TRAEMOS RECOMENDACIONES Y PLAN DE MEJORAMIENTO
             const { data } = await supabaseClient.from('notas_parcial_actividades')
-              .select('asignacion_id, estudiante_id, parcial, nota_parcial')
+              .select('asignacion_id, estudiante_id, parcial, nota_parcial, recomendacion, plan_mejoramiento')
               .eq('asignacion_id', id).eq('trimestre', trimestre);
             if (data) nData.push(...data);
           }
           if (reqId !== currentViewRequestId) return;
           (nData || []).forEach(n => {
-            if (n.parcial === 1) { if (!notasP1[n.estudiante_id]) notasP1[n.estudiante_id] = {}; notasP1[n.estudiante_id][n.asignacion_id] = n.nota_parcial; }
-            else if (n.parcial === 2) { if (!notasP2[n.estudiante_id]) notasP2[n.estudiante_id] = {}; notasP2[n.estudiante_id][n.asignacion_id] = n.nota_parcial; }
+            if (n.parcial === 1) { 
+                if (!notasP1[n.estudiante_id]) notasP1[n.estudiante_id] = {}; 
+                notasP1[n.estudiante_id][n.asignacion_id] = { n: n.nota_parcial, r: n.recomendacion, p: n.plan_mejoramiento }; 
+            }
+            else if (n.parcial === 2) { 
+                if (!notasP2[n.estudiante_id]) notasP2[n.estudiante_id] = {}; 
+                notasP2[n.estudiante_id][n.asignacion_id] = { n: n.nota_parcial, r: n.recomendacion, p: n.plan_mejoramiento }; 
+            }
           });
         }
 
         let examenesMap = {};
         if (reporteTipo === 'trimestre' && asigIds.length > 0) {
-          // SOLUCIÓN: Ciclo para exámenes
           let tData = [];
           for (let id of asigIds) {
             const { data } = await supabaseClient.from('notas_trimestre')
@@ -1456,7 +1461,6 @@
           (tData || []).forEach(t => { if (!examenesMap[t.estudiante_id]) examenesMap[t.estudiante_id] = {}; examenesMap[t.estudiante_id][t.asignacion_id] = parseFloat(t.examen) || 0; });
         }
 
-        // AHORA BUSCAMOS EL COMPORTAMIENTO POR CURSO (NO POR MATERIA)
         const { data: cData } = await supabaseClient.from('comportamiento_parcial').select('estudiante_id, parcial, total_cuantitativo').eq('curso_id', parseInt(cursoId)).eq('trimestre', trimestre).limit(10000);
         if (reqId !== currentViewRequestId) return;
         let compMapP1 = {}, compMapP2 = {};
@@ -1479,13 +1483,36 @@
         datosConsolidadoTutoria = estudiantes.map((est, idx) => {
           let sumaNotasObligatorias = 0, cantObligatorias = 0, materiasDetalle = [];
           listaAsignaciones.forEach(a => {
-            const nP1 = notasP1[est.id] && notasP1[est.id][a.id] !== undefined ? parseFloat(notasP1[est.id][a.id]) : 0;
-            const nP2 = notasP2[est.id] && notasP2[est.id][a.id] !== undefined ? parseFloat(notasP2[est.id][a.id]) : 0;
+            const dataP1 = notasP1[est.id] && notasP1[est.id][a.id] ? notasP1[est.id][a.id] : {n:0, r:'', p:''};
+            const dataP2 = notasP2[est.id] && notasP2[est.id][a.id] ? notasP2[est.id][a.id] : {n:0, r:'', p:''};
+            
+            const nP1 = parseFloat(dataP1.n) || 0;
+            const nP2 = parseFloat(dataP2.n) || 0;
             const nEx = examenesMap[est.id] && examenesMap[est.id][a.id] !== undefined ? parseFloat(examenesMap[est.id][a.id]) : 0;
             let notaFinalMateria = (reporteTipo === '1') ? nP1 : (reporteTipo === '2') ? nP2 : (nP1 * 0.35) + (nP2 * 0.35) + (nEx * 0.30);
             const cualit = obtenerEscalaCualitativa(notaFinalMateria);
             if (!a.es_optativa) { sumaNotasObligatorias += notaFinalMateria; cantObligatorias++; }
-            materiasDetalle.push({ materiaNombre: a.materias?.nombre || 'Materia', p1: nP1.toFixed(2), p2: nP2.toFixed(2), examen: nEx.toFixed(2), notaNum: notaFinalMateria.toFixed(2), notaCualit: cualit, esOptativa: a.es_optativa });
+
+            // Unir recomendaciones si es trimestral y falló
+            let recTexto = (reporteTipo === '1') ? dataP1.r : (reporteTipo === '2' ? dataP2.r : '');
+            let planTexto = (reporteTipo === '1') ? dataP1.p : (reporteTipo === '2' ? dataP2.p : '');
+            if (reporteTipo === 'trimestre') {
+                const arrR = [], arrP = [];
+                if (nP1 < 7 && dataP1.r) arrR.push(`P1: ${dataP1.r}`);
+                if (nP2 < 7 && dataP2.r) arrR.push(`P2: ${dataP2.r}`);
+                if (nP1 < 7 && dataP1.p) arrP.push(`P1: ${dataP1.p}`);
+                if (nP2 < 7 && dataP2.p) arrP.push(`P2: ${dataP2.p}`);
+                recTexto = arrR.join(' | ');
+                planTexto = arrP.join(' | ');
+            }
+
+            materiasDetalle.push({ 
+                materiaNombre: a.materias?.nombre || 'Materia', 
+                p1: nP1.toFixed(2), p2: nP2.toFixed(2), examen: nEx.toFixed(2), 
+                notaNum: notaFinalMateria.toFixed(2), notaCualit: cualit, 
+                esOptativa: a.es_optativa,
+                recTexto: recTexto, planTexto: planTexto
+            });
           });
 
           const promGeneral = cantObligatorias > 0 ? (sumaNotasObligatorias / cantObligatorias) : 0;
@@ -1532,12 +1559,10 @@
                 let celdasNotas = d.materias.map(m => `<td class="${obtenerClaseColor(m.notaNum, false)}" style="white-space: nowrap;"><span class="fw-bold">${m.notaCualit}</span> <small class="text-muted">(${m.notaNum})</small></td>`).join('');
                 return `<tr>
                   <td class="sticky-col-num fw-bold text-muted">${d.num}</td>
-                  <td class="sticky-col-nombre" title="${d.nombres}">${formatearNombreVisual(d.nombres)}${badgeDistancia(d.modalidad)}${badgeEstado(d.estado)}${badgeEstado(d.estado)}${badgeEstado(d.estado)}</td>
-                  ${celdasNotas}
+                  <td class="sticky-col-nombre" title="${d.nombres}">${formatearNombreVisual(d.nombres)}${badgeDistancia(d.modalidad)}${badgeEstado(d.estado)}${badgeEstado(d.estado)}${badgeEstado(d.estado)}</td>${celdasNotas}
                   <td class="fw-bold fs-6 ${obtenerClaseColor(d.promedioGeneral, true)}" style="white-space: nowrap;">${d.promedioGeneral} <small>(${d.promedioCualitativo})</small></td>
                   <td class="fw-bold" style="white-space: nowrap;">${d.comportamientoLetra} <small>(${d.comportamientoNum})</small></td>
-                  <td><span class="badge bg-light text-dark border">${d.asistencia.asistidos}/${d.asistencia.totalDias}</span></td>
-                  ${esAdmin ? `<td><button class="btn btn-xs btn-outline-danger py-1 px-2 fw-bold" onclick="generarBoletaIndividualPDF(${idx})"><i class="bi bi-file-pdf"></i> Boleta</button></td>` : ''}
+                  <td><span class="badge bg-light text-dark border">${d.asistencia.asistidos}/${d.asistencia.totalDias}</span></td>${esAdmin ? `<td><button class="btn btn-xs btn-outline-danger py-1 px-2 fw-bold" onclick="generarBoletaIndividualPDF(${idx})"><i class="bi bi-file-pdf"></i> Boleta</button></td>` : ''}
                 </tr>`;
               }).join('')}
             </tbody>
@@ -1549,34 +1574,37 @@
       }
     }
 
-    function construirPaginaLibreta(doc, est, cursoNombreLargo, trimestre, reporteTipo, nombreRector, imgLogoIzq, imgLogoDer) {
+    function construirPaginaLibreta(doc, est, cursoNombreLargo, trimestre, reporteTipo, nombreRector, imgLogoIzq, imgLogoDer, nombreTutor) {
       const nomArriba = (infoInstitucion?.nombre_arriba || 'Unidad Educativa Particular').toUpperCase();
       const nomAbajo = (infoInstitucion?.nombre_abajo || '"Vicente Rocafuerte"').toUpperCase();
       const periodo = infoInstitucion?.periodo_lectivo || '2026-2027';
-      const amie = infoInstitucion?.amie || '13H03021';
-      const distrito = infoInstitucion?.distrito || '13D08';
-      const circuito = infoInstitucion?.circuito || '13D08C0_b';
-      const dir1 = infoInstitucion?.direccion_1 || 'Pichincha - Manabí - Ecuador';
       const frase1 = infoInstitucion?.frase_1 ? `"${infoInstitucion.frase_1}"` : '';
 
       const esTrimestral = (reporteTipo === 'trimestre');
-      const tituloDocumento = esTrimestral ? `Informe de aprendizaje Trimestre: ${trimestre}` : `Informe de aprendizaje Parcial: ${reporteTipo}`;
+      // CORRECCIÓN 1: Mostrar siempre el Trimestre
+      const tituloDocumento = esTrimestral ? `Informe de Aprendizaje - Trimestre ${trimestre}` : `Informe de Aprendizaje - Trimestre ${trimestre} - Parcial ${reporteTipo}`;
 
-      if (imgLogoIzq) { try { doc.addImage(imgLogoIzq, 'PNG', 12, 8, 18, 18); } catch(e){} }
-      if (imgLogoDer) { try { doc.addImage(imgLogoDer, 'PNG', 180, 8, 18, 18); } catch(e){} }
+      if (imgLogoIzq) { try { doc.addImage(imgLogoIzq, 'PNG', 12, 10, 20, 20); } catch(e){} }
+      if (imgLogoDer) { try { doc.addImage(imgLogoDer, 'PNG', 178, 10, 20, 20); } catch(e){} }
 
-      doc.setFont('helvetica', 'bold'); doc.setFontSize(10.5); doc.setTextColor(15, 23, 42); doc.text(nomArriba, 105, 11, { align: 'center' });
-      doc.setFontSize(12.5); doc.text(nomAbajo, 105, 16, { align: 'center' });
-      doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.text(tituloDocumento, 105, 21, { align: 'center' });
-      doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(30, 41, 59); doc.text(`Curso: ${cursoNombreLargo}`, 12, 27); doc.text(`Año Lectivo: ${periodo}`, 198, 27, { align: 'right' });
+      // CORRECCIÓN 3: Bajar los textos para que no choquen con el escudo
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(15, 23, 42); 
+      doc.text(nomArriba, 105, 14, { align: 'center' });
+      doc.setFontSize(13); 
+      doc.text(nomAbajo, 105, 20, { align: 'center' });
+      doc.setFontSize(10); doc.setFont('helvetica', 'normal'); 
+      doc.text(tituloDocumento, 105, 26, { align: 'center' });
+      
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(30, 41, 59); 
+      doc.text(`Curso: ${cursoNombreLargo}`, 12, 33); 
+      doc.text(`Año Lectivo: ${periodo}`, 198, 33, { align: 'right' });
 
-      const tutorNombre = usuarioActualPerfil ? `${usuarioActualPerfil.titulo ? usuarioActualPerfil.titulo + ' ' : ''}${usuarioActualPerfil.nombres} ${usuarioActualPerfil.apellidos || ''}`.trim() : 'Docente Tutor';
+      doc.setFillColor(56, 189, 248); doc.rect(12, 35, 95, 6.5, 'F'); doc.setDrawColor(30, 41, 59); doc.setLineWidth(0.2); doc.rect(12, 35, 95, 6.5, 'S');
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(7.5); doc.setTextColor(15, 23, 42); doc.text(est.nombres, 59.5, 39.5, { align: 'center' });
 
-      doc.setFillColor(56, 189, 248); doc.rect(12, 29, 95, 6.5, 'F'); doc.setDrawColor(30, 41, 59); doc.setLineWidth(0.2); doc.rect(12, 29, 95, 6.5, 'S');
-      doc.setFont('helvetica', 'bold'); doc.setFontSize(7.5); doc.setTextColor(15, 23, 42); doc.text(est.nombres, 59.5, 33.5, { align: 'center' });
-
-      doc.setFillColor(187, 247, 208); doc.rect(107, 29, 91, 6.5, 'F'); doc.rect(107, 29, 91, 6.5, 'S');
-      doc.text(`Tutor: ${tutorNombre}`, 152.5, 33.5, { align: 'center' });
+      doc.setFillColor(187, 247, 208); doc.rect(107, 35, 91, 6.5, 'F'); doc.rect(107, 35, 91, 6.5, 'S');
+      // CORRECCIÓN 2: Se usa el nombreTutor que viene como parámetro
+      doc.text(`Tutor: ${nombreTutor}`, 152.5, 39.5, { align: 'center' });
 
       const obligatorias = est.materias.filter(m => !m.esOptativa);
       const optativas = est.materias.filter(m => m.esOptativa);
@@ -1616,7 +1644,7 @@
 
       const colStyles = esTrimestral ? { 0: { cellWidth: 58, halign: 'left' }, 1: { cellWidth: 15, halign: 'center' }, 2: { cellWidth: 15, halign: 'center' }, 3: { cellWidth: 18, halign: 'center' }, 4: { cellWidth: 20, halign: 'center' }, 5: { cellWidth: 17, halign: 'center' }, 6: { cellWidth: 17, halign: 'center' }, 7: { cellWidth: 16, halign: 'center', fontStyle: 'bold', fillColor: [241, 245, 249] }, 8: { cellWidth: 18, halign: 'center', fontStyle: 'bold' } } : { 0: { cellWidth: 136, halign: 'left' }, 1: { cellWidth: 25, halign: 'center', fontStyle: 'bold' }, 2: { cellWidth: 25, halign: 'center', fontStyle: 'bold' } };
 
-      doc.autoTable({ startY: 37, head: tableHead, body: tableBody, margin: { left: 12, right: 12 }, theme: 'grid', styles: { fontSize: 7, cellPadding: 1.2, lineColor: [148, 163, 184], lineWidth: 0.1, valign: 'middle' }, headStyles: { fillColor: [226, 232, 240], textColor: [15, 23, 42], fontStyle: 'bold', halign: 'center' }, columnStyles: colStyles });
+      doc.autoTable({ startY: 44, head: tableHead, body: tableBody, margin: { left: 12, right: 12 }, theme: 'grid', styles: { fontSize: 7, cellPadding: 1.2, lineColor: [148, 163, 184], lineWidth: 0.1, valign: 'middle' }, headStyles: { fillColor: [226, 232, 240], textColor: [15, 23, 42], fontStyle: 'bold', halign: 'center' }, columnStyles: colStyles });
 
       const asistY = doc.lastAutoTable.finalY + 2.5;
       const headAsist = esTrimestral ? [['Faltas Justificadas', 'Faltas Injustificadas', 'Días Asistidos', 'Total de Días Trimestre']] : [['Faltas Justificadas', 'Faltas Injustificadas', 'Días Asistidos', 'Total de Días Parcial']];
@@ -1644,12 +1672,66 @@
         }
       });
 
-      const firmasY = 264; doc.setLineWidth(0.2); doc.setDrawColor(100, 116, 139); doc.line(14, firmasY, 68, firmasY); doc.line(78, firmasY, 132, firmasY); doc.line(142, firmasY, 196, firmasY);
-      doc.setFontSize(7.2); doc.setTextColor(30, 41, 59);
-      doc.setFont('helvetica', 'bold'); doc.text('Ing. Dídimo A. Saltos S.', 41, firmasY + 4, { align: 'center' }); doc.setFont('helvetica', 'normal'); doc.text('RECTOR / DIRECTOR', 41, firmasY + 7.5, { align: 'center' });
-      doc.setFont('helvetica', 'bold'); doc.text('C.P.A. Mercedes A. Salamea M.', 105, firmasY + 4, { align: 'center' }); doc.setFont('helvetica', 'normal'); doc.text('SECRETARIO/A GENERAL', 105, firmasY + 7.5, { align: 'center' });
-      doc.setFont('helvetica', 'bold'); doc.text(est.representanteNombre, 169, firmasY + 4, { align: 'center', maxWidth: 54 }); doc.setFont('helvetica', 'normal'); doc.text('REPRESENTANTE LEGAL', 169, firmasY + 7.5, { align: 'center' });
-      if (est.representanteCedula) doc.text(est.representanteCedula, 169, firmasY + 11, { align: 'center' });
+      // CORRECCIÓN 4: Agregando la tabla de recomendaciones solo para notas < 7 [19]
+      const materiasBajas = est.materias.filter(m => parseFloat(m.notaNum) < 7);
+      if (materiasBajas.length > 0) {
+          const recBody = materiasBajas.map(m => [m.materiaNombre, m.notaNum, m.recTexto || 'Ninguna', m.planTexto || 'Ninguno']);
+          doc.autoTable({
+              startY: doc.lastAutoTable.finalY + 4,
+              head: [['Asignatura', 'Nota', 'Recomendaciones Aplicables', 'Plan de Mejoramiento']],
+              body: recBody,
+              theme: 'grid',
+              styles: { fontSize: 7, cellPadding: 1.2, lineColor: [148, 163, 184], lineWidth: 0.1 },
+              headStyles: { fillColor: [248, 250, 252], textColor: [15, 23, 42], fontStyle: 'bold' },
+              columnStyles: { 0: { cellWidth: 35 }, 1: { cellWidth: 12, halign: 'center' }, 2: { cellWidth: 69 }, 3: { cellWidth: 70 } },
+              margin: { left: 12, right: 12 }
+          });
+      }
+
+      // CORRECCIÓN: Firmas con el Tutor Real y la Inspectora
+      let currentY = doc.lastAutoTable.finalY + 15;
+      if (currentY > 240) { doc.addPage(); currentY = 30; }
+
+      doc.setLineWidth(0.2); doc.setDrawColor(100, 116, 139); 
+      
+      // Fila 1: Tutor, Inspector, Representante
+      doc.line(12, currentY, 68, currentY); 
+      doc.line(77, currentY, 133, currentY); 
+      doc.line(142, currentY, 198, currentY);
+      
+      doc.setFontSize(7.2); doc.setTextColor(30, 41, 59); doc.setFont('helvetica', 'bold');
+      
+      const lineasTutor = doc.splitTextToSize(nombreTutor, 54);
+      doc.text(lineasTutor, 40, currentY + 4, { align: 'center' });
+      doc.setFont('helvetica', 'normal'); 
+      doc.text('DOCENTE TUTOR', 40, currentY + 4 + (lineasTutor.length * 3.5), { align: 'center' });
+      
+      doc.setFont('helvetica', 'bold');
+      doc.text('LCDA. SOLANGE SALTOS GILER', 105, currentY + 4, { align: 'center' }); 
+      doc.setFont('helvetica', 'normal'); 
+      doc.text('INSPECTOR/A GENERAL', 105, currentY + 7.5, { align: 'center' });
+      
+      doc.setFont('helvetica', 'bold');
+      const lineasRep = doc.splitTextToSize(est.representanteNombre || 'REPRESENTANTE', 54);
+      doc.text(lineasRep, 170, currentY + 4, { align: 'center' }); 
+      doc.setFont('helvetica', 'normal'); 
+      doc.text('REPRESENTANTE LEGAL', 170, currentY + 4 + (lineasRep.length * 3.5), { align: 'center' });
+      if (est.representanteCedula) doc.text(est.representanteCedula, 170, currentY + 4 + (lineasRep.length * 3.5) + 3, { align: 'center' });
+
+      // Fila 2: Secretario, Rector
+      currentY += 25;
+      doc.line(40, currentY, 100, currentY); 
+      doc.line(110, currentY, 170, currentY);
+      
+      doc.setFont('helvetica', 'bold');
+      doc.text('C.P.A. MERCEDES A. SALAMEA M.', 70, currentY + 4, { align: 'center' }); 
+      doc.setFont('helvetica', 'normal'); 
+      doc.text('SECRETARIO/A GENERAL', 70, currentY + 7.5, { align: 'center' });
+      
+      doc.setFont('helvetica', 'bold');
+      doc.text(nombreRector, 140, currentY + 4, { align: 'center' }); 
+      doc.setFont('helvetica', 'normal'); 
+      doc.text('RECTOR / DIRECTOR', 140, currentY + 7.5, { align: 'center' });
     }
 
     async function generarLibretasLotePDF() {
@@ -1658,7 +1740,15 @@
       const cursoId = document.getElementById('selectCurso').value, trimestre = parseInt(document.getElementById('selectTrimestre').value), reporteTipo = document.getElementById('selectParcialTutoria').value;
       const cursoInfo = todosCursos.find(c => String(c.id) === String(cursoId)), nombreCursoLargo = (cursoInfo?.nombre_largo_mayuscula || cursoInfo?.nombre || '').toUpperCase(), nombreRector = 'ING. DÍDIMO A. SALTOS S.';
       const imgLogoIzq = await obtenerBase64DesdeUrl(infoInstitucion?.logo_izquierdo || infoInstitucion?.logo_institucion), imgLogoDer = await obtenerBase64DesdeUrl(infoInstitucion?.logo_derecho || infoInstitucion?.escudo_nacional);
-      datosConsolidadoTutoria.forEach((est, idx) => { if (idx > 0) doc.addPage(); construirPaginaLibreta(doc, est, nombreCursoLargo, trimestre, reporteTipo, nombreRector, imgLogoIzq, imgLogoDer); });
+      
+      // OBTENER TUTOR REAL
+      let nombreDocenteTutor = 'DOCENTE TUTOR';
+      if (cursoInfo && cursoInfo.tutor_id) {
+          const docInfo = docentesList.find(d => d.id === cursoInfo.tutor_id);
+          if (docInfo) nombreDocenteTutor = `${docInfo.titulo ? docInfo.titulo + ' ' : ''}${docInfo.nombres} ${docInfo.apellidos || ''}`.trim().toUpperCase();
+      }
+
+      datosConsolidadoTutoria.forEach((est, idx) => { if (idx > 0) doc.addPage(); construirPaginaLibreta(doc, est, nombreCursoLargo, trimestre, reporteTipo, nombreRector, imgLogoIzq, imgLogoDer, nombreDocenteTutor); });
       doc.save(`CONSOLIDADO_${nombreCursoLargo.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '')}_${(reporteTipo === 'trimestre') ? `TRIMESTRE_${trimestre}` : `TRIMESTRE_${trimestre}_PARCIAL_${reporteTipo}`}.pdf`);
     }
 
@@ -1668,7 +1758,15 @@
       const cursoId = document.getElementById('selectCurso').value, trimestre = parseInt(document.getElementById('selectTrimestre').value), reporteTipo = document.getElementById('selectParcialTutoria').value;
       const cursoInfo = todosCursos.find(c => String(c.id) === String(cursoId)), nombreCursoLargo = (cursoInfo?.nombre_largo_mayuscula || cursoInfo?.nombre || '').toUpperCase(), nombreRector = 'ING. DÍDIMO A. SALTOS S.';
       const imgLogoIzq = await obtenerBase64DesdeUrl(infoInstitucion?.logo_izquierdo || infoInstitucion?.logo_institucion), imgLogoDer = await obtenerBase64DesdeUrl(infoInstitucion?.logo_derecho || infoInstitucion?.escudo_nacional);
-      construirPaginaLibreta(doc, est, nombreCursoLargo, trimestre, reporteTipo, nombreRector, imgLogoIzq, imgLogoDer);
+      
+      // OBTENER TUTOR REAL
+      let nombreDocenteTutor = 'DOCENTE TUTOR';
+      if (cursoInfo && cursoInfo.tutor_id) {
+          const docInfo = docentesList.find(d => d.id === cursoInfo.tutor_id);
+          if (docInfo) nombreDocenteTutor = `${docInfo.titulo ? docInfo.titulo + ' ' : ''}${docInfo.nombres} ${docInfo.apellidos || ''}`.trim().toUpperCase();
+      }
+
+      construirPaginaLibreta(doc, est, nombreCursoLargo, trimestre, reporteTipo, nombreRector, imgLogoIzq, imgLogoDer, nombreDocenteTutor);
       doc.save(`${(cursoInfo?.nombre || nombreCursoLargo).replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '')}_${est.nombres.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '')}_${(reporteTipo === 'trimestre') ? `TRIMESTRE_${trimestre}` : `TRIMESTRE_${trimestre}_PARCIAL_${reporteTipo}`}.pdf`);
     }
 
@@ -1680,16 +1778,24 @@
         const cursoId = document.getElementById('selectCurso').value, trimestre = parseInt(document.getElementById('selectTrimestre').value), reporteTipo = document.getElementById('selectParcialTutoria').value;
         const cursoInfo = todosCursos.find(c => String(c.id) === String(cursoId)), nombreCursoLargo = (cursoInfo?.nombre_largo_mayuscula || cursoInfo?.nombre || '').toUpperCase(), nombreCursoFormat = (cursoInfo?.nombre || nombreCursoLargo).replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, ''), nombreRector = 'ING. DÍDIMO A. SALTOS S.';
         const imgLogoIzq = await obtenerBase64DesdeUrl(infoInstitucion?.logo_izquierdo || infoInstitucion?.logo_institucion), imgLogoDer = await obtenerBase64DesdeUrl(infoInstitucion?.logo_derecho || infoInstitucion?.escudo_nacional);
+        
+        // OBTENER TUTOR REAL
+        let nombreDocenteTutor = 'DOCENTE TUTOR';
+        if (cursoInfo && cursoInfo.tutor_id) {
+            const docInfo = docentesList.find(d => d.id === cursoInfo.tutor_id);
+            if (docInfo) nombreDocenteTutor = `${docInfo.titulo ? docInfo.titulo + ' ' : ''}${docInfo.nombres} ${docInfo.apellidos || ''}`.trim().toUpperCase();
+        }
+
         for (let i = 0; i < datosConsolidadoTutoria.length; i++) {
           const est = datosConsolidadoTutoria[i], doc = new jsPDF({ compress: true, orientation: 'portrait', unit: 'mm', format: 'a4' });
-          construirPaginaLibreta(doc, est, nombreCursoLargo, trimestre, reporteTipo, nombreRector, imgLogoIzq, imgLogoDer);
+          construirPaginaLibreta(doc, est, nombreCursoLargo, trimestre, reporteTipo, nombreRector, imgLogoIzq, imgLogoDer, nombreDocenteTutor);
           zip.file(`${nombreCursoFormat}_${est.nombres.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '')}_${(reporteTipo === 'trimestre') ? `TRIMESTRE_${trimestre}` : `TRIMESTRE_${trimestre}_PARCIAL_${reporteTipo}`}.pdf`, doc.output('blob'));
         }
         const zipBlob = await zip.generateAsync({ type: 'blob' });
         saveAs(zipBlob, `BOLETAS_${nombreCursoFormat}_${(reporteTipo === 'trimestre') ? `TRIMESTRE_${trimestre}` : `TRIMESTRE_${trimestre}_PARCIAL_${reporteTipo}`}.zip`);
       } catch (err) { alert('Error: ' + err.message); } finally { btn.disabled = false; btn.innerHTML = '<i class="bi bi-file-earmark-zip-fill me-1"></i>ZIP'; }
     }
-
+    
     function capturarNotasDeLaTabla() {
       const filas = document.querySelectorAll('#tablaCuerpo tr');
       filas.forEach(tr => {
