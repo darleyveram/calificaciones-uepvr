@@ -6452,7 +6452,6 @@
             const imgLogoIzq = await obtenerBase64DesdeUrl(infoInstitucion?.logo_izquierdo || infoInstitucion?.logo_institucion);
             const imgLogoDer = await obtenerBase64DesdeUrl(infoInstitucion?.logo_derecho || infoInstitucion?.escudo_nacional);
 
-            // LECTURA DINÁMICA DE DATOS DE LA JUNTA DESDE SUPABASE
             const { data: juntaConfig } = await supabaseClient.from('juntas_config')
                 .select('*')
                 .eq('curso_id', parseInt(cursoId))
@@ -6481,7 +6480,6 @@
                 }
             }
 
-            // CABECERA OFICIAL CON DOS LOGOS
             if (imgLogoIzq) { try { doc.addImage(imgLogoIzq, 'PNG', 14, 10, 20, 20); } catch(e){} }
             if (imgLogoDer) { try { doc.addImage(imgLogoDer, 'PNG', 176, 10, 20, 20); } catch(e){} }
 
@@ -6518,7 +6516,6 @@
             currentY += doc.getTextDimensions(parrafoIndicacion, { maxWidth: 182 }).h + 8;
 
             if (!isExamenes) {
-                // TABLA DE APRENDIZAJE 1ER Y 2DO PARCIAL
                 const tbNotas = [];
                 document.querySelectorAll('#tablaCuerpoInformeParcial tr').forEach(tr => {
                     const nom = tr.querySelector('.sticky-col-nombre').innerText;
@@ -6537,14 +6534,14 @@
                     startY: currentY + 3,
                     head: [['Nómina', 'Nota Cuant.', 'Nota Cualit.', 'Recomendaciones aplicables', 'Plan de mejoramiento académico']],
                     body: tbNotas.length > 0 ? tbNotas : [['N/A', '-', '-', 'No se registran estudiantes con promedios < 7', '-']],
-                    theme: 'grid', styles: { fontSize: 7.5, cellPadding: 1.5, valign: 'middle' },
-                    headStyles: { fillColor: [0, 0, 0], textColor: [15, 23, 42] },
+                    theme: 'grid', 
+                    styles: { fontSize: 7.5, cellPadding: 1.5, valign: 'middle', lineColor: [148, 163, 184], lineWidth: 0.2 },
+                    headStyles: { fillColor: [241, 245, 249], textColor: [15, 23, 42], fontStyle: 'bold' },
                     columnStyles: { 0: { cellWidth: 45 }, 1: { cellWidth: 15, halign: 'center' }, 2: { cellWidth: 15, halign: 'center' }, 3: { cellWidth: 53 }, 4: { cellWidth: 54 } },
                     margin: { left: 14, right: 14 }
                 });
                 currentY = doc.lastAutoTable.finalY + 8;
 
-                // TABLA DE COMPORTAMIENTO
                 const { data: compData } = await supabaseClient.from('comportamiento_parcial').select('estudiante_id, total_cuantitativo').eq('curso_id', cursoInfo.id).eq('trimestre', trimestre).eq('parcial', parcial);
                 const compList = [];
                 (compData || []).forEach(c => {
@@ -6561,14 +6558,14 @@
                     startY: currentY + 3,
                     head: [['Nómina', 'Nota cuantitativa', 'Nota Equivalente']],
                     body: compList.length > 0 ? compList : [['N/A', '-', 'No se registran estudiantes con comportamiento C+, C-, D+, D-, E+, E-, F']],
-                    theme: 'grid', styles: { fontSize: 7.5, cellPadding: 1.5, valign: 'middle' },
-                    headStyles: { fillColor: [0, 0, 0], textColor: [15, 23, 42] },
+                    theme: 'grid', 
+                    styles: { fontSize: 7.5, cellPadding: 1.5, valign: 'middle', lineColor: [148, 163, 184], lineWidth: 0.2 },
+                    headStyles: { fillColor: [241, 245, 249], textColor: [15, 23, 42], fontStyle: 'bold' },
                     margin: { left: 14, right: 14 }
                 });
                 currentY = doc.lastAutoTable.finalY + 8;
 
             } else {
-                // PDF DE RESUMEN TRIMESTRAL (TRES TABLAS SEPARADAS)
                 const tbAcademico = [];
                 const tbComportamiento = [];
                 const tbExamenes = [];
@@ -6599,8 +6596,9 @@
                     startY: currentY + 3,
                     head: [['Nómina', 'Promedio\nTrimestral', 'Recomendaciones Previas']],
                     body: tbAcademico.length > 0 ? tbAcademico : [['N/A', '-', 'No se registran estudiantes con bajo rendimiento']],
-                    theme: 'grid', styles: { fontSize: 7, cellPadding: 1.5, valign: 'middle' },
-                    headStyles: { fillColor: [0, 0, 0], textColor: [15, 23, 42] },
+                    theme: 'grid', 
+                    styles: { fontSize: 7, cellPadding: 1.5, valign: 'middle', lineColor: [148, 163, 184], lineWidth: 0.2 },
+                    headStyles: { fillColor: [241, 245, 249], textColor: [15, 23, 42], fontStyle: 'bold' },
                     columnStyles: { 0: { cellWidth: 60 }, 1: { cellWidth: 20, halign: 'center' }, 2: { cellWidth: 102 } },
                     margin: { left: 14, right: 14 }
                 });
@@ -6612,8 +6610,9 @@
                     startY: currentY + 3,
                     head: [['Nómina', 'Alertas de Comportamiento']],
                     body: tbComportamiento.length > 0 ? tbComportamiento : [['N/A', 'Todos los estudiantes presentan comportamiento normal']],
-                    theme: 'grid', styles: { fontSize: 7, cellPadding: 1.5, valign: 'middle' },
-                    headStyles: { fillColor: [0, 0, 0], textColor: [15, 23, 42] },
+                    theme: 'grid', 
+                    styles: { fontSize: 7, cellPadding: 1.5, valign: 'middle', lineColor: [148, 163, 184], lineWidth: 0.2 },
+                    headStyles: { fillColor: [241, 245, 249], textColor: [15, 23, 42], fontStyle: 'bold' },
                     columnStyles: { 0: { cellWidth: 60 }, 1: { cellWidth: 122 } },
                     margin: { left: 14, right: 14 }
                 });
@@ -6625,15 +6624,15 @@
                     startY: currentY + 3,
                     head: [['Nómina', 'Nota Examen', 'Motivo (Si aplica)']],
                     body: tbExamenes.length > 0 ? tbExamenes : [['N/A', '-', 'No se registran exámenes pendientes']],
-                    theme: 'grid', styles: { fontSize: 7, cellPadding: 1.5, valign: 'middle' },
-                    headStyles: { fillColor: [0, 0, 0], textColor: [15, 23, 42] },
+                    theme: 'grid', 
+                    styles: { fontSize: 7, cellPadding: 1.5, valign: 'middle', lineColor: [148, 163, 184], lineWidth: 0.2 },
+                    headStyles: { fillColor: [241, 245, 249], textColor: [15, 23, 42], fontStyle: 'bold' },
                     columnStyles: { 0: { cellWidth: 60 }, 1: { cellWidth: 20, halign: 'center' }, 2: { cellWidth: 102 } },
                     margin: { left: 14, right: 14 }
                 });
                 currentY = doc.lastAutoTable.finalY + 12;
             }
 
-            // PIE Y FIRMAS: Añadida la firma del Inspector (3 columnas en la fila superior, 2 en la inferior)
             if (currentY > 210) { doc.addPage(); currentY = 30; }
             
             doc.setFont('helvetica', 'normal');
@@ -6642,14 +6641,12 @@
             currentY += 25;
             doc.setDrawColor(0); doc.setLineWidth(0.2);
             
-            // Fila 1 de Firmas (Docente, Tutor e Inspector)
             doc.line(14, currentY, 68, currentY); 
             doc.line(78, currentY, 132, currentY); 
             doc.line(142, currentY, 196, currentY);
             
             doc.setFontSize(7.5); doc.setFont('helvetica', 'bold');
 
-            // Truco: Calculamos dinámicamente las líneas que ocupa cada nombre
             const lineasDocente = doc.splitTextToSize(nomDocente, 52);
             const lineasTutor = doc.splitTextToSize(nomTutor, 52);
             const lineasInsp = doc.splitTextToSize(nombreInspector, 52);
@@ -6663,8 +6660,7 @@
             doc.text(lineasInsp, 169, currentY + 4, { align: 'center' }); 
             doc.text('INSPECTOR/A GENERAL', 169, currentY + 4 + (lineasInsp.length * 3.5), { align: 'center' });
 
-            // Fila 2 de Firmas (Secretario y Rector)
-            currentY += 28; // Espacio extra para que no choquen si los nombres de arriba son muy largos
+            currentY += 28;
             doc.line(40, currentY, 100, currentY); 
             doc.line(110, currentY, 170, currentY);
             
@@ -6683,7 +6679,6 @@
                 doc.setFont('helvetica', 'italic');
                 doc.setFontSize(8);
                 doc.setTextColor(100, 100, 100);
-                // Coloca el texto centrado en la parte inferior de la página (Y = 290)
                 doc.text(`Página ${i} de ${totalPages}`, 105, 290, { align: 'center' });
             }
 
