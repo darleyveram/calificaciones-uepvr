@@ -189,6 +189,7 @@
             <select id="selectModo" class="form-select form-select-sm fw-bold border-primary text-primary" onchange="alCambiarModo()">
               <option value="calificaciones">📘 Calificaciones Académicas</option>
               <option value="informe_parcial" id="optModoInformeParcial" class="text-primary fw-bold">📝 Informe de Aprendizaje Parcial</option>
+              <option value="revision_informes" id="optModoRevisionInformes" class="d-none fw-bold" style="color: #6f42c1;">📝 Revisión de Informes (Admin)</option>
               <option value="asistencia" id="optModoAsistencia" class="d-none">📅 Control Diario de Asistencia</option>
               <option value="comportamiento" id="optModoComportamiento" class="d-none">🤝 Evaluación de Comportamiento</option>
               <option value="tutoria" id="optModoTutoria" class="d-none">📊 Reportes y Libretas de Tutoría</option>
@@ -301,6 +302,11 @@
           <div class="col-12 col-md-4 text-end pt-2 pt-md-3 d-none" id="accionesInformeParcial">
             <button class="btn btn-success btn-sm px-3 fw-bold btn-control" onclick="guardarInformeParcial()">💾 Guardar Informe</button>
             <button class="btn btn-danger btn-sm px-2 px-md-3 fw-bold btn-control ms-1" onclick="exportarInformeParcialPDF()"><i class="bi bi-file-pdf me-1"></i> Generar PDF Oficial</button>
+          </div>
+
+          <!-- BOTONES REVISIÓN DE INFORMES (ADMIN) -->
+          <div class="col-12 col-md-3 text-end pt-2 pt-md-3 d-none" id="accionesRevisionInformes">
+            <button class="btn btn-success btn-sm px-4 fw-bold btn-control shadow-sm" onclick="guardarRevisionAdmin()"><i class="bi bi-save me-1"></i> Guardar Revisión Global</button>
           </div>
 
          <div class="col-12 col-md-3 text-end pt-2 pt-md-3 d-none" id="accionesComportamiento">
@@ -831,6 +837,10 @@
         if (esAdmin) {
           const optRepEst = document.getElementById('optModoReporteEstudiante');
           if (optRepEst) optRepEst.classList.remove('d-none');
+
+          // NUEVA LÍNEA: Mostrar opción de Revisión Global de Informes
+          const optRevInf = document.getElementById('optModoRevisionInformes');
+          if (optRevInf) optRevInf.classList.remove('d-none');
           
           const optCert = document.getElementById('optModoCertificados');
           if (optCert) optCert.classList.remove('d-none');
@@ -1051,21 +1061,28 @@
       }
       // =============================
 
-        else if (modo === 'informe_parcial') {
-        boxCurso.classList.remove('d-none'); boxMateria.classList.remove('d-none'); boxVista.classList.add('d-none'); 
-        boxParcialAsist.classList.remove('d-none'); // Usamos este selector temporalmente para elegir 1 o 2
+        else if (modo === 'informe_parcial' || modo === 'revision_informes') {
+        boxCurso.classList.remove('d-none'); 
+        if (modo === 'informe_parcial') boxMateria.classList.remove('d-none');
+        else boxMateria.classList.add('d-none'); // En revisión admin no se usa materia
+        
+        boxVista.classList.add('d-none'); 
+        boxParcialAsist.classList.remove('d-none'); 
         boxParcialTut.classList.add('d-none'); optAnual.classList.add('d-none');
         boxTrimestre.classList.remove('d-none'); 
         if (boxTipoAuditoria) boxTipoAuditoria.classList.add('d-none');
         
         if (document.getElementById('selectTrimestre').value === 'anual') document.getElementById('selectTrimestre').value = '1';
         
-        // AQUÍ SE AGREGA LA OPCIÓN 3 PARA EXÁMENES PENDIENTES
         document.getElementById('selectParcialAsistencia').innerHTML = '<option value="" selected>Seleccione...</option><option value="1">1er Parcial</option><option value="2">2do Parcial</option><option value="3">Resumen Trimestral</option>';
         
-        const cursosMap = new Map();
-        todasAsignaciones.forEach(a => { if (a.cursos) cursosMap.set(String(a.cursos.id), a.cursos.nombre); });
-        selectCurso.innerHTML = '<option value="">Seleccione curso...</option>' + Array.from(cursosMap).map(([id, nombre]) => `<option value="${id}">${nombre}</option>`).join('');
+        if (modo === 'informe_parcial') {
+            const cursosMap = new Map();
+            todasAsignaciones.forEach(a => { if (a.cursos) cursosMap.set(String(a.cursos.id), a.cursos.nombre); });
+            selectCurso.innerHTML = '<option value="">Seleccione curso...</option>' + Array.from(cursosMap).map(([id, nombre]) => `<option value="${id}">${nombre}</option>`).join('');
+        } else {
+            selectCurso.innerHTML = '<option value="">Seleccione curso...</option>' + todosCursos.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
+        }
         alCambiarCurso();
         return;
       }
@@ -1132,7 +1149,10 @@
       const accNomina = document.getElementById('accionesNomina');
 
       const accInfParcial = document.getElementById('accionesInformeParcial');
-      if (accInfParcial) accInfParcial.classList.add('d-none'); // Ocultamos botones por defecto
+      if (accInfParcial) accInfParcial.classList.add('d-none'); 
+      
+      const accRevInf = document.getElementById('accionesRevisionInformes');
+      if (accRevInf) accRevInf.classList.add('d-none');
       
       if (accNomina) accNomina.classList.add('d-none');
       
@@ -1150,6 +1170,18 @@
         if (accInfParcial) accInfParcial.classList.remove('d-none');
         controles.forEach(b => b.disabled = false);
         cargarVistaInformeParcial(); 
+        return;
+      }
+
+      if (modo === 'revision_informes') {
+        if (!cursoId || !trimestreVal || !parcialAsistVal) { 
+            controles.forEach(b => b.disabled = true); 
+            document.getElementById('contenedorTabla').innerHTML = '<div class="py-4 text-muted text-center">Seleccione Curso, Trimestre y Parcial para revisar los informes.</div>'; 
+            return; 
+        }
+        if (accRevInf) accRevInf.classList.remove('d-none');
+        controles.forEach(b => b.disabled = false);
+        cargarVistaRevisionInformesAdmin(); 
         return;
       }
 
@@ -6691,6 +6723,185 @@
             doc.save(nombreArchivo);
         } catch (err) { alert('Error generando PDF: ' + err.message); } finally { btn.disabled = false; btn.innerHTML = '<i class="bi bi-file-pdf me-1"></i> Generar PDF Oficial'; }
     }
+
+    // =========================================================================
+// MÓDULO ADMINISTRADOR: REVISIÓN GLOBAL DE INFORMES EN PANTALLA COMPLETA
+// =========================================================================
+let asignacionesAdminRev = [];
+
+async function cargarVistaRevisionInformesAdmin() {
+    const reqId = ++currentViewRequestId;
+    const cursoId = document.getElementById('selectCurso').value;
+    const trimestre = parseInt(document.getElementById('selectTrimestre').value);
+    const parcial = parseInt(document.getElementById('selectParcialAsistencia').value);
+    const contenedor = document.getElementById('contenedorTabla');
+
+    contenedor.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary" style="width:3rem; height:3rem;"></div><h5 class="mt-3 fw-bold text-muted">Buscando informes en todas las materias...</h5></div>';
+
+    try {
+        const { data: estData } = await supabaseClient.from('estudiantes').select('id, nombres').eq('curso_id', cursoId).neq('estado', 'RETIRADO').neq('modalidad', 'DISTANCIA').order('nombres');
+        if (reqId !== currentViewRequestId) return;
+        const estudiantes = estData || [];
+
+        const { data: asigData } = await supabaseClient.from('curso_materia_docente').select('id, materias(nombre), perfiles(nombres, apellidos)').eq('curso_id', cursoId);
+        if (reqId !== currentViewRequestId) return;
+        asignacionesAdminRev = asigData || [];
+        const asigIds = asignacionesAdminRev.map(a => a.id);
+
+        let html = '<div class="p-3 mx-auto" style="max-width: 1000px;">';
+
+        if (parcial === 1 || parcial === 2) {
+            const { data: notas } = await supabaseClient.from('notas_parcial_actividades')
+                .select('asignacion_id, estudiante_id, nota_parcial, recomendacion, plan_mejoramiento')
+                .in('asignacion_id', asigIds).eq('trimestre', trimestre).eq('parcial', parcial).lt('nota_parcial', 7);
+            
+            if (reqId !== currentViewRequestId) return;
+
+            const notasMap = {};
+            (notas || []).forEach(n => {
+                if (!notasMap[n.estudiante_id]) notasMap[n.estudiante_id] = [];
+                notasMap[n.estudiante_id].push(n);
+            });
+
+            estudiantes.forEach(est => {
+                const notasEst = notasMap[est.id] || [];
+                if (notasEst.length === 0) return;
+
+                html += `<div class="bg-dark text-white p-3 mt-4 mb-3 rounded shadow-sm d-flex align-items-center"><i class="bi bi-person-circle fs-4 me-3"></i><h5 class="mb-0 fw-bold m-0">${est.nombres}</h5></div>`;
+                
+                notasEst.forEach(n => {
+                    const asigInfo = asignacionesAdminRev.find(a => a.id === n.asignacion_id);
+                    const matNombre = asigInfo ? asigInfo.materias.nombre : 'Materia';
+                    const docNombre = asigInfo?.perfiles ? `${asigInfo.perfiles.nombres} ${asigInfo.perfiles.apellidos}` : 'Docente';
+                    
+                    html += `
+                    <div class="card mb-4 shadow-sm border-0 bg-white">
+                        <div class="card-header bg-primary bg-gradient text-white py-2 d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0 fw-bold"><i class="bi bi-journal-bookmark me-2"></i>${matNombre}</h6>
+                            <span class="badge bg-white text-danger fs-6 px-3 py-2 rounded-pill shadow-sm">Promedio: ${n.nota_parcial.toFixed(2)}</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3 text-muted small fw-bold border-bottom pb-2"><i class="bi bi-person-badge-fill me-1"></i> Docente de la Asignatura: ${docNombre}</div>
+                            <div class="row g-4">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold text-dark fs-6">Recomendaciones Aplicables</label>
+                                    <textarea class="form-control rev-rec border-primary shadow-sm" style="background-color: #f8fafc;" rows="6" data-est="${est.id}" data-asig="${n.asignacion_id}">${n.recomendacion || ''}</textarea>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold text-dark fs-6">Plan de Mejoramiento</label>
+                                    <textarea class="form-control rev-plan border-primary shadow-sm" style="background-color: #f8fafc;" rows="6" data-est="${est.id}" data-asig="${n.asignacion_id}">${n.plan_mejoramiento || ''}</textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
+                });
+            });
+
+        } else {
+            const { data: examenes } = await supabaseClient.from('notas_trimestre')
+                .select('asignacion_id, estudiante_id, examen, motivo_examen_pendiente')
+                .in('asignacion_id', asigIds).eq('trimestre', trimestre);
+            
+            if (reqId !== currentViewRequestId) return;
+
+            const examMap = {};
+            (examenes || []).forEach(e => {
+                const ex = parseFloat(e.examen);
+                if (isNaN(ex) || ex === 0 || e.examen === null) {
+                    if (!examMap[e.estudiante_id]) examMap[e.estudiante_id] = [];
+                    examMap[e.estudiante_id].push(e);
+                }
+            });
+
+            estudiantes.forEach(est => {
+                const examEst = examMap[est.id] || [];
+                if (examEst.length === 0) return;
+
+                html += `<div class="bg-dark text-white p-3 mt-4 mb-3 rounded shadow-sm d-flex align-items-center"><i class="bi bi-person-circle fs-4 me-3"></i><h5 class="mb-0 fw-bold m-0">${est.nombres}</h5></div>`;
+                
+                examEst.forEach(e => {
+                    const asigInfo = asignacionesAdminRev.find(a => a.id === e.asignacion_id);
+                    const matNombre = asigInfo ? asigInfo.materias.nombre : 'Materia';
+                    const docNombre = asigInfo?.perfiles ? `${asigInfo.perfiles.nombres} ${asigInfo.perfiles.apellidos}` : 'Docente';
+                    
+                    html += `
+                    <div class="card mb-4 shadow-sm border-0 bg-white">
+                        <div class="card-header bg-warning text-dark py-2 d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0 fw-bold"><i class="bi bi-journal-x me-2"></i>${matNombre}</h6>
+                            <span class="badge bg-danger fs-6 px-3 py-2 rounded-pill shadow-sm text-white">Examen Pendiente / Nulo</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3 text-muted small fw-bold border-bottom pb-2"><i class="bi bi-person-badge-fill me-1"></i> Docente de la Asignatura: ${docNombre}</div>
+                            <label class="form-label fw-bold text-dark fs-6">Motivo del Examen Pendiente</label>
+                            <textarea class="form-control rev-motivo border-warning shadow-sm" style="background-color: #fffbeb;" rows="5" data-est="${est.id}" data-asig="${e.asignacion_id}">${e.motivo_examen_pendiente || ''}</textarea>
+                        </div>
+                    </div>`;
+                });
+            });
+        }
+
+        if (html === '<div class="p-3 mx-auto" style="max-width: 1000px;">') {
+            html = '<div class="alert alert-success text-center fw-bold mt-4 shadow-sm mx-3"><i class="bi bi-check-circle-fill fs-1 d-block mb-3 text-success"></i>¡Todo en orden! No se encontraron informes pendientes ni estudiantes con notas bajas para estos parámetros.</div>';
+        } else {
+            html += '</div>';
+        }
+
+        contenedor.innerHTML = html;
+
+    } catch (err) {
+        if (reqId === currentViewRequestId) contenedor.innerHTML = `<div class="alert alert-danger fw-bold shadow-sm mx-3 mt-3"><i class="bi bi-x-circle-fill me-2"></i>Error: ${err.message}</div>`;
+    }
+}
+
+async function guardarRevisionAdmin() {
+    const trimestre = parseInt(document.getElementById('selectTrimestre').value);
+    const parcial = parseInt(document.getElementById('selectParcialAsistencia').value);
+    const btn = document.querySelector('#accionesRevisionInformes .btn-success');
+    
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Guardando...';
+
+    try {
+        if (parcial === 1 || parcial === 2) {
+            const payload = [];
+            document.querySelectorAll('.rev-rec').forEach(txtRec => {
+                const estId = parseInt(txtRec.getAttribute('data-est'));
+                const asigId = parseInt(txtRec.getAttribute('data-asig'));
+                const planText = document.querySelector(`.rev-plan[data-est="${estId}"][data-asig="${asigId}"]`).value.trim();
+                const recText = txtRec.value.trim();
+                
+                payload.push({
+                    asignacion_id: asigId, estudiante_id: estId, trimestre: trimestre, parcial: parcial,
+                    recomendacion: recText, plan_mejoramiento: planText
+                });
+            });
+            if (payload.length > 0) await supabaseClient.from('notas_parcial_actividades').upsert(payload, { onConflict: 'asignacion_id,estudiante_id,trimestre,parcial' });
+        } else {
+            const payload = [];
+            document.querySelectorAll('.rev-motivo').forEach(txtMot => {
+                const estId = parseInt(txtMot.getAttribute('data-est'));
+                const asigId = parseInt(txtMot.getAttribute('data-asig'));
+                const motText = txtMot.value.trim();
+                
+                payload.push({
+                    asignacion_id: asigId, estudiante_id: estId, trimestre: trimestre,
+                    motivo_examen_pendiente: motText
+                });
+            });
+            if (payload.length > 0) await supabaseClient.from('notas_trimestre').upsert(payload, { onConflict: 'asignacion_id,estudiante_id,trimestre' });
+        }
+
+        alert('¡Excelente! Todos los informes han sido actualizados y guardados correctamente.');
+    } catch (err) {
+        alert('Error al guardar: ' + err.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-save me-1"></i> Guardar Revisión Global';
+    }
+}
+
+
+    
   </script>
 </body>
 </html>
