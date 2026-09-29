@@ -6754,19 +6754,36 @@ async function cargarVistaRevisionInformesAdmin() {
         asignacionesAdminRev = asigData || [];
         const asigIds = asignacionesAdminRev.map(a => a.id);
 
+        if (asigIds.length === 0) {
+            contenedor.innerHTML = '<div class="alert alert-warning text-center fw-bold mt-4 shadow-sm mx-3">Este curso no tiene materias asignadas.</div>';
+            return;
+        }
+
         let html = '<div class="accordion shadow-sm mt-3 px-2 pb-3" id="accordionRevision">';
+        let matEmptyCount = 0;
 
         if (parcial === 1 || parcial === 2) {
-            const { data: notas } = await supabaseClient.from('notas_parcial_actividades')
-                .select('asignacion_id, estudiante_id, nota_parcial, recomendacion, plan_mejoramiento')
-                .in('asignacion_id', asigIds).eq('trimestre', trimestre).eq('parcial', parcial).lt('nota_parcial', 7);
+            // Recolectar datos materia por materia para evitar límites de consulta
+            let todasLasNotas = [];
+            for (let id of asigIds) {
+                const { data } = await supabaseClient.from('notas_parcial_actividades')
+                    .select('asignacion_id, estudiante_id, nota_parcial, recomendacion, plan_mejoramiento')
+                    .eq('asignacion_id', id)
+                    .eq('trimestre', trimestre)
+                    .eq('parcial', parcial)
+                    .lt('nota_parcial', 7);
+                if (data) todasLasNotas.push(...data);
+            }
             
             if (reqId !== currentViewRequestId) return;
-            let matEmptyCount = 0;
 
             asignacionesAdminRev.forEach((asig, i) => {
-                const notasMateria = (notas || []).filter(n => n.asignacion_id === asig.id && estIds.includes(n.estudiante_id));
-                if (notasMateria.length === 0) { matEmptyCount++; return; }
+                const notasMateria = todasLasNotas.filter(n => n.asignacion_id === asig.id && estIds.includes(n.estudiante_id));
+                
+                if (notasMateria.length === 0) { 
+                    matEmptyCount++; 
+                    return; 
+                }
 
                 let llenos = 0, vacios = 0;
                 let bodyEstudiantes = notasMateria.map(n => {
@@ -6828,26 +6845,30 @@ async function cargarVistaRevisionInformesAdmin() {
                 `;
             });
 
-            if (matEmptyCount === asignacionesAdminRev.length) html = '<div class="alert alert-success text-center fw-bold mt-4 shadow-sm mx-3"><i class="bi bi-check-circle-fill fs-1 d-block mb-3 text-success"></i>¡Todo en orden! No se encontraron estudiantes con notas menores a 7.00.</div>';
-            else html += '</div>';
-
         } else {
-            // Exámenes
-            const { data: examenes } = await supabaseClient.from('notas_trimestre')
-                .select('asignacion_id, estudiante_id, examen, motivo_examen_pendiente')
-                .in('asignacion_id', asigIds).eq('trimestre', trimestre);
+            // Exámenes (Hacemos lo mismo: iteramos materia por materia)
+            let todosLosExamenes = [];
+            for (let id of asigIds) {
+                const { data } = await supabaseClient.from('notas_trimestre')
+                    .select('asignacion_id, estudiante_id, examen, motivo_examen_pendiente')
+                    .eq('asignacion_id', id)
+                    .eq('trimestre', trimestre);
+                if (data) todosLosExamenes.push(...data);
+            }
             
             if (reqId !== currentViewRequestId) return;
-            let matEmptyCount = 0;
 
             asignacionesAdminRev.forEach((asig, i) => {
-                const examMateria = (examenes || []).filter(e => {
+                const examMateria = todosLosExamenes.filter(e => {
                     if (e.asignacion_id !== asig.id || !estIds.includes(e.estudiante_id)) return false;
                     const ex = parseFloat(e.examen);
                     return isNaN(ex) || ex === 0 || e.examen === null;
                 });
 
-                if (examMateria.length === 0) { matEmptyCount++; return; }
+                if (examMateria.length === 0) { 
+                    matEmptyCount++; 
+                    return; 
+                }
 
                 let llenos = 0, vacios = 0;
                 let bodyEstudiantes = examMateria.map(e => {
@@ -6899,12 +6920,16 @@ async function cargarVistaRevisionInformesAdmin() {
                     </div>
                 `;
             });
+        }
 
-            if (matEmptyCount === asignacionesAdminRev.length) html = '<div class="alert alert-success text-center fw-bold mt-4 shadow-sm mx-3"><i class="bi bi-check-circle-fill fs-1 d-block mb-3 text-success"></i>¡Todo en orden! No hay exámenes pendientes.</div>';
-            else html += '</div>';
+        if (matEmptyCount === asignacionesAdminRev.length) {
+            html = '<div class="alert alert-success text-center fw-bold mt-4 shadow-sm mx-3"><i class="bi bi-check-circle-fill fs-1 d-block mb-3 text-success"></i>¡Todo en orden! No se encontraron estudiantes con notas menores a 7.00.</div>';
+        } else {
+            html += '</div>';
         }
 
         contenedor.innerHTML = html;
+
     } catch (err) {
         if (reqId === currentViewRequestId) contenedor.innerHTML = `<div class="alert alert-danger fw-bold shadow-sm mx-3 mt-3"><i class="bi bi-x-circle-fill me-2"></i>Error: ${err.message}</div>`;
     }
