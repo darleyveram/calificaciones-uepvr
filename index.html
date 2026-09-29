@@ -6738,7 +6738,7 @@ async function cargarVistaRevisionInformesAdmin() {
     contenedor.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary" style="width:3rem; height:3rem;"></div><h5 class="mt-3 fw-bold text-muted">Recopilando informes del curso...</h5></div>';
 
     try {
-        const { data: estData } = await supabaseClient.from('estudiantes').select('id, nombres').eq('curso_id', cursoId).neq('estado', 'RETIRADO').neq('modalidad', 'DISTANCIA').order('nombres');
+        const { data: estData } = await supabaseClient.from('estudiantes').select('id, nombres').eq('curso_id', parseInt(cursoId)).neq('estado', 'RETIRADO').neq('modalidad', 'DISTANCIA').order('nombres');
         if (reqId !== currentViewRequestId) return;
         const estudiantes = estData || [];
         const estIds = estudiantes.map(e => e.id);
@@ -6749,9 +6749,8 @@ async function cargarVistaRevisionInformesAdmin() {
             return;
         }
 
-        const { data: asigData } = await supabaseClient.from('curso_materia_docente').select('id, materias(nombre), perfiles(nombres, apellidos)').eq('curso_id', cursoId);
-        if (reqId !== currentViewRequestId) return;
-        asignacionesAdminRev = asigData || [];
+        // CORRECCIÓN: Usamos las materias y docentes que ya estaban cargados en memoria global
+        asignacionesAdminRev = todasAsignaciones.filter(a => String(a.curso_id) === String(cursoId));
         const asigIds = asignacionesAdminRev.map(a => a.id);
 
         if (asigIds.length === 0) {
@@ -6763,7 +6762,7 @@ async function cargarVistaRevisionInformesAdmin() {
         let matEmptyCount = 0;
 
         if (parcial === 1 || parcial === 2) {
-            // Recolectar datos materia por materia para evitar límites de consulta
+            // Recolectar datos materia por materia
             let todasLasNotas = [];
             for (let id of asigIds) {
                 const { data } = await supabaseClient.from('notas_parcial_actividades')
@@ -6814,7 +6813,8 @@ async function cargarVistaRevisionInformesAdmin() {
                 }).join('');
 
                 const matNombre = asig.materias ? asig.materias.nombre : 'Materia';
-                const docNombre = asig.perfiles ? `${asig.perfiles.nombres} ${asig.perfiles.apellidos}` : 'Sin Docente';
+                const docInfo = docentesList.find(d => d.id === asig.docente_id);
+                const docNombre = docInfo ? `${docInfo.nombres} ${docInfo.apellidos || ''}` : 'Sin Docente';
 
                 html += `
                     <div class="accordion-item border-0 border-bottom mb-2 shadow-sm rounded">
@@ -6846,7 +6846,7 @@ async function cargarVistaRevisionInformesAdmin() {
             });
 
         } else {
-            // Exámenes (Hacemos lo mismo: iteramos materia por materia)
+            // Exámenes
             let todosLosExamenes = [];
             for (let id of asigIds) {
                 const { data } = await supabaseClient.from('notas_trimestre')
@@ -6890,7 +6890,8 @@ async function cargarVistaRevisionInformesAdmin() {
                 }).join('');
 
                 const matNombre = asig.materias ? asig.materias.nombre : 'Materia';
-                const docNombre = asig.perfiles ? `${asig.perfiles.nombres} ${asig.perfiles.apellidos}` : 'Sin Docente';
+                const docInfo = docentesList.find(d => d.id === asig.docente_id);
+                const docNombre = docInfo ? `${docInfo.nombres} ${docInfo.apellidos || ''}` : 'Sin Docente';
 
                 html += `
                     <div class="accordion-item border-0 border-bottom mb-2 shadow-sm rounded">
