@@ -1222,11 +1222,16 @@
       if (accCertificados) accCertificados.classList.add('d-none');
       if (accIncidencias) accIncidencias.classList.add('d-none');
 
-      // Ocultar vista de parciales si es anual (Se aplica a mejores estudiantes también)
+      // Ocultar vista de parciales si es anual o si el módulo no lo requiere
       if (trimestreVal === 'anual') {
           document.getElementById('boxVista').classList.add('d-none');
       } else {
-          document.getElementById('boxVista').classList.remove('d-none');
+          // Mostrar Evaluación/Parcial SOLO en los módulos que lo usan
+          if (modo === 'calificaciones' || modo === 'auditoria' || modo === 'mejores_estudiantes') {
+              document.getElementById('boxVista').classList.remove('d-none');
+          } else {
+              document.getElementById('boxVista').classList.add('d-none');
+          }
       }
 
       if (modo === 'mejores_estudiantes') {
