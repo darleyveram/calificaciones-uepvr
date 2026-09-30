@@ -202,6 +202,7 @@
               <option value="incidencias" id="optModoIncidencias" class="text-danger fw-bold">⚠️ Registro de Incidencias</option>
               <!-- MÓDULO INTERCAMBIO -->
               <option value="intercambio" id="optModoIntercambio" class="d-none text-warning fw-bold">🔄 Intercambiar Calificaciones</option>
+              <option value="mejores_estudiantes" id="optModoMejores" class="text-warning fw-bold">🏆 Mejores Estudiantes</option>
               <!-- NUEVO MÓDULO: MONITOREO -->
               <option value="monitoreo" id="optModoMonitoreo" class="d-none text-success fw-bold">🟢 Monitoreo en Vivo</option>
             </select>
@@ -297,11 +298,33 @@
             <!-- BOTÓN PDF CORREGIDO CON NOMBRE -->
             <button class="btn btn-danger btn-sm px-2 px-md-3 fw-bold btn-control ms-1" id="btnDescargarParcialPDF" onclick="exportarParcialPDF()" disabled title="Descargar Reporte en PDF"><i class="bi bi-file-pdf me-1"></i> PDF</button>
           </div>
+
+          
+
+          
           
          <!-- BOTONES INFORME PARCIAL -->
           <div class="col-12 col-md-4 text-end pt-2 pt-md-3 d-none" id="accionesInformeParcial">
             <button class="btn btn-success btn-sm px-3 fw-bold btn-control" onclick="guardarInformeParcial()">💾 Guardar Informe</button>
             <button class="btn btn-danger btn-sm px-2 px-md-3 fw-bold btn-control ms-1" onclick="exportarInformeParcialPDF()"><i class="bi bi-file-pdf me-1"></i> Generar PDF Oficial</button>
+          </div>
+
+          <!-- BOTÓN MEJORES ESTUDIANTES -->
+          <div class="col-12 col-md-4 text-end pt-2 pt-md-3 d-none" id="accionesMejoresEst">
+            <div class="d-flex justify-content-end align-items-center gap-2">
+                <div class="input-group input-group-sm" style="max-width: 140px;">
+                    <span class="input-group-text bg-light fw-bold">N° Est.:</span>
+                    <select id="topNMejores" class="form-select fw-bold text-dark border-secondary" onchange="cambiarFiltro()">
+                        <option value="3">3</option>
+                        <option value="5">5</option>
+                        <option value="10">10</option>
+                        <option value="todos">Todos</option>
+                    </select>
+                </div>
+                <button class="btn btn-danger btn-sm px-3 fw-bold shadow-sm" onclick="exportarMejoresEstudiantesPDF()">
+                    <i class="bi bi-file-pdf me-1"></i> PDF
+                </button>
+            </div>
           </div>
 
           <!-- NUEVO BOTÓN: REVISIÓN DE INFORMES (ADMIN) -->
@@ -1038,6 +1061,22 @@
         let cursosDisponibles = puedeVerAsistencia ? todosCursos : Array.from(new Map([...cursosTutor.map(c => [c.id, c]), ...todasAsignaciones.map(a => [a.cursos.id, a.cursos])]).values());
         selectCurso.innerHTML = '<option value="">Seleccione curso...</option>' + cursosDisponibles.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
       }
+
+        else if (modo === 'mejores_estudiantes') {
+        boxCurso.classList.remove('d-none'); boxMateria.classList.add('d-none'); boxVista.classList.add('d-none'); boxParcialAsist.classList.add('d-none'); boxParcialTut.classList.add('d-none'); optAnual.classList.add('d-none');
+        boxTrimestre.classList.remove('d-none'); 
+        if (boxTipoAuditoria) boxTipoAuditoria.classList.add('d-none');
+        
+        if (document.getElementById('selectTrimestre').value === 'anual') document.getElementById('selectTrimestre').value = '1';
+        
+        // Lo pueden ver todos, así que listamos los cursos disponibles
+        let cursosDisponibles = esAdmin ? todosCursos : Array.from(new Map([...cursosTutor.map(c => [c.id, c]), ...todasAsignaciones.map(a => [a.cursos.id, a.cursos])]).values());
+        selectCurso.innerHTML = '<option value="">Seleccione curso...</option>' + cursosDisponibles.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
+        alCambiarCurso();
+        return;
+      }
+
+        
       // =========================================================================
       else if (modo === 'reporte_estudiante') {
         boxCurso.classList.add('d-none'); // OCULTAMOS EL CURSO
@@ -1185,6 +1224,9 @@
       
       const accRevInf = document.getElementById('accionesRevisionInformes');
       if (accRevInf) accRevInf.classList.add('d-none');
+
+      const accMejores = document.getElementById('accionesMejoresEst');
+      if (accMejores) accMejores.classList.add('d-none');
       
       if (accNomina) accNomina.classList.add('d-none');
       
@@ -1228,6 +1270,18 @@
      cargarVistaNomina(); 
      return;
    }
+
+      if (modo === 'mejores_estudiantes') {
+        if (!cursoId || !trimestreVal) { 
+            controles.forEach(b => b.disabled = true); 
+            document.getElementById('contenedorTabla').innerHTML = '<div class="py-4 text-muted text-center">Seleccione Curso y Trimestre para generar el Cuadro de Honor.</div>'; 
+            return; 
+        }
+        if (accMejores) accMejores.classList.remove('d-none');
+        controles.forEach(b => b.disabled = false);
+        cargarVistaMejoresEstudiantes(); 
+        return;
+      }
 
       if (modo === 'tutoria') {
         accTutoria.classList.remove('d-none');
@@ -7241,6 +7295,240 @@ async function guardarRevisionGlobalAdmin() {
         if(btn) { btn.disabled = false; btn.innerHTML = originalHtml; }
       }
     }
+
+    // =========================================================================
+// MÓDULO: MEJORES ESTUDIANTES (CUADRO DE HONOR)
+// =========================================================================
+let datosMejoresEstudiantesActual = [];
+
+async function cargarVistaMejoresEstudiantes() {
+    const reqId = ++currentViewRequestId;
+    const cursoId = document.getElementById('selectCurso').value;
+    const trimestre = parseInt(document.getElementById('selectTrimestre').value);
+    const topNVal = document.getElementById('topNMejores').value;
+    const contenedor = document.getElementById('contenedorTabla');
+
+    contenedor.innerHTML = '<div class="py-5 text-center"><div class="spinner-border text-warning me-2" style="width: 3rem; height: 3rem;"></div><div class="mt-3 fw-bold text-muted">Calculando promedios generales...</div></div>';
+
+    try {
+        // 1. Obtener Estudiantes
+        const { data: estData } = await supabaseClient.from('estudiantes').select('id, nombres, modalidad, estado').eq('curso_id', parseInt(cursoId)).neq('estado', 'RETIRADO').neq('modalidad', 'DISTANCIA');
+        if (reqId !== currentViewRequestId) return;
+        let estudiantesCurso = estData || [];
+
+        // 2. Obtener Materias del Curso (Solo Obligatorias para el promedio general)
+        const { data: asigCurso } = await supabaseClient.from('curso_materia_docente').select(`id, es_optativa`).eq('curso_id', parseInt(cursoId));
+        if (reqId !== currentViewRequestId) return;
+        let asignaciones = asigCurso || [];
+        const asigIds = asignaciones.map(a => a.id);
+        const materiasObligatorias = asignaciones.filter(a => !a.es_optativa).map(a => a.id);
+
+        if (materiasObligatorias.length === 0 || estudiantesCurso.length === 0) {
+            contenedor.innerHTML = '<div class="py-4 text-warning text-center fw-bold">No hay estudiantes o materias obligatorias para calcular promedios.</div>';
+            return;
+        }
+
+        // 3. Obtener Notas (P1, P2 y Examen)
+        const { data: notasP } = await supabaseClient.from('notas_parcial_actividades').select('asignacion_id, estudiante_id, parcial, nota_parcial').in('asignacion_id', asigIds).eq('trimestre', trimestre);
+        const { data: notasT } = await supabaseClient.from('notas_trimestre').select('asignacion_id, estudiante_id, examen').in('asignacion_id', asigIds).eq('trimestre', trimestre);
+        if (reqId !== currentViewRequestId) return;
+
+        // 4. Calcular Promedios
+        let matrizEstudiantes = estudiantesCurso.map(est => {
+            let sumaObligatorias = 0;
+            let countObligatorias = 0;
+
+            materiasObligatorias.forEach(mId => {
+                const p1 = notasP?.find(n => n.estudiante_id === est.id && n.asignacion_id === mId && n.parcial === 1)?.nota_parcial || 0;
+                const p2 = notasP?.find(n => n.estudiante_id === est.id && n.asignacion_id === mId && n.parcial === 2)?.nota_parcial || 0;
+                const ex = notasT?.find(n => n.estudiante_id === est.id && n.asignacion_id === mId)?.examen || 0;
+
+                const promMateria = (parseFloat(p1) * 0.35) + (parseFloat(p2) * 0.35) + (parseFloat(ex) * 0.30);
+                sumaObligatorias += promMateria;
+                countObligatorias++;
+            });
+
+            return {
+                id: est.id,
+                nombres: est.nombres,
+                promedio: countObligatorias > 0 ? (sumaObligatorias / countObligatorias) : 0
+            };
+        });
+
+        // 5. Ordenar, Filtrar y asignar lugares
+        matrizEstudiantes.sort((a, b) => b.promedio - a.promedio);
+        
+        let limit = matrizEstudiantes.length;
+        if (topNVal !== 'todos') limit = parseInt(topNVal);
+        
+        const topEstudiantes = matrizEstudiantes.slice(0, limit);
+        datosMejoresEstudiantesActual = topEstudiantes; // Se guarda para usar en PDF
+
+        // 6. Generar HTML (Vista Bonita)
+        let html = `
+            <div class="bg-white p-4 rounded">
+                <div class="text-center mb-4">
+                    <h4 class="fw-bold text-warning" style="text-shadow: 1px 1px 2px rgba(0,0,0,0.1);"><i class="bi bi-trophy-fill me-2"></i>Cuadro de Honor - Trimestre ${trimestre}</h4>
+                    <p class="text-muted mb-0">Se muestran los ${topNVal === 'todos' ? 'promedios de todos los estudiantes' : 'mejores ' + topNVal + ' estudiantes'} basados en las asignaturas obligatorias.</p>
+                </div>
+                <div class="row justify-content-center g-3 mb-4">
+        `;
+
+        const colores = ['bg-warning text-dark', 'bg-secondary text-white', 'bg-danger bg-opacity-75 text-white'];
+        const iconos = ['🥇', '🥈', '🥉'];
+        
+        topEstudiantes.slice(0, 3).forEach((est, i) => {
+            html += `
+                <div class="col-12 col-md-4">
+                    <div class="card border-0 shadow h-100 ${colores[i] || 'bg-light text-dark'} text-center" style="transform: scale(${i === 0 ? '1.05' : '1'}); z-index: ${i === 0 ? '2' : '1'};">
+                        <div class="card-body py-4">
+                            <div style="font-size: 2.5rem; line-height: 1;">${iconos[i] || '🏅'}</div>
+                            <h6 class="fw-bold mt-2 mb-1" style="font-size: 0.9rem;">${est.nombres}</h6>
+                            <div class="fs-4 fw-bold mb-0">${est.promedio.toFixed(4)}</div>
+                            <small class="opacity-75">${i + 1}° Lugar</small>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        html += `</div>`;
+
+        if (topEstudiantes.length > 3) {
+            html += `
+                <div class="table-responsive">
+                    <table class="table table-hover table-bordered align-middle text-center shadow-sm" style="font-size: 0.85rem;">
+                        <thead class="table-dark">
+                            <tr>
+                                <th style="width: 60px;">Puesto</th>
+                                <th class="text-start">Nombres y Apellidos</th>
+                                <th style="width: 150px;">Promedio Trimestral</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${topEstudiantes.slice(3).map((est, i) => `
+                                <tr>
+                                    <td class="fw-bold text-muted">${i + 4}</td>
+                                    <td class="text-start fw-bold text-primary">${est.nombres}</td>
+                                    <td class="fw-bold">${est.promedio.toFixed(4)}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+
+        html += `</div>`;
+        contenedor.innerHTML = html;
+
+    } catch (err) {
+        if (reqId === currentViewRequestId) contenedor.innerHTML = `<div class="py-4 text-danger text-center fw-bold">Error: ${err.message}</div>`;
+    }
+}
+
+async function exportarMejoresEstudiantesPDF() {
+    if (!datosMejoresEstudiantesActual || datosMejoresEstudiantesActual.length === 0) return alert('No hay datos para exportar.');
+    
+    const btn = document.querySelector('#accionesMejoresEst button');
+    const originalHtml = btn.innerHTML;
+    btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> PDF...';
+
+    try {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ compress: true, orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+        const nomArriba = (infoInstitucion?.nombre_arriba || 'Unidad Educativa Particular').toUpperCase();
+        const nomAbajo = (infoInstitucion?.nombre_abajo || '"Vicente Rocafuerte"').toUpperCase();
+        const periodo = infoInstitucion?.periodo_lectivo || '2026-2027';
+        
+        const imgLogoIzq = await obtenerBase64DesdeUrl(infoInstitucion?.logo_izquierdo || infoInstitucion?.logo_institucion);
+        const imgLogoDer = await obtenerBase64DesdeUrl(infoInstitucion?.logo_derecho || infoInstitucion?.escudo_nacional);
+        
+        const cursoId = document.getElementById('selectCurso').value;
+        const cursoInfo = todosCursos.find(c => String(c.id) === String(cursoId));
+        const nombreCursoLargo = (cursoInfo?.nombre_largo_mayuscula || cursoInfo?.nombre || '').toUpperCase();
+        
+        const trimestre = document.getElementById('selectTrimestre').value;
+        const topNVal = document.getElementById('topNMejores').value;
+        const numEstudiantesStr = topNVal === 'todos' ? datosMejoresEstudiantesActual.length.toString() : topNVal;
+        
+        const numeroALetras = { '1': 'UN', '2': 'DOS', '3': 'TRES', '5': 'CINCO', '10': 'DIEZ' };
+        const numeroPalabra = numeroALetras[numEstudiantesStr] || numEstudiantesStr;
+
+        // 1. Cabecera Institucional (Logos e Info)
+        if (imgLogoIzq) { try { doc.addImage(imgLogoIzq, 'PNG', 15, 10, 22, 22); } catch(e){} }
+        if (imgLogoDer) { try { doc.addImage(imgLogoDer, 'PNG', 170, 10, 25, 25); } catch(e){} }
+
+        doc.setFont('helvetica', 'bold'); 
+        doc.setFontSize(14); doc.setTextColor(0, 0, 0);
+        doc.text(nomArriba, 105, 18, { align: 'center' });
+        doc.setFont('helvetica', 'bolditalic');
+        doc.text(nomAbajo, 105, 25, { align: 'center' });
+
+        // 2. Títulos y Metadatos de Reporte
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(11);
+        doc.text(`Informe de aprendizaje Trimestre: ${trimestre} GRAFICO MEJOR ESTUDIANTE (${numEstudiantesStr})`, 105, 33, { align: 'center' });
+
+        doc.setFontSize(10);
+        doc.text(`Curso: ${nombreCursoLargo}`, 55, 40, { align: 'center' });
+        doc.text(`Año Lectivo: ${periodo}`, 155, 40, { align: 'center' });
+
+        doc.setDrawColor(200, 200, 200); doc.setLineWidth(0.3);
+        doc.line(15, 43, 195, 43); // Línea divisora
+
+        doc.setFontSize(10);
+        doc.text(`N° Estudiantes:`, 15, 50);
+        doc.setFillColor(240, 240, 240); doc.rect(42, 45, 25, 7, 'F'); // Fondo gris del número
+        doc.text(`${numEstudiantesStr}`, 54, 50, { align: 'center' });
+        
+        const fechaActual = new Date();
+        const opcionesFecha = { year: 'numeric', month: 'long', day: 'numeric' };
+        const fechaStr = fechaActual.toLocaleDateString('es-EC', opcionesFecha);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Pichincha, ${fechaStr}`, 195, 50, { align: 'right' });
+
+        doc.line(15, 53, 195, 53); // Línea divisora
+
+        // 3. Párrafo Narrativo
+        const parrafo = `La ${nomArriba} ${nomAbajo}, comprometida con la excelencia académica, reconoce a los estudiantes que han obtenido el/los ${numeroPalabra} mejor/es puntaje(s) durante el trimestre ${trimestre}, de acuerdo con los registros académicos institucionales.`;
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(11);
+        const textLines = doc.splitTextToSize(parrafo, 180);
+        doc.text(textLines, 15, 62, { align: 'justify' });
+        
+        let currentY = 62 + (textLines.length * 6) + 4;
+        doc.text('A continuación, se presenta la nómina de estudiantes destacados:', 15, currentY);
+        currentY += 6;
+
+        // 4. Tabla de Datos
+        const bodyData = datosMejoresEstudiantesActual.map((est, i) => [
+            i + 1, est.nombres, nombreCursoLargo, est.promedio.toFixed(4)
+        ]);
+
+        doc.autoTable({
+            startY: currentY + 2,
+            head: [['N°', 'Nombres y Apellidos', 'Curso', 'Puntaje Obtenido']],
+            body: bodyData,
+            theme: 'grid',
+            styles: { fontSize: 10, cellPadding: 2, textColor: [0, 0, 0], lineColor: [0, 0, 0], lineWidth: 0.1, valign: 'middle' },
+            headStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0], fontStyle: 'bold', halign: 'center' },
+            columnStyles: {
+                0: { cellWidth: 12, halign: 'center', fontStyle: 'bold' },
+                1: { halign: 'left' },
+                2: { cellWidth: 45, halign: 'center' },
+                3: { cellWidth: 35, halign: 'center' }
+            }
+        });
+
+        doc.save(`Mejores_Estudiantes_${nombreCursoLargo.replace(/\s+/g, '_')}_T${trimestre}.pdf`);
+
+    } catch (err) {
+        alert('Error al exportar PDF: ' + err.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-file-pdf me-1"></i> PDF';
+    }
+}
 
     
   </script>
