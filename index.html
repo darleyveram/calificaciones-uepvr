@@ -7464,78 +7464,116 @@ async function exportarMejoresEstudiantesPDF() {
         const numeroALetras = { '1': 'UN', '2': 'DOS', '3': 'TRES', '5': 'CINCO', '10': 'DIEZ' };
         const numPalabra = numeroALetras[d.numTop] || d.numTop;
 
-        // 1. Cabecera Institucional
-        if (imgLogoIzq) { try { doc.addImage(imgLogoIzq, 'PNG', 15, 10, 22, 22); } catch(e){} }
-        if (imgLogoDer) { try { doc.addImage(imgLogoDer, 'PNG', 170, 10, 25, 25); } catch(e){} }
+        // 1. Cabecera Institucional (Logos e Info Alineada)
+        if (imgLogoIzq) { try { doc.addImage(imgLogoIzq, 'PNG', 14, 10, 20, 20); } catch(e){} }
+        if (imgLogoDer) { try { doc.addImage(imgLogoDer, 'PNG', 176, 10, 20, 20); } catch(e){} }
 
         doc.setFont('helvetica', 'bold'); 
-        doc.setFontSize(14); doc.setTextColor(0, 0, 0);
-        doc.text(nomArriba, 105, 18, { align: 'center' });
+        doc.setFontSize(12); doc.setTextColor(0, 0, 0);
+        doc.text(nomArriba, 105, 14, { align: 'center' });
         doc.setFont('helvetica', 'bolditalic');
-        doc.text(nomAbajo, 105, 25, { align: 'center' });
+        doc.setFontSize(14);
+        doc.text(nomAbajo, 105, 20, { align: 'center' });
 
-        // 2. Títulos
+        // 2. Títulos y Metadatos de Reporte (Centrado, con salto de línea si es largo)
         doc.setFont('helvetica', 'bold'); doc.setFontSize(11);
-        let tituloPDF = `Informe de aprendizaje ${d.periodo} GRAFICO MEJOR ESTUDIANTE (${d.numTop})`;
-        if(d.trimestreNum === 'anual') tituloPDF = `Informe de aprendizaje Anual GRAFICO MEJOR ESTUDIANTE (${d.numTop})`;
+        let tituloPDF = `Informe de aprendizaje ${d.periodo} GRÁFICO MEJOR ESTUDIANTE (${d.numTop})`;
+        if(d.trimestreNum === 'anual') tituloPDF = `Informe de aprendizaje Anual GRÁFICO MEJOR ESTUDIANTE (${d.numTop})`;
         
-        doc.text(tituloPDF, 105, 33, { align: 'center' });
+        // Evita que el título choque con los logos partiendo el texto si es muy ancho
+        const textTitle = doc.splitTextToSize(tituloPDF, 140);
+        doc.text(textTitle, 105, 27, { align: 'center' });
 
+        // 3. Curso y Año Lectivo
+        let currentY = 27 + (textTitle.length * 5) + 2;
         doc.setFontSize(10);
-        doc.text(`Curso: ${nombreCursoLargo}`, 55, 40, { align: 'center' });
-        doc.text(`Año Lectivo: ${periodo}`, 155, 40, { align: 'center' });
+        doc.text(`Curso: ${nombreCursoLargo}`, 14, currentY);
+        doc.text(`Año Lectivo: ${periodo}`, 196, currentY, { align: 'right' });
         
-        doc.setFontSize(8); doc.setTextColor(71, 85, 105);
-        doc.text(`(Filtro: ${d.materia})`, 105, 45, { align: 'center' });
+        currentY += 5;
+        doc.setFontSize(8); doc.setTextColor(71, 85, 105); doc.setFont('helvetica', 'normal');
+        doc.text(`(Filtro: ${d.materia})`, 105, currentY, { align: 'center' });
         doc.setTextColor(0, 0, 0);
 
+        // 4. Bloque Gris y Fecha
+        currentY += 4;
         doc.setDrawColor(200, 200, 200); doc.setLineWidth(0.3);
-        doc.line(15, 48, 195, 48); // Divisor
+        doc.line(14, currentY, 196, currentY); // Línea divisora
+        currentY += 7;
 
-        doc.setFontSize(10);
-        doc.text(`N° Estudiantes:`, 15, 55);
-        doc.setFillColor(240, 240, 240); doc.rect(42, 50, 25, 7, 'F'); 
-        doc.text(`${d.numTop}`, 54, 55, { align: 'center' });
+        doc.setFontSize(10); doc.setFont('helvetica', 'bold');
+        doc.text(`N° Estudiantes:`, 14, currentY);
+        doc.setFillColor(240, 240, 240); doc.rect(42, currentY - 5, 25, 7, 'F'); 
+        doc.text(`${d.numTop}`, 54, currentY, { align: 'center' });
         
         const fechaActual = new Date();
         const opcionesFecha = { year: 'numeric', month: 'long', day: 'numeric' };
         const fechaStr = fechaActual.toLocaleDateString('es-EC', opcionesFecha);
         doc.setFont('helvetica', 'normal');
-        doc.text(`Pichincha, ${fechaStr}`, 195, 55, { align: 'right' });
+        doc.text(`Pichincha, ${fechaStr}`, 196, currentY, { align: 'right' });
 
-        doc.line(15, 58, 195, 58); // Divisor
+        currentY += 4;
+        doc.line(14, currentY, 196, currentY); // Línea divisora
+        currentY += 8;
 
-        // 3. Párrafo Narrativo
+        // 5. Párrafo Narrativo (Justificado usando la función nativa con límite de margen)
         const txtTrim = d.trimestreNum === 'anual' ? 'el año lectivo' : (isNaN(parseInt(d.trimestreNum)) ? 'el periodo' : `el trimestre ${d.trimestreNum}`);
-        const parrafo = `La ${nomArriba} ${nomAbajo}, comprometida con la excelencia académica, reconoce a los estudiantes que han obtenido el/los ${numPalabra} mejor/es puntaje(s) durante ${txtTrim}, de acuerdo con los registros académicos institucionales.`;
+        const parrafo = `La ${nomArriba} "${nomAbajo}", comprometida con la excelencia académica, reconoce a los estudiantes que han obtenido el/los ${numPalabra} mejor/es puntaje(s) durante ${txtTrim}, de acuerdo con los registros académicos institucionales.`;
         
-        doc.setFont('helvetica', 'normal'); doc.setFontSize(11);
-        const textLines = doc.splitTextToSize(parrafo, 180);
-        doc.text(textLines, 15, 67, { align: 'justify' });
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(10.5);
+        // maxWidth: 182 limita el texto para que jamás se salga de las medidas de la hoja
+        doc.text(parrafo, 14, currentY, { maxWidth: 182, align: 'justify' });
         
-        let currentY = 67 + (textLines.length * 6) + 4;
-        doc.text('A continuación, se presenta la nómina de estudiantes destacados:', 15, currentY);
-        currentY += 6;
+        currentY += doc.getTextDimensions(parrafo, { maxWidth: 182 }).h + 6;
+        doc.text('A continuación, se presenta la nómina de estudiantes destacados:', 14, currentY);
+        currentY += 4;
 
-        // 4. Tabla de Datos
+        // 6. Tabla de Datos (Columna de "Curso" Eliminada)
         const bodyData = d.estudiantes.map((est, i) => [
-            i + 1, est.nombres, nombreCursoLargo, est.promedio.toFixed(4)
+            i + 1, est.nombres, est.promedio.toFixed(4)
         ]);
 
         doc.autoTable({
-            startY: currentY + 2,
-            head: [['N°', 'Nombres y Apellidos', 'Curso', 'Puntaje Obtenido']],
+            startY: currentY,
+            head: [['N°', 'Nombres y Apellidos', 'Puntaje Obtenido']],
             body: bodyData,
             theme: 'grid',
-            styles: { fontSize: 10, cellPadding: 2, textColor: [0, 0, 0], lineColor: [0, 0, 0], lineWidth: 0.1, valign: 'middle' },
+            styles: { fontSize: 9.5, cellPadding: 2.5, textColor: [0, 0, 0], lineColor: [0, 0, 0], lineWidth: 0.1, valign: 'middle' },
             headStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0], fontStyle: 'bold', halign: 'center' },
             columnStyles: {
-                0: { cellWidth: 12, halign: 'center', fontStyle: 'bold' },
+                0: { cellWidth: 15, halign: 'center', fontStyle: 'bold' },
                 1: { halign: 'left' },
-                2: { cellWidth: 45, halign: 'center' },
-                3: { cellWidth: 35, halign: 'center' }
-            }
+                2: { cellWidth: 45, halign: 'center' }
+            },
+            margin: { left: 14, right: 14 }
         });
+
+        // 7. Firmas de la Autoridad y Secretaria
+        let endY = doc.lastAutoTable.finalY + 30;
+        if (endY > 260) {
+            doc.addPage();
+            endY = 40;
+        }
+
+        const nombreSecretaria = 'C.P.A. MERCEDES A. SALAMEA M.';
+        const nombreRector = (infoInstitucion?.rector_nombre || 'ING. DÍDIMO A. SALTOS S.').toUpperCase();
+
+        doc.setDrawColor(0); doc.setLineWidth(0.2);
+        
+        // Línea izquierda (Rector)
+        doc.line(30, endY, 90, endY);
+        // Línea derecha (Secretaria)
+        doc.line(120, endY, 180, endY);
+
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(8);
+        doc.text(nombreRector, 60, endY + 5, { align: 'center' });
+        doc.setFont('helvetica', 'normal');
+        doc.text('RECTOR / DIRECTOR', 60, endY + 9, { align: 'center' });
+
+        doc.setFont('helvetica', 'bold');
+        doc.text(nombreSecretaria, 150, endY + 5, { align: 'center' });
+        doc.setFont('helvetica', 'normal');
+        doc.text('SECRETARIO/A GENERAL', 150, endY + 9, { align: 'center' });
 
         doc.save(`Mejores_Estudiantes_${nombreCursoLargo.replace(/\s+/g, '_')}.pdf`);
 
