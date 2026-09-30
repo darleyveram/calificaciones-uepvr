@@ -1049,40 +1049,19 @@
         const cursosDisponibles = esAdmin ? todosCursos : cursosTutor;
         selectCurso.innerHTML = '<option value="">Seleccione curso...</option>' + cursosDisponibles.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
       } 
-      // === TANTO ASISTENCIA COMO COMPORTAMIENTO USAN SOLO 2 PARCIALES (SIN EXAMEN) ===
-      // === ASISTENCIA, COMPORTAMIENTO E INCIDENCIAS USAN SOLO 2 PARCIALES (SIN EXAMEN) ===
       else if (modo === 'asistencia' || modo === 'comportamiento' || modo === 'incidencias') {
         boxCurso.classList.remove('d-none'); boxMateria.classList.add('d-none'); 
-        boxVista.classList.add('d-none'); // Ocultamos el selector de notas con examen
-        boxParcialAsist.classList.remove('d-none'); // Mostramos el selector de Parcial 1 y Parcial 2
+        boxVista.classList.add('d-none'); 
+        boxParcialAsist.classList.remove('d-none'); 
         boxParcialTut.classList.add('d-none'); optAnual.classList.add('d-none');
         boxTrimestre.classList.remove('d-none'); 
         if (document.getElementById('selectTrimestre').value === 'anual') document.getElementById('selectTrimestre').value = '1';
         let cursosDisponibles = puedeVerAsistencia ? todosCursos : Array.from(new Map([...cursosTutor.map(c => [c.id, c]), ...todasAsignaciones.map(a => [a.cursos.id, a.cursos])]).values());
         selectCurso.innerHTML = '<option value="">Seleccione curso...</option>' + cursosDisponibles.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
       }
-
-        else if (modo === 'mejores_estudiantes') {
-        boxCurso.classList.remove('d-none'); boxMateria.classList.add('d-none'); boxVista.classList.add('d-none'); boxParcialAsist.classList.add('d-none'); boxParcialTut.classList.add('d-none'); optAnual.classList.add('d-none');
-        boxTrimestre.classList.remove('d-none'); 
-        if (boxTipoAuditoria) boxTipoAuditoria.classList.add('d-none');
-        
-        if (document.getElementById('selectTrimestre').value === 'anual') document.getElementById('selectTrimestre').value = '1';
-        
-        // Lo pueden ver todos, así que listamos los cursos disponibles
-        let cursosDisponibles = esAdmin ? todosCursos : Array.from(new Map([...cursosTutor.map(c => [c.id, c]), ...todasAsignaciones.map(a => [a.cursos.id, a.cursos])]).values());
-        selectCurso.innerHTML = '<option value="">Seleccione curso...</option>' + cursosDisponibles.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
-        alCambiarCurso();
-        return;
-      }
-
-        
-      // =========================================================================
-      else if (modo === 'reporte_estudiante') {
-        boxCurso.classList.add('d-none'); // OCULTAMOS EL CURSO
-        boxMateria.classList.add('d-none'); boxVista.classList.add('d-none'); boxParcialAsist.classList.add('d-none'); boxParcialTut.classList.add('d-none'); optAnual.classList.add('d-none');
+      else if (modo === 'reporte_estudiante' || modo === 'monitoreo') {
+        boxCurso.classList.add('d-none'); boxMateria.classList.add('d-none'); boxVista.classList.add('d-none'); boxParcialAsist.classList.add('d-none'); boxParcialTut.classList.add('d-none'); optAnual.classList.add('d-none');
         boxTrimestre.classList.add('d-none'); 
-        if (boxTipoAuditoria) boxTipoAuditoria.classList.add('d-none');
         cambiarFiltro();
         return; 
       }
@@ -1096,46 +1075,30 @@
         boxTrimestre.classList.remove('d-none'); 
         boxVista.classList.remove('d-none'); 
         if (boxTipoAuditoria) boxTipoAuditoria.classList.remove('d-none');
-        
         if (document.getElementById('selectTrimestre').value === 'anual') document.getElementById('selectTrimestre').value = '1';
         const v = document.getElementById('selectVista').value;
         if (v === 'comp1' || v === 'comp2' || v === 'anual') document.getElementById('selectVista').value = 'p1';
-        
         cambiarFiltro();
         return; 
       }
-        // === NUEVO: MÓDULO DE INTERCAMBIO ===
       else if (modo === 'intercambio') {
         boxCurso.classList.remove('d-none'); boxMateria.classList.add('d-none'); boxVista.classList.add('d-none'); boxParcialAsist.classList.add('d-none'); boxParcialTut.classList.add('d-none'); optAnual.classList.add('d-none');
         boxTrimestre.classList.remove('d-none'); 
         if (document.getElementById('selectTrimestre').value === 'anual') document.getElementById('selectTrimestre').value = '1';
-        let cursosDisponibles = esAdmin ? todosCursos : []; // Seguridad extra: solo admin
+        let cursosDisponibles = esAdmin ? todosCursos : []; 
         selectCurso.innerHTML = '<option value="">Seleccione curso...</option>' + cursosDisponibles.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
       }
-
-        else if (modo === 'monitoreo') {
-        boxCurso.classList.add('d-none'); boxMateria.classList.add('d-none'); boxVista.classList.add('d-none'); boxParcialAsist.classList.add('d-none'); boxParcialTut.classList.add('d-none'); optAnual.classList.add('d-none');
-        boxTrimestre.classList.add('d-none'); 
-        if (boxTipoAuditoria) boxTipoAuditoria.classList.add('d-none');
-        cambiarFiltro();
-        return; 
-      }
-      // ===================================
-
-        // === NUEVO MÓDULO: NÓMINAS ===
       else if (modo === 'nomina') {
         boxCurso.classList.remove('d-none'); boxMateria.classList.add('d-none'); boxVista.classList.add('d-none'); boxParcialAsist.classList.add('d-none'); boxParcialTut.classList.add('d-none'); optAnual.classList.add('d-none');
         boxTrimestre.classList.add('d-none'); 
         let cursosDisponibles = esAdmin ? todosCursos : Array.from(new Map([...cursosTutor.map(c => [c.id, c]), ...todasAsignaciones.map(a => [a.cursos.id, a.cursos])]).values());
-        cursosDisponibles.sort((a,b) => a.nombre.localeCompare(b.nombre)); // Ordenar alfabéticamente
+        cursosDisponibles.sort((a,b) => a.nombre.localeCompare(b.nombre)); 
         selectCurso.innerHTML = '<option value="TODOS">👉 TODOS MIS CURSOS (Consolidado)</option>' + cursosDisponibles.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
       }
-      // =============================
-
-        else if (modo === 'informe_parcial' || modo === 'revision_informes') {
+      else if (modo === 'informe_parcial' || modo === 'revision_informes') {
         boxCurso.classList.remove('d-none'); 
         if (modo === 'informe_parcial') boxMateria.classList.remove('d-none');
-        else boxMateria.classList.add('d-none'); // En revisión global no se elige una materia
+        else boxMateria.classList.add('d-none'); 
         
         boxVista.classList.add('d-none'); 
         boxParcialAsist.classList.remove('d-none'); 
@@ -1144,7 +1107,6 @@
         if (boxTipoAuditoria) boxTipoAuditoria.classList.add('d-none');
         
         if (document.getElementById('selectTrimestre').value === 'anual') document.getElementById('selectTrimestre').value = '1';
-        
         document.getElementById('selectParcialAsistencia').innerHTML = '<option value="" selected>Seleccione...</option><option value="1">1er Parcial</option><option value="2">2do Parcial</option><option value="3">Resumen Trimestral</option>';
         
         if (modo === 'informe_parcial') {
@@ -1157,7 +1119,24 @@
         alCambiarCurso();
         return;
       }
+      else if (modo === 'mejores_estudiantes') {
+        boxCurso.classList.remove('d-none'); boxMateria.classList.remove('d-none'); boxVista.classList.remove('d-none'); boxParcialAsist.classList.add('d-none'); boxParcialTut.classList.add('d-none'); optAnual.classList.remove('d-none'); boxTrimestre.classList.remove('d-none'); 
         
+        // Filtro inteligente de cursos según rol
+        let cursosUnicos = new Map();
+        if (esAdmin || puedeVerAsistencia) {
+            todosCursos.forEach(c => cursosUnicos.set(c.id, c));
+        } else {
+            cursosTutor.forEach(c => cursosUnicos.set(c.id, c));
+            todasAsignaciones.forEach(a => { if(a.cursos) cursosUnicos.set(a.cursos.id, a.cursos); });
+        }
+        let cursosArr = Array.from(cursosUnicos.values());
+        cursosArr.sort((a, b) => a.nombre.localeCompare(b.nombre));
+
+        selectCurso.innerHTML = '<option value="">Seleccione curso...</option>' + cursosArr.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
+        alCambiarCurso();
+        return;
+      }
       else {
         boxCurso.classList.remove('d-none'); boxMateria.classList.remove('d-none'); boxVista.classList.remove('d-none'); boxParcialAsist.classList.add('d-none'); boxParcialTut.classList.add('d-none'); optAnual.classList.remove('d-none');
         boxTrimestre.classList.remove('d-none'); 
@@ -1178,22 +1157,34 @@
       const cursoId = document.getElementById('selectCurso').value;
       const selectMateria = document.getElementById('selectMateria');
       
-      // AHORA LLENA LAS MATERIAS TANTO EN CALIFICACIONES COMO EN EL INFORME PARCIAL
-      if (modo === 'calificaciones' || modo === 'informe_parcial') {
+      if (modo === 'calificaciones' || modo === 'informe_parcial' || modo === 'mejores_estudiantes') {
         if (!cursoId) { 
             selectMateria.innerHTML = '<option value="">Seleccione materia...</option>'; 
             selectMateria.disabled = true; 
             cambiarFiltro(); 
             return; 
         }
+
+        let htmlOptions = '';
+        const esAdmin = usuarioActualPerfil?.rol === 'admin';
+        const puedeVerAsistencia = usuarioActualPerfil?.puede_gestionar_asistencia === true;
+        const esTutorDelCurso = cursosTutor.some(c => String(c.id) === String(cursoId));
+
+        if (modo === 'mejores_estudiantes') {
+            // Admins, Inspectores y Tutores del curso pueden ver el "Global"
+            if (esAdmin || puedeVerAsistencia || esTutorDelCurso) {
+                htmlOptions += '<option value="GLOBAL">🌐 TODAS LAS MATERIAS (Promedio Global)</option>';
+            }
+        }
+
         const materiasDelCurso = todasAsignaciones.filter(a => String(a.curso_id) === String(cursoId));
-        selectMateria.innerHTML = '<option value="">Seleccione materia...</option>' + materiasDelCurso.map(a => `<option value="${a.id}">${a.materias.nombre} ${a.es_optativa ? '(Optativa)' : ''}</option>`).join('');
+        htmlOptions += materiasDelCurso.map(a => `<option value="${a.id}">${a.materias.nombre} ${a.es_optativa ? '(Optativa)' : ''}</option>`).join('');
+
+        selectMateria.innerHTML = htmlOptions || '<option value="">Sin materias asignadas</option>';
         selectMateria.disabled = false;
         
-        if (materiasDelCurso.length > 0) { 
-            selectMateria.value = String(materiasDelCurso[0].id); 
-        } else { 
-            selectMateria.value = ""; 
+        if (selectMateria.options.length > 0) { 
+            selectMateria.value = selectMateria.options[0].value; 
         }
       }
       cambiarFiltro();
@@ -1221,18 +1212,34 @@
 
       const accInfParcial = document.getElementById('accionesInformeParcial');
       if (accInfParcial) accInfParcial.classList.add('d-none'); 
-      
       const accRevInf = document.getElementById('accionesRevisionInformes');
       if (accRevInf) accRevInf.classList.add('d-none');
-
+      if (accNomina) accNomina.classList.add('d-none');
       const accMejores = document.getElementById('accionesMejoresEst');
       if (accMejores) accMejores.classList.add('d-none');
-      
-      if (accNomina) accNomina.classList.add('d-none');
       
       accParcial.classList.add('d-none'); accComp.classList.add('d-none'); accResumen.classList.add('d-none'); accAnual.classList.add('d-none'); accAsist.classList.add('d-none'); accTutoria.classList.add('d-none');
       if (accCertificados) accCertificados.classList.add('d-none');
       if (accIncidencias) accIncidencias.classList.add('d-none');
+
+      // Ocultar vista de parciales si es anual (Se aplica a mejores estudiantes también)
+      if (trimestreVal === 'anual') {
+          document.getElementById('boxVista').classList.add('d-none');
+      } else {
+          document.getElementById('boxVista').classList.remove('d-none');
+      }
+
+      if (modo === 'mejores_estudiantes') {
+        if (!cursoId || !asigId || !trimestreVal || (trimestreVal !== 'anual' && !vistaVal)) { 
+            controles.forEach(b => b.disabled = true); 
+            document.getElementById('contenedorTabla').innerHTML = '<div class="py-4 text-muted text-center">Seleccione Curso, Materia, Trimestre y Parcial para generar el Cuadro de Honor.</div>'; 
+            return; 
+        }
+        if (accMejores) accMejores.classList.remove('d-none');
+        controles.forEach(b => b.disabled = false);
+        cargarVistaMejoresEstudiantes(); 
+        return;
+      }
 
       if (modo === 'informe_parcial') {
         if (!cursoId || !asigId || !trimestreVal || !parcialAsistVal) { 
@@ -1240,7 +1247,6 @@
             document.getElementById('contenedorTabla').innerHTML = '<div class="py-4 text-muted text-center">Seleccione Curso, Materia, Trimestre y Parcial para generar el Informe.</div>'; 
             return; 
         }
-        // Solo mostramos los botones si ya se seleccionó todo
         if (accInfParcial) accInfParcial.classList.remove('d-none');
         controles.forEach(b => b.disabled = false);
         cargarVistaInformeParcial(); 
@@ -1259,30 +1265,12 @@
         return;
       }
 
-      // === AUDITORÍA DIRECTA ===
-      if (modo === 'auditoria') {
-        cargarVistaAuditoria();
-        return;
-      }
-
-      if (modo === 'nomina') {
-     if (accNomina) accNomina.classList.remove('d-none');
-     cargarVistaNomina(); 
-     return;
-   }
-
-      if (modo === 'mejores_estudiantes') {
-        if (!cursoId || !trimestreVal) { 
-            controles.forEach(b => b.disabled = true); 
-            document.getElementById('contenedorTabla').innerHTML = '<div class="py-4 text-muted text-center">Seleccione Curso y Trimestre para generar el Cuadro de Honor.</div>'; 
-            return; 
-        }
-        if (accMejores) accMejores.classList.remove('d-none');
-        controles.forEach(b => b.disabled = false);
-        cargarVistaMejoresEstudiantes(); 
-        return;
-      }
-
+      if (modo === 'auditoria') { cargarVistaAuditoria(); return; }
+      if (modo === 'nomina') { if (accNomina) accNomina.classList.remove('d-none'); cargarVistaNomina(); return; }
+      if (modo === 'intercambio') { if (!cursoId) { document.getElementById('contenedorTabla').innerHTML = '<div class="py-4 text-muted text-center">Seleccione un Curso para realizar el intercambio.</div>'; return; } cargarVistaIntercambio(); return; }
+      if (modo === 'monitoreo') { cargarVistaMonitoreo(); return; }
+      if (modo === 'reporte_estudiante') { cargarVistaListaEstudiantesReporte(); return; }
+      
       if (modo === 'tutoria') {
         accTutoria.classList.remove('d-none');
         if (!cursoId || !trimestreVal || !parcialTutVal) { document.getElementById('contenedorTabla').innerHTML = '<div class="py-4 text-muted text-center">Seleccione Curso, Trimestre y Tipo de Reporte para consultar.</div>'; return; }
@@ -1297,20 +1285,6 @@
         if (!cursoId || !trimestreVal || !parcialAsistVal) { controles.forEach(b => b.disabled = true); document.getElementById('contenedorTabla').innerHTML = '<div class="py-4 text-muted text-center">Seleccione Curso, Trimestre y Parcial para gestionar la Asistencia.</div>'; return; }
         controles.forEach(b => b.disabled = false);
         cargarVistaAsistencia(); return;
-      }
-
-      if (modo === 'intercambio') {
-        if (!cursoId) { 
-          document.getElementById('contenedorTabla').innerHTML = '<div class="py-4 text-muted text-center">Seleccione un Curso para realizar el intercambio.</div>'; 
-          return; 
-        }
-        cargarVistaIntercambio(); 
-        return;
-      }
-
-      if (modo === 'monitoreo') {
-        cargarVistaMonitoreo(); 
-        return;
       }
 
       if (modo === 'comportamiento') {
@@ -1332,11 +1306,6 @@
         return;
       }
 
-      if (modo === 'reporte_estudiante') {
-        cargarVistaListaEstudiantesReporte(); 
-        return;
-      }
-
       if (modo === 'certificados') {
         if (accCertificados) accCertificados.classList.remove('d-none');
         if (!cursoId) { document.getElementById('contenedorTabla').innerHTML = '<div class="py-4 text-muted text-center">Seleccione un Curso para generar certificados de matrícula.</div>'; return; }
@@ -1351,14 +1320,11 @@
 
       // === RESTAURAR VISIBILIDAD DE BOTONES ===
       if (trimestreVal === 'anual') {
-        document.getElementById('boxVista').classList.add('d-none'); 
         accAnual.classList.remove('d-none');
       } else {
-        document.getElementById('boxVista').classList.remove('d-none');
         if (vistaVal === 'resumen_trimestre') accResumen.classList.remove('d-none');
         else accParcial.classList.remove('d-none');
       }
-      // ==========================================
 
       if (!asigId) { controles.forEach(b => b.disabled = true); document.getElementById('contenedorTabla').innerHTML = '<div class="py-4 text-muted text-center">Seleccione un Curso y una Materia.</div>'; return; }
       controles.forEach(b => b.disabled = false);
@@ -7304,72 +7270,117 @@ let datosMejoresEstudiantesActual = [];
 async function cargarVistaMejoresEstudiantes() {
     const reqId = ++currentViewRequestId;
     const cursoId = document.getElementById('selectCurso').value;
-    const trimestre = parseInt(document.getElementById('selectTrimestre').value);
+    const asigId = document.getElementById('selectMateria').value;
+    const trimestreVal = document.getElementById('selectTrimestre').value;
+    const vistaVal = document.getElementById('selectVista').value;
     const topNVal = document.getElementById('topNMejores').value;
     const contenedor = document.getElementById('contenedorTabla');
 
-    contenedor.innerHTML = '<div class="py-5 text-center"><div class="spinner-border text-warning me-2" style="width: 3rem; height: 3rem;"></div><div class="mt-3 fw-bold text-muted">Calculando promedios generales...</div></div>';
+    contenedor.innerHTML = '<div class="py-5 text-center"><div class="spinner-border text-warning me-2" style="width: 3rem; height: 3rem;"></div><div class="mt-3 fw-bold text-muted">Calculando promedios exactos...</div></div>';
 
     try {
-        // 1. Obtener Estudiantes
-        const { data: estData } = await supabaseClient.from('estudiantes').select('id, nombres, modalidad, estado').eq('curso_id', parseInt(cursoId)).neq('estado', 'RETIRADO').neq('modalidad', 'DISTANCIA');
+        const { data: estData } = await supabaseClient.from('estudiantes').select('id, nombres').eq('curso_id', parseInt(cursoId)).neq('estado', 'RETIRADO').neq('modalidad', 'DISTANCIA').order('nombres');
         if (reqId !== currentViewRequestId) return;
         let estudiantesCurso = estData || [];
 
-        // 2. Obtener Materias del Curso (Solo Obligatorias para el promedio general)
-        const { data: asigCurso } = await supabaseClient.from('curso_materia_docente').select(`id, es_optativa`).eq('curso_id', parseInt(cursoId));
+        // Obtener Materias del Curso para filtrar
+        const { data: asigCurso } = await supabaseClient.from('curso_materia_docente').select(`id, es_optativa, materias(nombre)`).eq('curso_id', parseInt(cursoId));
         if (reqId !== currentViewRequestId) return;
-        let asignaciones = asigCurso || [];
-        const asigIds = asignaciones.map(a => a.id);
-        const materiasObligatorias = asignaciones.filter(a => !a.es_optativa).map(a => a.id);
+        
+        let materiasAUsar = [];
+        let nombreMateriaVista = '';
+        if (asigId === 'GLOBAL') {
+            materiasAUsar = asigCurso.filter(a => !a.es_optativa);
+            nombreMateriaVista = 'PROMEDIO GLOBAL (Materias Obligatorias)';
+        } else {
+            materiasAUsar = asigCurso.filter(a => String(a.id) === String(asigId));
+            nombreMateriaVista = materiasAUsar[0]?.materias?.nombre || 'Materia';
+        }
+        const asigIdsAUsar = materiasAUsar.map(a => a.id);
 
-        if (materiasObligatorias.length === 0 || estudiantesCurso.length === 0) {
-            contenedor.innerHTML = '<div class="py-4 text-warning text-center fw-bold">No hay estudiantes o materias obligatorias para calcular promedios.</div>';
+        if (materiasAUsar.length === 0 || estudiantesCurso.length === 0) {
+            contenedor.innerHTML = '<div class="py-4 text-warning text-center fw-bold">No hay estudiantes o materias disponibles para calcular.</div>';
             return;
         }
 
-        // 3. Obtener Notas (P1, P2 y Examen)
-        const { data: notasP } = await supabaseClient.from('notas_parcial_actividades').select('asignacion_id, estudiante_id, parcial, nota_parcial').in('asignacion_id', asigIds).eq('trimestre', trimestre);
-        const { data: notasT } = await supabaseClient.from('notas_trimestre').select('asignacion_id, estudiante_id, examen').in('asignacion_id', asigIds).eq('trimestre', trimestre);
+        let notasP = [], notasT = [];
+        
+        if (trimestreVal === 'anual') {
+             const resP = await supabaseClient.from('notas_parcial_actividades').select('asignacion_id, estudiante_id, trimestre, parcial, nota_parcial').in('asignacion_id', asigIdsAUsar);
+             const resT = await supabaseClient.from('notas_trimestre').select('asignacion_id, estudiante_id, trimestre, examen').in('asignacion_id', asigIdsAUsar);
+             notasP = resP.data || []; notasT = resT.data || [];
+        } else {
+             const tNum = parseInt(trimestreVal);
+             const resP = await supabaseClient.from('notas_parcial_actividades').select('asignacion_id, estudiante_id, parcial, nota_parcial').in('asignacion_id', asigIdsAUsar).eq('trimestre', tNum);
+             const resT = await supabaseClient.from('notas_trimestre').select('asignacion_id, estudiante_id, examen').in('asignacion_id', asigIdsAUsar).eq('trimestre', tNum);
+             notasP = resP.data || []; notasT = resT.data || [];
+        }
         if (reqId !== currentViewRequestId) return;
 
-        // 4. Calcular Promedios
         let matrizEstudiantes = estudiantesCurso.map(est => {
-            let sumaObligatorias = 0;
-            let countObligatorias = 0;
+            let sumatoriaMateria = 0, countMateria = 0;
 
-            materiasObligatorias.forEach(mId => {
-                const p1 = notasP?.find(n => n.estudiante_id === est.id && n.asignacion_id === mId && n.parcial === 1)?.nota_parcial || 0;
-                const p2 = notasP?.find(n => n.estudiante_id === est.id && n.asignacion_id === mId && n.parcial === 2)?.nota_parcial || 0;
-                const ex = notasT?.find(n => n.estudiante_id === est.id && n.asignacion_id === mId)?.examen || 0;
+            materiasAUsar.forEach(m => {
+                let promMateria = 0;
+                
+                if (trimestreVal === 'anual') {
+                    let sumT = 0;
+                    [1, 2, 3].forEach(t => {
+                        const p1 = parseFloat(notasP.find(n => n.estudiante_id === est.id && n.asignacion_id === m.id && n.parcial === 1 && n.trimestre === t)?.nota_parcial || 0);
+                        const p2 = parseFloat(notasP.find(n => n.estudiante_id === est.id && n.asignacion_id === m.id && n.parcial === 2 && n.trimestre === t)?.nota_parcial || 0);
+                        const ex = parseFloat(notasT.find(n => n.estudiante_id === est.id && n.asignacion_id === m.id && n.trimestre === t)?.examen || 0);
+                        sumT += (p1*0.35 + p2*0.35 + ex*0.30);
+                    });
+                    promMateria = sumT / 3;
+                } else {
+                    const p1 = parseFloat(notasP.find(n => n.estudiante_id === est.id && n.asignacion_id === m.id && n.parcial === 1)?.nota_parcial || 0);
+                    const p2 = parseFloat(notasP.find(n => n.estudiante_id === est.id && n.asignacion_id === m.id && n.parcial === 2)?.nota_parcial || 0);
+                    
+                    if (vistaVal === 'p1') promMateria = p1;
+                    else if (vistaVal === 'p2') promMateria = p2;
+                    else if (vistaVal === 'resumen_trimestre') {
+                        const ex = parseFloat(notasT.find(n => n.estudiante_id === est.id && n.asignacion_id === m.id)?.examen || 0);
+                        promMateria = (p1*0.35 + p2*0.35 + ex*0.30);
+                    }
+                }
 
-                const promMateria = (parseFloat(p1) * 0.35) + (parseFloat(p2) * 0.35) + (parseFloat(ex) * 0.30);
-                sumaObligatorias += promMateria;
-                countObligatorias++;
+                sumatoriaMateria += promMateria;
+                countMateria++;
             });
 
-            return {
-                id: est.id,
-                nombres: est.nombres,
-                promedio: countObligatorias > 0 ? (sumaObligatorias / countObligatorias) : 0
-            };
+            return { id: est.id, nombres: est.nombres, promedio: countMateria > 0 ? (sumatoriaMateria / countMateria) : 0 };
         });
 
-        // 5. Ordenar, Filtrar y asignar lugares
         matrizEstudiantes.sort((a, b) => b.promedio - a.promedio);
         
         let limit = matrizEstudiantes.length;
         if (topNVal !== 'todos') limit = parseInt(topNVal);
-        
         const topEstudiantes = matrizEstudiantes.slice(0, limit);
-        datosMejoresEstudiantesActual = topEstudiantes; // Se guarda para usar en PDF
+        
+        let nombrePeriodo = '';
+        if (trimestreVal === 'anual') nombrePeriodo = 'Promedio Anual';
+        else {
+            if (vistaVal === 'p1') nombrePeriodo = `Trimestre ${trimestreVal} - Parcial 1`;
+            else if (vistaVal === 'p2') nombrePeriodo = `Trimestre ${trimestreVal} - Parcial 2`;
+            else nombrePeriodo = `Trimestre ${trimestreVal} - Resumen Trimestral`;
+        }
 
-        // 6. Generar HTML (Vista Bonita)
+        // Guardar para el PDF
+        datosMejoresEstudiantesActual = {
+            estudiantes: topEstudiantes,
+            periodo: nombrePeriodo,
+            materia: nombreMateriaVista,
+            numTop: topNVal === 'todos' ? topEstudiantes.length.toString() : topNVal,
+            trimestreNum: trimestreVal
+        };
+
+        // Renderizado
         let html = `
-            <div class="bg-white p-4 rounded">
+            <div class="bg-white p-4 rounded shadow-sm">
                 <div class="text-center mb-4">
-                    <h4 class="fw-bold text-warning" style="text-shadow: 1px 1px 2px rgba(0,0,0,0.1);"><i class="bi bi-trophy-fill me-2"></i>Cuadro de Honor - Trimestre ${trimestre}</h4>
-                    <p class="text-muted mb-0">Se muestran los ${topNVal === 'todos' ? 'promedios de todos los estudiantes' : 'mejores ' + topNVal + ' estudiantes'} basados en las asignaturas obligatorias.</p>
+                    <h4 class="fw-bold text-warning" style="text-shadow: 1px 1px 2px rgba(0,0,0,0.1);"><i class="bi bi-trophy-fill me-2"></i>Cuadro de Honor - ${nombrePeriodo}</h4>
+                    <h6 class="fw-bold text-primary">${nombreMateriaVista}</h6>
+                    <p class="text-muted mb-0 small">Se muestran los ${topNVal === 'todos' ? 'promedios de todos los estudiantes' : 'mejores ' + topNVal + ' estudiantes'} de acuerdo a su rendimiento exacto.</p>
                 </div>
                 <div class="row justify-content-center g-3 mb-4">
         `;
@@ -7402,7 +7413,7 @@ async function cargarVistaMejoresEstudiantes() {
                             <tr>
                                 <th style="width: 60px;">Puesto</th>
                                 <th class="text-start">Nombres y Apellidos</th>
-                                <th style="width: 150px;">Promedio Trimestral</th>
+                                <th style="width: 150px;">Puntaje Obtenido</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -7428,7 +7439,7 @@ async function cargarVistaMejoresEstudiantes() {
 }
 
 async function exportarMejoresEstudiantesPDF() {
-    if (!datosMejoresEstudiantesActual || datosMejoresEstudiantesActual.length === 0) return alert('No hay datos para exportar.');
+    if (!datosMejoresEstudiantesActual || datosMejoresEstudiantesActual.estudiantes.length === 0) return alert('No hay datos para exportar.');
     
     const btn = document.querySelector('#accionesMejoresEst button');
     const originalHtml = btn.innerHTML;
@@ -7449,14 +7460,11 @@ async function exportarMejoresEstudiantesPDF() {
         const cursoInfo = todosCursos.find(c => String(c.id) === String(cursoId));
         const nombreCursoLargo = (cursoInfo?.nombre_largo_mayuscula || cursoInfo?.nombre || '').toUpperCase();
         
-        const trimestre = document.getElementById('selectTrimestre').value;
-        const topNVal = document.getElementById('topNMejores').value;
-        const numEstudiantesStr = topNVal === 'todos' ? datosMejoresEstudiantesActual.length.toString() : topNVal;
-        
+        const d = datosMejoresEstudiantesActual;
         const numeroALetras = { '1': 'UN', '2': 'DOS', '3': 'TRES', '5': 'CINCO', '10': 'DIEZ' };
-        const numeroPalabra = numeroALetras[numEstudiantesStr] || numEstudiantesStr;
+        const numPalabra = numeroALetras[d.numTop] || d.numTop;
 
-        // 1. Cabecera Institucional (Logos e Info)
+        // 1. Cabecera Institucional
         if (imgLogoIzq) { try { doc.addImage(imgLogoIzq, 'PNG', 15, 10, 22, 22); } catch(e){} }
         if (imgLogoDer) { try { doc.addImage(imgLogoDer, 'PNG', 170, 10, 25, 25); } catch(e){} }
 
@@ -7466,42 +7474,51 @@ async function exportarMejoresEstudiantesPDF() {
         doc.setFont('helvetica', 'bolditalic');
         doc.text(nomAbajo, 105, 25, { align: 'center' });
 
-        // 2. Títulos y Metadatos de Reporte
+        // 2. Títulos
         doc.setFont('helvetica', 'bold'); doc.setFontSize(11);
-        doc.text(`Informe de aprendizaje Trimestre: ${trimestre} GRAFICO MEJOR ESTUDIANTE (${numEstudiantesStr})`, 105, 33, { align: 'center' });
+        let tituloPDF = `Informe de aprendizaje ${d.periodo} GRAFICO MEJOR ESTUDIANTE (${d.numTop})`;
+        if(d.trimestreNum === 'anual') tituloPDF = `Informe de aprendizaje Anual GRAFICO MEJOR ESTUDIANTE (${d.numTop})`;
+        
+        doc.text(tituloPDF, 105, 33, { align: 'center' });
 
         doc.setFontSize(10);
         doc.text(`Curso: ${nombreCursoLargo}`, 55, 40, { align: 'center' });
         doc.text(`Año Lectivo: ${periodo}`, 155, 40, { align: 'center' });
+        
+        doc.setFontSize(8); doc.setTextColor(71, 85, 105);
+        doc.text(`(Filtro: ${d.materia})`, 105, 45, { align: 'center' });
+        doc.setTextColor(0, 0, 0);
 
         doc.setDrawColor(200, 200, 200); doc.setLineWidth(0.3);
-        doc.line(15, 43, 195, 43); // Línea divisora
+        doc.line(15, 48, 195, 48); // Divisor
 
         doc.setFontSize(10);
-        doc.text(`N° Estudiantes:`, 15, 50);
-        doc.setFillColor(240, 240, 240); doc.rect(42, 45, 25, 7, 'F'); // Fondo gris del número
-        doc.text(`${numEstudiantesStr}`, 54, 50, { align: 'center' });
+        doc.text(`N° Estudiantes:`, 15, 55);
+        doc.setFillColor(240, 240, 240); doc.rect(42, 50, 25, 7, 'F'); 
+        doc.text(`${d.numTop}`, 54, 55, { align: 'center' });
         
         const fechaActual = new Date();
         const opcionesFecha = { year: 'numeric', month: 'long', day: 'numeric' };
         const fechaStr = fechaActual.toLocaleDateString('es-EC', opcionesFecha);
         doc.setFont('helvetica', 'normal');
-        doc.text(`Pichincha, ${fechaStr}`, 195, 50, { align: 'right' });
+        doc.text(`Pichincha, ${fechaStr}`, 195, 55, { align: 'right' });
 
-        doc.line(15, 53, 195, 53); // Línea divisora
+        doc.line(15, 58, 195, 58); // Divisor
 
         // 3. Párrafo Narrativo
-        const parrafo = `La ${nomArriba} ${nomAbajo}, comprometida con la excelencia académica, reconoce a los estudiantes que han obtenido el/los ${numeroPalabra} mejor/es puntaje(s) durante el trimestre ${trimestre}, de acuerdo con los registros académicos institucionales.`;
+        const txtTrim = d.trimestreNum === 'anual' ? 'el año lectivo' : (isNaN(parseInt(d.trimestreNum)) ? 'el periodo' : `el trimestre ${d.trimestreNum}`);
+        const parrafo = `La ${nomArriba} ${nomAbajo}, comprometida con la excelencia académica, reconoce a los estudiantes que han obtenido el/los ${numPalabra} mejor/es puntaje(s) durante ${txtTrim}, de acuerdo con los registros académicos institucionales.`;
+        
         doc.setFont('helvetica', 'normal'); doc.setFontSize(11);
         const textLines = doc.splitTextToSize(parrafo, 180);
-        doc.text(textLines, 15, 62, { align: 'justify' });
+        doc.text(textLines, 15, 67, { align: 'justify' });
         
-        let currentY = 62 + (textLines.length * 6) + 4;
+        let currentY = 67 + (textLines.length * 6) + 4;
         doc.text('A continuación, se presenta la nómina de estudiantes destacados:', 15, currentY);
         currentY += 6;
 
         // 4. Tabla de Datos
-        const bodyData = datosMejoresEstudiantesActual.map((est, i) => [
+        const bodyData = d.estudiantes.map((est, i) => [
             i + 1, est.nombres, nombreCursoLargo, est.promedio.toFixed(4)
         ]);
 
@@ -7520,7 +7537,7 @@ async function exportarMejoresEstudiantesPDF() {
             }
         });
 
-        doc.save(`Mejores_Estudiantes_${nombreCursoLargo.replace(/\s+/g, '_')}_T${trimestre}.pdf`);
+        doc.save(`Mejores_Estudiantes_${nombreCursoLargo.replace(/\s+/g, '_')}.pdf`);
 
     } catch (err) {
         alert('Error al exportar PDF: ' + err.message);
