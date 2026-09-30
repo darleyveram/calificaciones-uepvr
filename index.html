@@ -496,6 +496,39 @@
       </div>
     </div>
   </div>
+
+  <!-- Modal Gestionar Incidencia (Solo Inspectores/Admin) -->
+  <div class="modal fade" id="modalGestionarIncidencia" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 shadow">
+        <div class="modal-header bg-success text-white py-2">
+          <h6 class="modal-title fw-bold"><i class="bi bi-shield-check me-2"></i>Gestionar Incidencia Disciplinaria</h6>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body bg-light">
+          <form onsubmit="guardarGestionIncidencia(event)">
+            <div class="mb-3">
+              <label class="form-label fw-bold small text-primary">Estado del Caso</label>
+              <select id="gestionEstadoInc" class="form-select border-primary" required>
+                <option value="Pendiente">Pendiente (No revisado)</option>
+                <option value="En Gestión">En Gestión (Trabajando en el caso)</option>
+                <option value="Cerrado">Cerrado (Caso solucionado)</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-bold small text-primary">Acciones Tomadas / Resoluciones</label>
+              <textarea id="gestionAccionesInc" class="form-control border-primary" rows="4" placeholder="Ej: Se citó al representante legal, se firmó acta de compromiso..."></textarea>
+            </div>
+            <button type="submit" class="btn btn-success w-100 fw-bold" id="btnGuardarGestionInc"><i class="bi bi-save me-1"></i> Guardar Gestión</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  
+
+  
   <!-- Modal Historial Accesos -->
   <div class="modal fade" id="modalHistorialAccesos" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
@@ -5058,10 +5091,10 @@
                 <div class="table-responsive" style="max-height: 50vh;">
                   <table class="table table-bordered table-hover table-sm align-middle mb-0" style="font-size: 0.75rem;">
                     <thead class="table-dark sticky-top">
-                      <tr><th>Fecha y Hora</th><th>Tipo</th><th>Contexto</th><th>Estudiantes Involucrados</th><th>Observaciones</th><th>Reportado por</th><th style="width: 80px;">Acción</th></tr>
+                      <tr><th>Fecha y Hora</th><th>Tipo</th><th>Contexto</th><th>Estudiantes Involucrados</th><th>Observaciones</th><th>Reportado por</th><th>Estado y Gestión</th><th style="width: 90px;">Acción</th></tr>
                     </thead>
                     <tbody id="tablaHistorialIncidencias">
-                      <tr><td colspan="7" class="text-center py-4">Haga clic en 'Historial Global' para buscar en la base de datos...</td></tr>
+                      <tr><td colspan="8" class="text-center py-4">Haga clic en 'Historial Global' para buscar en la base de datos...</td></tr>
                     </tbody>
                   </table>
                 </div>
@@ -5152,7 +5185,7 @@
 
     async function cargarHistorialIncidencias() {
       const tbody = document.getElementById('tablaHistorialIncidencias');
-      tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4"><div class="spinner-border text-primary spinner-border-sm"></div> Cargando...</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4"><div class="spinner-border text-primary spinner-border-sm"></div> Cargando...</td></tr>';
       
       try {
         const esAdmin = usuarioActualPerfil?.rol === 'admin';
@@ -5170,42 +5203,67 @@
         historialIncidenciasGlobal = data || [];
         renderizarTablaHistorial(historialIncidenciasGlobal);
       } catch (err) {
-        tbody.innerHTML = `<tr><td colspan="7" class="text-danger text-center fw-bold">Error de red: ${err.message}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" class="text-danger text-center fw-bold">Error de red: ${err.message}</td></tr>`;
       }
     }
 
     function renderizarTablaHistorial(datos) {
       const tbody = document.getElementById('tablaHistorialIncidencias');
       if (datos.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-muted fw-bold">No se encontraron incidencias en el historial.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-muted fw-bold">No se encontraron incidencias en el historial.</td></tr>';
         return;
       }
+
+      const esAdmin = usuarioActualPerfil?.rol === 'admin';
+      const puedeVerAsistencia = usuarioActualPerfil?.puede_gestionar_asistencia === true;
+      const esInspector = esAdmin || puedeVerAsistencia;
+
       tbody.innerHTML = datos.map(inc => {
         const docInfo = docentesList.find(d => d.id === inc.docente_id);
         const docName = docInfo ? `${docInfo.titulo || ''} ${docInfo.nombres} ${docInfo.apellidos || ''}`.trim() : 'Docente';
         const cursoInfo = todosCursos.find(c => String(c.id) === String(inc.curso_id));
         const nombreCurso = cursoInfo ? cursoInfo.nombre : '';
-
         const fechaFormat = new Date(inc.fecha_hora).toLocaleString('es-EC', { dateStyle: 'short', timeStyle: 'short' });
+
+        // LÓGICA DE ESTADO Y GESTIÓN
+        const estado = inc.estado_incidencia || 'Pendiente';
+        const gestionadoPor = inc.gestionado_por_nombre || 'N/A';
+        const acciones = inc.acciones_tomadas || 'Ninguna acción registrada.';
+
+        let badgeColor = 'bg-secondary';
+        if(estado === 'En Gestión') badgeColor = 'bg-warning text-dark';
+        if(estado === 'Cerrado') badgeColor = 'bg-success';
+
+        let htmlEstado = `<span class="badge ${badgeColor}">${estado}</span>`;
+        if(estado !== 'Pendiente') {
+            htmlEstado += `<br><small class="text-muted d-block mt-1 fw-bold">Por: ${gestionadoPor}</small>`;
+            htmlEstado += `<small class="text-muted fst-italic d-block mt-1" style="font-size: 0.68rem; max-width: 150px; white-space: normal;">"${acciones}"</small>`;
+        }
+
+        // LÓGICA DE BOTONES (Bloqueo si ya está gestionado)
+        let botonesHTML = `<button class="btn btn-sm btn-outline-danger py-0 px-1 mb-1 me-1" onclick="exportarIncidenciaIndividualPDF(${inc.id})" title="Descargar PDF del Reporte"><i class="bi bi-file-pdf"></i></button>`;
+        
+        if (estado === 'Pendiente' || esAdmin) {
+            botonesHTML += `
+              <button class="btn btn-sm btn-outline-primary py-0 px-1 mb-1 me-1" onclick="editarIncidencia(${inc.id})" title="Editar registro"><i class="bi bi-pencil-square"></i></button>
+              <button class="btn btn-sm btn-outline-secondary py-0 px-1 mb-1" onclick="eliminarIncidencia(${inc.id})" title="Eliminar registro"><i class="bi bi-trash-fill"></i></button>
+            `;
+        }
+
+        if (esInspector) {
+            botonesHTML += `<br><button class="btn btn-sm btn-success py-0 px-2 mt-1 w-100 fw-bold" onclick="abrirModalGestionIncidencia(${inc.id})" title="Validar / Gestionar Incidencia"><i class="bi bi-shield-check me-1"></i>Gestionar</button>`;
+        }
+
         return `
           <tr>
             <td class="fw-bold text-nowrap">${fechaFormat}</td>
             <td><span class="badge bg-danger">${inc.tipo_incidencia}</span></td>
             <td>${inc.contexto}</td>
             <td class="fw-bold text-primary">${inc.nombres_estudiantes}<br><small class="text-muted fw-normal">${nombreCurso}</small></td>
-            <td>${inc.observaciones}</td>
+            <td style="max-width: 200px; white-space: normal;">${inc.observaciones}</td>
             <td><small>${docName}</small></td>
-            <td style="white-space: nowrap;">
-              <button class="btn btn-sm btn-outline-primary py-0 px-1 mb-1" onclick="editarIncidencia(${inc.id})" title="Editar registro">
-                <i class="bi bi-pencil-square"></i>
-              </button>
-              <button class="btn btn-sm btn-outline-danger py-0 px-1 mb-1" onclick="exportarIncidenciaIndividualPDF(${inc.id})" title="Descargar PDF del Reporte">
-                <i class="bi bi-file-pdf"></i>
-              </button>
-              <button class="btn btn-sm btn-outline-secondary py-0 px-1 mb-1" onclick="eliminarIncidencia(${inc.id})" title="Eliminar registro">
-                <i class="bi bi-trash-fill"></i>
-              </button>
-            </td>
+            <td class="text-center bg-light">${htmlEstado}</td>
+            <td style="white-space: nowrap; vertical-align: middle;">${botonesHTML}</td>
           </tr>
         `;
       }).join('');
@@ -7020,6 +7078,169 @@ async function guardarRevisionGlobalAdmin() {
         btn.innerHTML = '<i class="bi bi-save me-1"></i> Guardar Revisión Global';
     }
 }
+    // =========================================================================
+    // LÓGICA DE GESTIÓN PARA INSPECTORES / DECE
+    // =========================================================================
+    let incidenciaGestionandoId = null;
+
+    function abrirModalGestionIncidencia(id) {
+        const inc = historialIncidenciasGlobal.find(i => i.id === id);
+        if (!inc) return;
+        
+        incidenciaGestionandoId = id;
+        document.getElementById('gestionEstadoInc').value = inc.estado_incidencia || 'Pendiente';
+        document.getElementById('gestionAccionesInc').value = inc.acciones_tomadas || '';
+        
+        const modal = new bootstrap.Modal(document.getElementById('modalGestionarIncidencia'));
+        modal.show();
+    }
+
+    async function guardarGestionIncidencia(e) {
+        e.preventDefault();
+        const btn = document.getElementById('btnGuardarGestionInc');
+        btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Guardando...';
+
+        const estado = document.getElementById('gestionEstadoInc').value;
+        const acciones = document.getElementById('gestionAccionesInc').value;
+        const nombreInspector = `${usuarioActualPerfil.nombres} ${usuarioActualPerfil.apellidos || ''}`.trim();
+
+        try {
+            const { error } = await supabaseClient.from('incidencias').update({
+                estado_incidencia: estado,
+                acciones_tomadas: acciones,
+                gestionado_por_nombre: nombreInspector
+            }).eq('id', incidenciaGestionandoId);
+
+            if (error) throw error;
+            
+            alert('¡El estado de la incidencia fue actualizado!');
+            bootstrap.Modal.getInstance(document.getElementById('modalGestionarIncidencia')).hide();
+            cargarHistorialIncidencias(); // Recargar la tabla
+        } catch (err) {
+            alert('Error al gestionar: ' + err.message);
+        } finally {
+            btn.disabled = false; btn.innerHTML = '<i class="bi bi-save me-1"></i> Guardar Gestión';
+        }
+    }
+
+    // =========================================================================
+    // PDF DE INCIDENCIAS ACTUALIZADO (INCLUYE ACCIONES DEL INSPECTOR)
+    // =========================================================================
+    async function exportarIncidenciaIndividualPDF(id) {
+      const inc = historialIncidenciasGlobal.find(i => i.id === id);
+      if (!inc) return;
+
+      const btn = document.querySelector(`button[onclick="exportarIncidenciaIndividualPDF(${id})"]`);
+      const originalHtml = btn ? btn.innerHTML : '<i class="bi bi-file-pdf"></i>';
+      if(btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm py-0"></span>'; }
+
+      try {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ compress: true, orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+        const nomArriba = (infoInstitucion?.nombre_arriba || 'Unidad Educativa Particular').toUpperCase();
+        const nomAbajo = (infoInstitucion?.nombre_abajo || '"Vicente Rocafuerte"').toUpperCase();
+        const periodo = infoInstitucion?.periodo_lectivo || '2026-2027';
+        
+        const imgLogoIzq = await obtenerBase64DesdeUrl(infoInstitucion?.logo_izquierdo || infoInstitucion?.logo_institucion);
+        const imgLogoDer = await obtenerBase64DesdeUrl(infoInstitucion?.logo_derecho || infoInstitucion?.escudo_nacional);
+
+        if (imgLogoIzq) { try { doc.addImage(imgLogoIzq, 'PNG', 14, 10, 22, 22); } catch(e){} }
+        if (imgLogoDer) { try { doc.addImage(imgLogoDer, 'PNG', 174, 10, 22, 22); } catch(e){} }
+
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.setTextColor(30, 41, 59);
+        doc.text(nomArriba, 105, 16, { align: 'center' });
+        doc.setFontSize(15); doc.setTextColor(220, 38, 38); 
+        doc.text(nomAbajo, 105, 23, { align: 'center' });
+        doc.setFontSize(9); doc.setTextColor(71, 85, 105); doc.setFont('helvetica', 'normal');
+        doc.text(`AÑO LECTIVO: ${periodo}`, 105, 28, { align: 'center' });
+        
+        doc.setDrawColor(200, 200, 200); doc.line(14, 33, 196, 33);
+
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
+        doc.saveGraphicsState();
+        doc.setGState(new doc.GState({ opacity: 0.05 })); 
+        doc.setTextColor(100, 100, 100); 
+        doc.setFontSize(45); doc.setFont('helvetica', 'bold');
+        doc.text('REPORTE DISCIPLINARIO', pageWidth / 2, pageHeight / 2, { align: 'center', angle: 45 });
+        doc.restoreGraphicsState();
+
+        doc.setFillColor(220, 53, 69); 
+        doc.rect(14, 38, 182, 9, 'F');
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(255, 255, 255);
+        doc.text('REPORTE OFICIAL DE INCIDENCIA DISCIPLINARIA', 105, 44.2, { align: 'center' });
+
+        const fechaFormat = new Date(inc.fecha_hora).toLocaleString('es-EC', { dateStyle: 'long', timeStyle: 'short' });
+        const cursoInfo = todosCursos.find(c => String(c.id) === String(inc.curso_id));
+        const nombreCurso = cursoInfo ? cursoInfo.nombre : 'No especificado';
+        
+        doc.autoTable({
+          startY: 50,
+          body: [
+            [{ content: 'Fecha y Hora del Suceso:', styles: { fontStyle: 'bold', fillColor: [248, 250, 252] } }, fechaFormat],
+            [{ content: 'Curso / Grado:', styles: { fontStyle: 'bold', fillColor: [248, 250, 252] } }, nombreCurso],
+            [{ content: 'Período Académico:', styles: { fontStyle: 'bold', fillColor: [248, 250, 252] } }, `Trimestre ${inc.trimestre} - Parcial ${inc.parcial}`],
+            [{ content: 'Tipo de Incidencia:', styles: { fontStyle: 'bold', fillColor: [248, 250, 252] } }, { content: inc.tipo_incidencia, styles: { textColor: [220, 38, 38], fontStyle: 'bold' } }],
+            [{ content: 'Contexto / Ubicación:', styles: { fontStyle: 'bold', fillColor: [248, 250, 252] } }, inc.contexto],
+            [{ content: 'Estudiantes Involucrados:', styles: { fontStyle: 'bold', fillColor: [248, 250, 252] } }, { content: inc.nombres_estudiantes.replace(/ \/ /g, '\n'), styles: { fontStyle: 'bold', textColor: [13, 110, 253] } }],
+            // NUEVO: ESTADO DE GESTIÓN EN EL PDF
+            [{ content: 'Estado del Caso:', styles: { fontStyle: 'bold', fillColor: [230, 244, 234] } }, { content: inc.estado_incidencia || 'Pendiente', styles: { fontStyle: 'bold', textColor: [25, 135, 84] } }],
+            [{ content: 'Gestionado / Validado por:', styles: { fontStyle: 'bold', fillColor: [248, 250, 252] } }, inc.gestionado_por_nombre || 'No asignado aún'],
+            [{ content: 'Acciones Tomadas (DECE/Insp):', styles: { fontStyle: 'bold', fillColor: [248, 250, 252] } }, inc.acciones_tomadas || 'Ninguna acción registrada.']
+          ],
+          theme: 'grid',
+          styles: { fontSize: 9.5, cellPadding: 3, textColor: [30, 41, 59], lineColor: [200, 200, 200], lineWidth: 0.1, valign: 'middle' },
+          columnStyles: { 0: { cellWidth: 55 } },
+          margin: { left: 14, right: 14 }
+        });
+
+        let currentY = doc.lastAutoTable.finalY + 6;
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(10.5); doc.setTextColor(30, 41, 59);
+        doc.text('Narrativa de los hechos / Observaciones (Docente):', 14, currentY);
+        currentY += 4;
+        
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(9.5);
+        const splitText = doc.splitTextToSize(inc.observaciones || 'Sin observaciones registradas.', 176);
+        const boxHeight = Math.max(30, splitText.length * 5 + 8);
+        
+        doc.setFillColor(248, 250, 252); doc.setDrawColor(200, 200, 200);
+        doc.rect(14, currentY, 182, boxHeight, 'FD');
+        doc.text(splitText, 17, currentY + 6);
+        
+        currentY += boxHeight + 40; 
+
+        if (currentY > 265) { doc.addPage(); currentY = 40; }
+
+        const docInfo = docentesList.find(d => d.id === inc.docente_id);
+        const docName = docInfo ? `${docInfo.titulo || ''} ${docInfo.nombres} ${docInfo.apellidos || ''}`.trim() : 'Docente Responsable';
+        const inspectorNombre = inc.gestionado_por_nombre || 'LCDA. SOLANGE SALTOS GILER'; 
+
+        doc.setLineWidth(0.3); doc.setDrawColor(100, 116, 139);
+        
+        doc.line(24, currentY, 84, currentY);
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(9);
+        doc.text(docName.toUpperCase(), 54, currentY + 5, { align: 'center', maxWidth: 60 });
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(8);
+        doc.text('DOCENTE / AUTORIDAD QUE REPORTA', 54, currentY + 9, { align: 'center' });
+
+        doc.line(126, currentY, 186, currentY);
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(9);
+        doc.text(inspectorNombre.toUpperCase(), 156, currentY + 5, { align: 'center', maxWidth: 60 });
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(8);
+        doc.text('INSPECTOR/A / DECE', 156, currentY + 9, { align: 'center' });
+
+        const usuarioDescarga = usuarioActualPerfil ? `${usuarioActualPerfil.nombres} ${usuarioActualPerfil.apellidos || ''}`.trim().toUpperCase() : 'SISTEMA';
+        doc.setFontSize(7); doc.setTextColor(150, 150, 150);
+        doc.text(`Generado por: ${usuarioDescarga} el ${new Date().toLocaleString('es-EC')} - Control de Incidencias UEPVR`, 14, 285);
+
+        doc.save(`Reporte_Incidencia_${new Date(inc.fecha_hora).getTime()}.pdf`);
+      } catch(e) {
+        alert('Error generando PDF: ' + e.message);
+      } finally {
+        if(btn) { btn.disabled = false; btn.innerHTML = originalHtml; }
+      }
+    }
 
     
   </script>
