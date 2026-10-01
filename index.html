@@ -152,7 +152,7 @@
       </div>
       <div class="card-footer bg-light text-center py-3 border-0">
         <small class="text-muted fw-semibold header-dir-inst d-block">Pichincha - Manabí - Ecuador</small>
-        <small class="text-muted" style="font-size: 0.65rem; opacity: 0.6;">v1.1.1 (Actualizado el 30/09/2026 23:09:00)</small>
+        <small class="text-muted" style="font-size: 0.65rem; opacity: 0.6;">v1.1.1 (Actualizado el 30/09/2026 23:22:00)</small>
       </div>
     </div>
   </div>
@@ -7719,7 +7719,7 @@ async function cargarVistaCitaciones() {
               <div class="tab-pane fade" id="cit-historial">
                  <div class="table-responsive" style="max-height: 50vh;">
                     <table class="table table-hover table-sm align-middle" style="font-size: 0.75rem;">
-                       <thead class="table-dark sticky-top"><tr><th>N°</th><th>Fecha Creación</th><th>Estudiante</th><th>Fecha de la Cita</th><th>Motivos</th><th>Generado por</th><th>PDF</th></tr></thead>
+                       <thead class="table-dark sticky-top"><tr><th>N°</th><th>Fecha Creación</th><th>Estudiante</th><th>Fecha de la Cita</th><th>Motivos</th><th>Generado por</th><th style="width: 80px;">Acciones</th></tr></thead>
                        <tbody id="tablaHistorialCitaciones"><tr><td colspan="7" class="text-center">Cargando...</td></tr></tbody>
                     </table>
                  </div>
@@ -7943,10 +7943,27 @@ async function cargarHistorialCitaciones() {
                 <td><span class="badge bg-warning text-dark">${fh}</span></td>
                 <td style="max-width:200px; white-space:normal;" class="small fst-italic text-capitalize">${cit.motivos}</td>
                 <td><small>${docName}</small></td>
-                <td><button class="btn btn-sm btn-danger py-0 px-2 fw-bold" onclick="exportarCitacionPDF(${cit.id})"><i class="bi bi-file-pdf"></i></button></td>
+                <td style="white-space: nowrap;">
+                    <button class="btn btn-sm btn-danger py-0 px-1 me-1 fw-bold" onclick="exportarCitacionPDF(${cit.id})" title="Descargar PDF"><i class="bi bi-file-pdf"></i></button>
+                    <button class="btn btn-sm btn-outline-secondary py-0 px-1" onclick="eliminarCitacion(${cit.id})" title="Eliminar Citación"><i class="bi bi-trash-fill"></i></button>
+                </td>
             </tr>`;
         }).join('');
     } catch(err) { tbody.innerHTML = `<tr><td colspan="7" class="text-danger fw-bold text-center">${err.message}</td></tr>`; }
+}
+
+    async function eliminarCitacion(id) {
+    if (!confirm('¿Está completamente seguro de eliminar esta citación? Esta acción no se puede deshacer.')) return;
+    
+    try {
+        const { error } = await supabaseClient.from('citaciones').delete().eq('id', id);
+        if (error) throw error;
+        
+        // Recargar la tabla inmediatamente después de borrar
+        cargarHistorialCitaciones(); 
+    } catch (err) {
+        alert('Error al eliminar la citación: ' + err.message);
+    }
 }
 
 // FORMATO IDÉNTICO A LA IMAGEN PROPORCIONADA
