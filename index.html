@@ -152,7 +152,7 @@
       </div>
       <div class="card-footer bg-light text-center py-3 border-0">
         <small class="text-muted fw-semibold header-dir-inst d-block">Pichincha - Manabí - Ecuador</small>
-        <small class="text-muted" style="font-size: 0.65rem; opacity: 0.6;">v1.1.1 (Actualizado el 30/09/2026 23:22:00)</small>
+        <small class="text-muted" style="font-size: 0.65rem; opacity: 0.6;">v1.1.5 (Actualizado el 30/09/2026 23:38:00)</small>
       </div>
     </div>
   </div>
@@ -4411,6 +4411,9 @@
     // =========================================================================
     // FUNCIÓN AUXILIAR: Dibuja texto justificado con soporte para **negritas**
     // =========================================================================
+    // =========================================================================
+    // FUNCIÓN AUXILIAR: Dibuja texto justificado con soporte para **negritas**
+    // =========================================================================
     function dibujarTextoEnriquecidoJustificado(doc, text, startX, startY, maxWidth, lineHeight) {
         const tokens = text.split(/(\*\*.*?\*\*)/g);
         let words = [];
@@ -4445,10 +4448,10 @@
                 if (totalMissing < maxWidth * 0.4) {
                     extraSpacePerGap = totalMissing / spaceTokens.length;
                 } else {
-                    extraSpacePerGap = doc.setFont('helvetica', 'normal').getTextWidth(' ');
+                    extraSpacePerGap = doc.setFont('times', 'normal').getTextWidth(' ');
                 }
             } else {
-                extraSpacePerGap = doc.setFont('helvetica', 'normal').getTextWidth(' ');
+                extraSpacePerGap = doc.setFont('times', 'normal').getTextWidth(' ');
             }
 
             let lx = startX;
@@ -4456,7 +4459,7 @@
                 if (w.text.trim() === '') {
                     lx += extraSpacePerGap;
                 } else {
-                    doc.setFont('helvetica', w.font);
+                    doc.setFont('times', w.font);
                     doc.text(w.text, lx, y);
                     lx += w.w;
                 }
@@ -4464,7 +4467,7 @@
         };
 
         words.forEach(w => {
-            doc.setFont('helvetica', w.font);
+            doc.setFont('times', w.font);
             w.w = doc.getTextWidth(w.text);
         });
 
@@ -4472,7 +4475,7 @@
             if (w.text.trim() === '') {
                 if (lineWords.length > 0) {
                     lineWords.push(w);
-                    currentLineWidth += doc.setFont('helvetica', w.font).getTextWidth(' ');
+                    currentLineWidth += doc.setFont('times', w.font).getTextWidth(' ');
                 }
             } else {
                 if (currentLineWidth + w.w > maxWidth && lineWords.length > 0) {
@@ -7967,6 +7970,7 @@ async function cargarHistorialCitaciones() {
 }
 
 // FORMATO IDÉNTICO A LA IMAGEN PROPORCIONADA
+// FORMATO ACTUALIZADO (TIMES NEW ROMAN, CENTRADO Y CON FIRMA DE PIE DE PÁGINA)
 async function exportarCitacionPDF(id) {
     const cit = historialCitacionesGlobal.find(c => c.id === id);
     if (!cit) return;
@@ -7978,37 +7982,36 @@ async function exportarCitacionPDF(id) {
         const imgLogoIzq = await obtenerBase64DesdeUrl(infoInstitucion?.logo_izquierdo || infoInstitucion?.logo_institucion);
         const imgLogoDer = await obtenerBase64DesdeUrl(infoInstitucion?.logo_derecho || infoInstitucion?.escudo_nacional);
 
-        // 1. Logos
+        // 1. Logos (Márgenes simétricos: X=25 y X=160 para ancho total de 210mm)
         if (imgLogoIzq) { try { doc.addImage(imgLogoIzq, 'PNG', 25, 12, 25, 25); } catch(e){} }
-        // Se añade un texto azul en cursiva debajo del logo izquierdo
-        doc.setFont('helvetica', 'italic'); doc.setFontSize(10); doc.setTextColor(30, 64, 175);
-        doc.text("Educación de calidad\npara la vida, en paz y\nen democracia", 37, 43, { align: 'center' });
+        if (imgLogoDer) { try { doc.addImage(imgLogoDer, 'PNG', 160, 12, 25, 25); } catch(e){} }
 
-        // 2. Cabecera Central
-        doc.setFont('helvetica', 'bold'); doc.setFontSize(14); doc.setTextColor(220, 38, 38);
-        doc.text('UNIDAD EDUCATIVA', 145, 18, { align: 'center' });
+        // 2. Cabecera Central (Todo al medio, X=105)
+        doc.setFont('times', 'bold'); doc.setFontSize(14); doc.setTextColor(220, 38, 38);
+        doc.text('UNIDAD EDUCATIVA', 105, 18, { align: 'center' });
         doc.setFontSize(18); doc.setTextColor(30, 64, 175);
-        doc.text('"VICENTE ROCAFUERTE"', 145, 26, { align: 'center' });
+        doc.text('"VICENTE ROCAFUERTE"', 105, 26, { align: 'center' });
 
-        doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(0, 0, 0);
-        doc.text(infoInstitucion?.direccion_1 || 'Cantón Pichincha - Manabí - Ecuador', 145, 32, { align: 'center' });
-        doc.text(`Correo: ${infoInstitucion?.correo || '13H03021@educacion.gob.ec'}`, 145, 37, { align: 'center' });
-        doc.text(`Código AMIE: ${infoInstitucion?.amie || '13H03021'}`, 145, 42, { align: 'center' });
-        doc.text(`Teléfono: ${infoInstitucion?.telefono_1 || infoInstitucion?.telefono || '05 2323232'}`, 145, 47, { align: 'center' });
+        doc.setFont('times', 'normal'); doc.setFontSize(10); doc.setTextColor(0, 0, 0);
+        doc.text(infoInstitucion?.direccion_1 || 'Cantón Pichincha - Manabí - Ecuador', 105, 32, { align: 'center' });
+        doc.text(`Correo: ${infoInstitucion?.correo || '13H03021@educacion.gob.ec'}`, 105, 37, { align: 'center' });
+        doc.text(`Código AMIE: ${infoInstitucion?.amie || '13H03021'}`, 105, 42, { align: 'center' });
+        doc.text(`Teléfono: ${infoInstitucion?.telefono_1 || infoInstitucion?.telefono || '05 2323232'}`, 105, 47, { align: 'center' });
 
         // 3. Título de Citación y Fecha
-        doc.setFont('helvetica', 'bold'); doc.setFontSize(15); doc.setTextColor(0,0,0);
-        doc.text(`C I T A C I Ó N # ${cit.numero_citacion}`, 85, 65, { align: 'center' });
+        doc.setFont('times', 'bold'); doc.setFontSize(16); doc.setTextColor(0,0,0);
+        doc.text(`C I T A C I Ó N  # ${cit.numero_citacion}`, 105, 65, { align: 'center' });
 
         const fechaCreacion = new Date(cit.fecha_creacion);
         const opcionesMes = { month: 'long' };
         const mesStr = fechaCreacion.toLocaleDateString('es-EC', opcionesMes);
-        doc.setFont('helvetica', 'normal'); doc.setFontSize(12);
-        doc.text(`Pichincha, ${fechaCreacion.getDate()} de ${mesStr} del ${fechaCreacion.getFullYear()}`, 180, 75, { align: 'right' });
+        doc.setFont('times', 'normal'); doc.setFontSize(12);
+        // Margen derecho alineado con el borde del texto (185)
+        doc.text(`Pichincha, ${fechaCreacion.getDate()} de ${mesStr} del ${fechaCreacion.getFullYear()}`, 185, 75, { align: 'right' });
 
-        // 4. Saludo
+        // 4. Saludo (Margen izquierdo de 25)
         let nomRep = cit.estudiantes?.representante_nombres || `${cit.estudiantes?.rep_nombres || ''} ${cit.estudiantes?.rep_apellidos || ''}`.trim() || 'Representante Legal';
-        doc.text(`Para: Sra/Sr. ${nomRep}`, 20, 88);
+        doc.text(`Para: Sra/Sr. ${nomRep}`, 25, 88);
 
         // 5. Cuerpo del documento (Formateo de Fecha Cita)
         const fechaCitaObj = new Date(cit.fecha_cita);
@@ -8023,33 +8026,27 @@ async function exportarCitacionPDF(id) {
         // Párrafo con texto enriquecido
         const parrafo = `Se cita a la representante del estudiante **${nombreEst}** de ${cursoEst} de este Plantel Educativo, el día ${strFechaCita}, a las ${strHoraCita}. Para tratar asuntos referentes a ${cit.motivos} de su representada. Por favor presentarse en la fecha y hora indicada.`;
 
-        dibujarTextoEnriquecidoJustificado(doc, parrafo, 20, 105, 160, 7);
+        // Tamaño 12 y mayor interlineado (9) con márgenes parejos de 25mm a cada lado
+        doc.setFontSize(12);
+        dibujarTextoEnriquecidoJustificado(doc, parrafo, 25, 105, 160, 9);
 
-        // 6. Despedida y Firma
-        doc.setFont('helvetica', 'normal');
-        doc.text('Atentamente,', 95, 145, { align: 'center' });
+        // 6. Despedida y Firma (como pie de página en Y = 250)
+        const footerY = 240;
+        doc.setFont('times', 'normal');
+        doc.text('Atentamente,', 105, footerY, { align: 'center' });
 
-        // Espacio para la firma y el sello centrado-derecha
+        // Espacio para la firma centrado
         doc.setLineWidth(0.3); doc.setDrawColor(0);
-        doc.line(65, 185, 125, 185);
+        doc.line(70, footerY + 25, 140, footerY + 25); 
 
         const nombreRector = (infoInstitucion?.rector_nombre || 'Ing. Dídimo Saltos Sabando');
-        doc.text(nombreRector, 95, 191, { align: 'center' });
-        doc.setFont('helvetica', 'bold');
-        doc.text('Rector', 95, 197, { align: 'center' });
-
-        // Marca de sello simulada o logo si hay
-        if (imgLogoIzq) {
-            doc.saveGraphicsState();
-            doc.setGState(new doc.GState({ opacity: 0.7 })); 
-            try { doc.addImage(imgLogoIzq, 'PNG', 125, 160, 30, 30); } catch(e){}
-            doc.restoreGraphicsState();
-        }
+        doc.text(nombreRector, 105, footerY + 31, { align: 'center' });
+        doc.setFont('times', 'bold');
+        doc.text('Rector', 105, footerY + 37, { align: 'center' });
 
         doc.save(`Citacion_${cit.numero_citacion}_${nombreEst.replace(/\s+/g, '_')}.pdf`);
     } catch(err) { alert('Error: ' + err.message); }
 }
-
     
   </script>
 </body>
