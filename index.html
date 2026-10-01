@@ -93,6 +93,15 @@
         70% { box-shadow: 0 0 0 6px rgba(220, 53, 69, 0); }
         100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
     }
+    /* Ocultar flechas en inputs numéricos */
+    input[type="number"]::-webkit-inner-spin-button, 
+    input[type="number"]::-webkit-outer-spin-button { 
+        -webkit-appearance: none; 
+        margin: 0; 
+    }
+    input[type="number"] {
+        -moz-appearance: textfield; /* Para Firefox */
+    }
   </style>
 </head>
 <body class="bg-light py-2">
@@ -7596,6 +7605,23 @@ async function exportarMejoresEstudiantesPDF() {
         btn.innerHTML = '<i class="bi bi-file-pdf me-1"></i> PDF';
     }
 }
+
+    // =======================================================
+    // MEJORAS DE USABILIDAD EN INPUTS NUMÉRICOS (NOTAS)
+    // =======================================================
+    // 1. Auto-seleccionar todo el número al hacer clic
+    document.addEventListener('focusin', function(e) {
+        if (e.target.tagName === 'INPUT' && e.target.type === 'number') {
+            e.target.select();
+        }
+    });
+
+    // 2. Quitar el foco del input si el usuario usa la rueda del ratón (evita cambios accidentales)
+    document.addEventListener('wheel', function(e) {
+        if (document.activeElement.tagName === 'INPUT' && document.activeElement.type === 'number') {
+            document.activeElement.blur();
+        }
+    }, { passive: true });
 
     
   </script>
