@@ -1070,6 +1070,13 @@
         if (document.getElementById('selectTrimestre').value === 'anual') document.getElementById('selectTrimestre').value = '1';
         let cursosDisponibles = puedeVerAsistencia ? todosCursos : Array.from(new Map([...cursosTutor.map(c => [c.id, c]), ...todasAsignaciones.map(a => [a.cursos.id, a.cursos])]).values());
         selectCurso.innerHTML = '<option value="">Seleccione curso...</option>' + cursosDisponibles.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
+        
+        // Habilitar la opción "Resumen Trimestral" al seleccionar el módulo de Citaciones
+        if (modo === 'citaciones') {
+            document.getElementById('selectParcialAsistencia').innerHTML = '<option value="" selected>Seleccione...</option><option value="1">1er Parcial</option><option value="2">2do Parcial</option><option value="3">Resumen Trimestral</option>';
+        } else {
+            document.getElementById('selectParcialAsistencia').innerHTML = '<option value="" selected>Seleccione...</option><option value="1">1er Parcial</option><option value="2">2do Parcial</option>';
+        }
       }
       else if (modo === 'reporte_estudiante' || modo === 'monitoreo') {
         boxCurso.classList.add('d-none'); boxMateria.classList.add('d-none'); boxVista.classList.add('d-none'); boxParcialAsist.classList.add('d-none'); boxParcialTut.classList.add('d-none'); optAnual.classList.add('d-none');
@@ -7729,14 +7736,16 @@ async function cargarVistaCitaciones() {
 async function calcularCitacionesBajoRendimiento() {
     const cursoId = document.getElementById('selectCurso').value;
     const trimestre = parseInt(document.getElementById('selectTrimestre').value);
-    const parcial = document.getElementById('selectVista').value; // p1, p2, resumen_trimestre
+    const parcial = document.getElementById('selectParcialAsistencia').value; 
     const caja = document.getElementById('cajaBajoRendimiento');
-    caja.innerHTML = '<div class="spinner-border text-danger spinner-border-sm me-2"></div> Analizando notas...';
-
-    // Para citaciones automáticas limitaremos la búsqueda a Parcial 1 y Parcial 2 por simplicidad
-    let pNum = 1;
-    if (parcial === 'p2') pNum = 2;
-    else if (parcial === 'resumen_trimestre') pNum = 3;
+    
+    if (!cursoId || !trimestre || !parcial) {
+         caja.innerHTML = '<div class="alert alert-warning text-center fw-bold py-3"><i class="bi bi-exclamation-triangle me-2"></i>Seleccione Curso, Trimestre y Parcial arriba para autogenerar.</div>';
+         return;
+    }
+    
+    caja.innerHTML = '<div class="spinner-border text-danger spinner-border-sm me-2"></div> Analizando notas exactas...';
+    const pNum = parseInt(parcial);
 
     try {
         const { data: asigData } = await supabaseClient.from('curso_materia_docente').select('id, es_optativa').eq('curso_id', cursoId);
@@ -7745,21 +7754,61 @@ async function calcularCitacionesBajoRendimiento() {
         const { data: estData } = await supabaseClient.from('estudiantes').select('id, nombres, estado, modalidad').eq('curso_id', parseInt(cursoId)).order('nombres');
         const ests = procesarEstudiantesModalidad(estData || []);
 
-        let notasData = [];
-        if(pNum === 1 || pNum === 2) {
-            const { data } = await supabaseClient.from('notas_parcial_actividades').select('estudiante_id, nota_parcial').in('asignacion_id', asigOblig).eq('trimestre', trimestre).eq('parcial', pNum);
-            notasData = data || [];
-        } else {
-            const { data } = await supabaseClient.from('notas_trimestre').select('estudiante_id, examen').in('asignacion_id', asigOblig).eq('trimestre', trimestre);
-            notasData = (data || []).map(d => ({ estudiante_id: d.estudiante_id, nota_parcial: parseFloat(d.examen)||0 }));
+        if (asigOblig.length === 0 || ests.length === 0) {
+            caja.innerHTML = '<div class="text-warning fw-bold py-3">No hay estudiantes o materias obligatorias en este curso.</div>';
+            return;
+        }
+
+        let notasP = [];
+        let notasT = [];
+
+        // Evitar límite de Supabase iterando por materia obligatoria
+        for (let mId of asigOblig) {
+            if (pNum === 1 || pNum === 2) {
+                const { data } = await supabaseClient.from('notas_parcial_actividades').select('estudiante_id, nota_parcial').eq('asignacion_id', mId).eq('trimestre', trimestre).eq('parcial', pNum);
+                if (data) notasP.push({ asignacion_id: mId, data: data });
+            } else if (pNum === 3) {
+                const { data: dp } = await supabaseClient.from('notas_parcial_actividades').select('estudiante_id, parcial, nota_parcial').eq('asignacion_id', mId).eq('trimestre', trimestre);
+                if (dp) notasP.push({ asignacion_id: mId, data: dp });
+                
+                const { data: dt } = await supabaseClient.from('notas_trimestre').select('estudiante_id, examen').eq('asignacion_id', mId).eq('trimestre', trimestre);
+                if (dt) notasT.push({ asignacion_id: mId, data: dt });
+            }
         }
 
         const estudiantesBajos = [];
+
         ests.forEach(e => {
-            const notas = notasData.filter(n => n.estudiante_id === e.id);
-            if (notas.length > 0) {
-                const prom = notas.reduce((acc, curr) => acc + parseFloat(curr.nota_parcial), 0) / asigOblig.length;
-                if (prom < 7.0) estudiantesBajos.push({ id: e.id, nombres: e.nombres, promedio: prom.toFixed(2) });
+            let sumaPromedios = 0;
+            let contMaterias = 0;
+
+            asigOblig.forEach(mId => {
+                if (pNum === 1 || pNum === 2) {
+                    const matNotas = notasP.find(n => n.asignacion_id === mId)?.data || [];
+                    const n = matNotas.find(x => x.estudiante_id === e.id);
+                    if (n) {
+                        sumaPromedios += parseFloat(n.nota_parcial) || 0;
+                        contMaterias++;
+                    }
+                } else if (pNum === 3) {
+                    const matNotasP = notasP.find(n => n.asignacion_id === mId)?.data || [];
+                    const matNotasT = notasT.find(n => n.asignacion_id === mId)?.data || [];
+                    
+                    const p1 = parseFloat(matNotasP.find(x => x.estudiante_id === e.id && x.parcial === 1)?.nota_parcial || 0);
+                    const p2 = parseFloat(matNotasP.find(x => x.estudiante_id === e.id && x.parcial === 2)?.nota_parcial || 0);
+                    const ex = parseFloat(matNotasT.find(x => x.estudiante_id === e.id)?.examen || 0);
+                    
+                    const promTrimestral = (p1 * 0.35) + (p2 * 0.35) + (ex * 0.30);
+                    sumaPromedios += promTrimestral;
+                    contMaterias++;
+                }
+            });
+
+            if (contMaterias > 0) {
+                const promGeneral = sumaPromedios / contMaterias;
+                if (promGeneral < 7.0) {
+                    estudiantesBajos.push({ id: e.id, nombres: e.nombres, promedio: promGeneral.toFixed(2) });
+                }
             }
         });
 
