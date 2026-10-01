@@ -209,6 +209,7 @@
               <option value="auditoria" id="optModoAuditoria" class="d-none">🔍 Auditoría de Calificaciones</option>
               <!-- NUEVO MÓDULO -->
               <option value="incidencias" id="optModoIncidencias" class="text-danger fw-bold">⚠️ Registro de Incidencias</option>
+              <option value="citaciones" id="optModoCitaciones" class="d-none text-danger fw-bold">📨 Citaciones a Representantes</option>
               <!-- MÓDULO INTERCAMBIO -->
               <option value="intercambio" id="optModoIntercambio" class="d-none text-warning fw-bold">🔄 Intercambiar Calificaciones</option>
               <option value="mejores_estudiantes" id="optModoMejores" class="text-warning fw-bold">🏆 Mejores Estudiantes</option>
@@ -895,6 +896,8 @@
         if (puedeVerAsistencia) {
             document.getElementById('optModoAsistencia').classList.remove('d-none');
             document.getElementById('optModoComportamiento').classList.remove('d-none');
+            const optCit = document.getElementById('optModoCitaciones');
+            if (optCit) optCit.classList.remove('d-none');
         }
         if (esAdmin || esTutor) document.getElementById('optModoTutoria').classList.remove('d-none');
         
@@ -1058,7 +1061,7 @@
         const cursosDisponibles = esAdmin ? todosCursos : cursosTutor;
         selectCurso.innerHTML = '<option value="">Seleccione curso...</option>' + cursosDisponibles.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
       } 
-      else if (modo === 'asistencia' || modo === 'comportamiento' || modo === 'incidencias') {
+      else if (modo === 'asistencia' || modo === 'comportamiento' || modo === 'incidencias' || modo === 'citaciones') {
         boxCurso.classList.remove('d-none'); boxMateria.classList.add('d-none'); 
         boxVista.classList.add('d-none'); 
         boxParcialAsist.classList.remove('d-none'); 
@@ -1317,6 +1320,17 @@
         }
         controles.forEach(b => b.disabled = false);
         cargarVistaIncidencias(); 
+        return;
+      }
+
+      if (modo === 'citaciones') {
+        if (!cursoId) { 
+          controles.forEach(b => b.disabled = true);
+          document.getElementById('contenedorTabla').innerHTML = '<div class="py-4 text-muted text-center">Seleccione un Curso para gestionar citaciones.</div>'; 
+          return; 
+        }
+        controles.forEach(b => b.disabled = false);
+        cargarVistaCitaciones(); 
         return;
       }
 
@@ -7622,6 +7636,353 @@ async function exportarMejoresEstudiantesPDF() {
             document.activeElement.blur();
         }
     }, { passive: true });
+
+    // =========================================================================
+// MÓDULO: CITACIONES A REPRESENTANTES
+// =========================================================================
+let historialCitacionesGlobal = [];
+
+async function cargarVistaCitaciones() {
+    const reqId = ++currentViewRequestId;
+    const cursoId = document.getElementById('selectCurso').value;
+    const contenedor = document.getElementById('contenedorTabla');
+    
+    // Obtenemos la hora local actual para los inputs de fecha
+    const hoy = new Date();
+    const tzOffset = hoy.getTimezoneOffset() * 60000;
+    const localISOTime = (new Date(hoy - tzOffset)).toISOString().slice(0,16);
+
+    try {
+        const { data: estData } = await supabaseClient.from('estudiantes').select('id, nombres, modalidad, estado, representante_nombres, rep_apellidos, rep_nombres').eq('curso_id', parseInt(cursoId)).order('nombres');
+        if (reqId !== currentViewRequestId) return;
+        const listaEstudiantes = procesarEstudiantesModalidad(estData || []);
+
+        let html = `
+          <div class="p-2">
+            <ul class="nav nav-tabs mb-3" role="tablist">
+              <li class="nav-item"><button class="nav-link active fw-bold text-primary" data-bs-toggle="tab" data-bs-target="#cit-manual"><i class="bi bi-pencil-square me-1"></i>Manual</button></li>
+              <li class="nav-item"><button class="nav-link fw-bold text-danger" data-bs-toggle="tab" data-bs-target="#cit-auto" onclick="calcularCitacionesBajoRendimiento()"><i class="bi bi-robot me-1"></i>Autogenerar (Notas < 7)</button></li>
+              <li class="nav-item"><button class="nav-link fw-bold text-secondary" data-bs-toggle="tab" data-bs-target="#cit-historial" onclick="cargarHistorialCitaciones()"><i class="bi bi-clock-history me-1"></i>Historial</button></li>
+            </ul>
+
+            <div class="tab-content bg-white p-3 border border-top-0 rounded-bottom shadow-sm">
+              <!-- MANUAL -->
+              <div class="tab-pane fade show active" id="cit-manual">
+                <form onsubmit="guardarCitacion(event, 'manual')">
+                  <div class="row g-3">
+                    <div class="col-md-5">
+                      <label class="form-label fw-bold small text-primary">Seleccione Estudiante(s)</label>
+                      <div class="border rounded px-2 py-1 bg-light" style="max-height: 220px; overflow-y: auto;">
+                        ${listaEstudiantes.map(e => `
+                          <div class="form-check">
+                            <input class="form-check-input chk-cit-est" type="checkbox" value="${e.id}" id="cst${e.id}">
+                            <label class="form-check-label small" for="cst${e.id}">${e.nombres}</label>
+                          </div>
+                        `).join('')}
+                      </div>
+                    </div>
+                    <div class="col-md-7">
+                      <label class="form-label fw-bold small text-danger">Motivos de la Citación</label>
+                      <div class="row g-2 mb-3">
+                         <div class="col-6"><div class="form-check"><input class="form-check-input chk-motivo" type="checkbox" value="bajo rendimiento académico" id="m1"><label class="form-check-label small" for="m1">Bajo rendimiento académico</label></div></div>
+                         <div class="col-6"><div class="form-check"><input class="form-check-input chk-motivo" type="checkbox" value="inasistencia" id="m2"><label class="form-check-label small" for="m2">Inasistencia</label></div></div>
+                         <div class="col-12"><div class="form-check"><input class="form-check-input chk-motivo" type="checkbox" value="incumplimiento de obligaciones estudiantiles" id="m3"><label class="form-check-label small" for="m3">Incumplimiento de obligaciones estudiantiles</label></div></div>
+                         <div class="col-6"><div class="form-check"><input class="form-check-input chk-motivo" type="checkbox" value="temas disciplinarios" id="m4"><label class="form-check-label small" for="m4">Temas disciplinarios</label></div></div>
+                         <div class="col-12 mt-2">
+                            <input type="text" id="motivoOtro" class="form-control form-control-sm" placeholder="Otro motivo (Opcional)...">
+                         </div>
+                      </div>
+                      <label class="form-label fw-bold small">Fecha y Hora de la Cita</label>
+                      <input type="datetime-local" id="fechaCitaManual" class="form-control form-control-sm border-primary" value="${localISOTime}" required>
+                      <div class="text-end mt-4">
+                         <button type="submit" class="btn btn-primary fw-bold px-4" id="btnGuardarCitM"><i class="bi bi-send-check me-1"></i> Generar y Guardar</button>
+                      </div>
+                    </div>
+                  </div>
+                </form>
+              </div>
+
+              <!-- AUTOMÁTICO -->
+              <div class="tab-pane fade" id="cit-auto">
+                 <div class="alert alert-warning text-dark small fw-bold"><i class="bi bi-info-circle me-1"></i>Se calculará el promedio actual de los estudiantes usando los filtros de arriba (Trimestre y Parcial). Si el promedio general es menor a 7, aparecerán aquí para citarlos masivamente.</div>
+                 <div id="cajaBajoRendimiento" class="text-center py-4"><div class="spinner-border text-danger spinner-border-sm me-2"></div>Calculando...</div>
+              </div>
+
+              <!-- HISTORIAL -->
+              <div class="tab-pane fade" id="cit-historial">
+                 <div class="table-responsive" style="max-height: 50vh;">
+                    <table class="table table-hover table-sm align-middle" style="font-size: 0.75rem;">
+                       <thead class="table-dark sticky-top"><tr><th>N°</th><th>Fecha Creación</th><th>Estudiante</th><th>Fecha de la Cita</th><th>Motivos</th><th>Generado por</th><th>PDF</th></tr></thead>
+                       <tbody id="tablaHistorialCitaciones"><tr><td colspan="7" class="text-center">Cargando...</td></tr></tbody>
+                    </table>
+                 </div>
+              </div>
+            </div>
+          </div>
+        `;
+        contenedor.innerHTML = html;
+    } catch (err) {
+        if (reqId === currentViewRequestId) contenedor.innerHTML = `<div class="py-4 text-danger text-center fw-bold">Error: ${err.message}</div>`;
+    }
+}
+
+async function calcularCitacionesBajoRendimiento() {
+    const cursoId = document.getElementById('selectCurso').value;
+    const trimestre = parseInt(document.getElementById('selectTrimestre').value);
+    const parcial = document.getElementById('selectVista').value; // p1, p2, resumen_trimestre
+    const caja = document.getElementById('cajaBajoRendimiento');
+    caja.innerHTML = '<div class="spinner-border text-danger spinner-border-sm me-2"></div> Analizando notas...';
+
+    // Para citaciones automáticas limitaremos la búsqueda a Parcial 1 y Parcial 2 por simplicidad
+    let pNum = 1;
+    if (parcial === 'p2') pNum = 2;
+    else if (parcial === 'resumen_trimestre') pNum = 3;
+
+    try {
+        const { data: asigData } = await supabaseClient.from('curso_materia_docente').select('id, es_optativa').eq('curso_id', cursoId);
+        const asigOblig = (asigData || []).filter(a => !a.es_optativa).map(a => a.id);
+
+        const { data: estData } = await supabaseClient.from('estudiantes').select('id, nombres, estado, modalidad').eq('curso_id', parseInt(cursoId)).order('nombres');
+        const ests = procesarEstudiantesModalidad(estData || []);
+
+        let notasData = [];
+        if(pNum === 1 || pNum === 2) {
+            const { data } = await supabaseClient.from('notas_parcial_actividades').select('estudiante_id, nota_parcial').in('asignacion_id', asigOblig).eq('trimestre', trimestre).eq('parcial', pNum);
+            notasData = data || [];
+        } else {
+            const { data } = await supabaseClient.from('notas_trimestre').select('estudiante_id, examen').in('asignacion_id', asigOblig).eq('trimestre', trimestre);
+            notasData = (data || []).map(d => ({ estudiante_id: d.estudiante_id, nota_parcial: parseFloat(d.examen)||0 }));
+        }
+
+        const estudiantesBajos = [];
+        ests.forEach(e => {
+            const notas = notasData.filter(n => n.estudiante_id === e.id);
+            if (notas.length > 0) {
+                const prom = notas.reduce((acc, curr) => acc + parseFloat(curr.nota_parcial), 0) / asigOblig.length;
+                if (prom < 7.0) estudiantesBajos.push({ id: e.id, nombres: e.nombres, promedio: prom.toFixed(2) });
+            }
+        });
+
+        if (estudiantesBajos.length === 0) {
+            caja.innerHTML = '<div class="text-success fw-bold py-3"><i class="bi bi-emoji-smile fs-3 d-block mb-2"></i>Ningún estudiante tiene promedio general menor a 7 en este periodo.</div>';
+            return;
+        }
+
+        const hoy = new Date();
+        const tzOffset = hoy.getTimezoneOffset() * 60000;
+        const localTime = (new Date(hoy - tzOffset)).toISOString().slice(0,16);
+
+        caja.innerHTML = `
+            <form onsubmit="guardarCitacion(event, 'auto')">
+                <div class="row g-3 text-start">
+                    <div class="col-md-7">
+                        <label class="fw-bold small text-danger mb-2">Estudiantes identificados (< 7)</label>
+                        <div class="border rounded p-2 bg-white" style="max-height: 250px; overflow-y: auto;">
+                            ${estudiantesBajos.map(e => `
+                                <div class="form-check border-bottom py-1">
+                                    <input class="form-check-input chk-cit-auto" type="checkbox" value="${e.id}" id="cba${e.id}" checked>
+                                    <label class="form-check-label small d-flex justify-content-between w-100 pe-3" for="cba${e.id}">
+                                        <span>${e.nombres}</span> <span class="badge bg-danger rounded-pill">${e.promedio}</span>
+                                    </label>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    <div class="col-md-5">
+                        <label class="form-label fw-bold small">Establecer Fecha y Hora Cita (Masiva)</label>
+                        <input type="datetime-local" id="fechaCitaAuto" class="form-control mb-3 border-danger" value="${localTime}" required>
+                        <button type="submit" class="btn btn-danger w-100 fw-bold shadow-sm" id="btnGuardarCitA"><i class="bi bi-file-earmark-pdf-fill me-1"></i> Generar Citaciones</button>
+                    </div>
+                </div>
+            </form>
+        `;
+
+    } catch (err) { caja.innerHTML = `<div class="text-danger fw-bold">Error: ${err.message}</div>`; }
+}
+
+async function guardarCitacion(e, origen) {
+    e.preventDefault();
+    const cursoId = document.getElementById('selectCurso').value;
+    const btn = document.getElementById(origen === 'manual' ? 'btnGuardarCitM' : 'btnGuardarCitA');
+    btn.disabled = true; btn.innerHTML = 'Procesando...';
+
+    try {
+        let estIds = [];
+        let motivosTxt = "bajo rendimiento académico"; 
+        let fechaCita = "";
+
+        if (origen === 'manual') {
+            document.querySelectorAll('.chk-cit-est:checked').forEach(c => estIds.push(parseInt(c.value)));
+            fechaCita = document.getElementById('fechaCitaManual').value;
+            let mots = [];
+            document.querySelectorAll('.chk-motivo:checked').forEach(c => mots.push(c.value));
+            const motOtro = document.getElementById('motivoOtro').value.trim();
+            if(motOtro) mots.push(motOtro);
+            
+            if (mots.length === 0) throw new Error("Seleccione al menos un motivo.");
+            if (estIds.length === 0) throw new Error("Seleccione al menos un estudiante.");
+
+            // Formatear array de motivos para que suene natural (ej: "a, b y c")
+            if(mots.length === 1) motivosTxt = mots[0];
+            else motivosTxt = mots.slice(0, -1).join(', ') + ' e ' + mots[mots.length - 1]; // "e" inasistencia o "y"
+            motivosTxt = motivosTxt.replace(' e i', ' e i').replace(/ e ([^i])/g, ' y $1'); // Ajuste gramatical rápido
+        } else {
+            document.querySelectorAll('.chk-cit-auto:checked').forEach(c => estIds.push(parseInt(c.value)));
+            fechaCita = document.getElementById('fechaCitaAuto').value;
+            if (estIds.length === 0) throw new Error("No hay estudiantes seleccionados.");
+        }
+
+        const payload = [];
+        for (let eId of estIds) {
+            // Contar cuantas citaciones tiene este alumno para sacar el número
+            const { count } = await supabaseClient.from('citaciones').select('*', { count: 'exact', head: true }).eq('estudiante_id', eId);
+            const sigNum = (count || 0) + 1;
+            payload.push({
+                curso_id: cursoId, estudiante_id: eId, docente_id: usuarioActualPerfil.id,
+                motivos: motivosTxt, fecha_cita: fechaCita, numero_citacion: sigNum
+            });
+        }
+
+        const { error } = await supabaseClient.from('citaciones').insert(payload);
+        if (error) throw error;
+        
+        alert(`Se guardaron ${payload.length} citaciones correctamente.`);
+        // Limpiar formularios y recargar historial
+        document.querySelectorAll('.chk-cit-est, .chk-motivo, .chk-cit-auto').forEach(c => c.checked = false);
+        if (document.getElementById('motivoOtro')) document.getElementById('motivoOtro').value = '';
+        
+        const triggerEl = document.querySelector('button[data-bs-target="#cit-historial"]');
+        if(triggerEl) {
+            bootstrap.Tab.getOrCreateInstance(triggerEl).show();
+            cargarHistorialCitaciones();
+        }
+    } catch (err) { alert(err.message); } finally { 
+        btn.disabled = false; 
+        btn.innerHTML = origen === 'manual' ? '<i class="bi bi-send-check me-1"></i> Generar y Guardar' : '<i class="bi bi-file-earmark-pdf-fill me-1"></i> Generar Citaciones'; 
+    }
+}
+
+async function cargarHistorialCitaciones() {
+    const cursoId = document.getElementById('selectCurso').value;
+    const tbody = document.getElementById('tablaHistorialCitaciones');
+    tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4"><div class="spinner-border text-primary spinner-border-sm"></div> Buscando...</td></tr>';
+    
+    try {
+        const { data, error } = await supabaseClient.from('citaciones')
+            .select('*, estudiantes(nombres, representante_nombres, rep_nombres, rep_apellidos, cursos(nombre))')
+            .eq('curso_id', cursoId)
+            .order('fecha_creacion', { ascending: false });
+        if (error) throw error;
+
+        historialCitacionesGlobal = data || [];
+        
+        if (data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted fw-bold">No hay citaciones registradas en este curso.</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = data.map((cit, idx) => {
+            const fc = new Date(cit.fecha_creacion).toLocaleDateString('es-EC', {day:'2-digit', month:'2-digit', year:'numeric'});
+            const fh = new Date(cit.fecha_cita).toLocaleString('es-EC', {dateStyle:'short', timeStyle:'short'});
+            const docInfo = docentesList.find(d => d.id === cit.docente_id);
+            const docName = docInfo ? `${docInfo.nombres} ${docInfo.apellidos||''}` : 'Usuario';
+            
+            return `<tr>
+                <td class="fw-bold text-muted">#${cit.numero_citacion}</td>
+                <td>${fc}</td>
+                <td class="fw-bold text-primary">${cit.estudiantes?.nombres}</td>
+                <td><span class="badge bg-warning text-dark">${fh}</span></td>
+                <td style="max-width:200px; white-space:normal;" class="small fst-italic text-capitalize">${cit.motivos}</td>
+                <td><small>${docName}</small></td>
+                <td><button class="btn btn-sm btn-danger py-0 px-2 fw-bold" onclick="exportarCitacionPDF(${cit.id})"><i class="bi bi-file-pdf"></i></button></td>
+            </tr>`;
+        }).join('');
+    } catch(err) { tbody.innerHTML = `<tr><td colspan="7" class="text-danger fw-bold text-center">${err.message}</td></tr>`; }
+}
+
+// FORMATO IDÉNTICO A LA IMAGEN PROPORCIONADA
+async function exportarCitacionPDF(id) {
+    const cit = historialCitacionesGlobal.find(c => c.id === id);
+    if (!cit) return;
+
+    try {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ compress: true, orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+        const imgLogoIzq = await obtenerBase64DesdeUrl(infoInstitucion?.logo_izquierdo || infoInstitucion?.logo_institucion);
+        const imgLogoDer = await obtenerBase64DesdeUrl(infoInstitucion?.logo_derecho || infoInstitucion?.escudo_nacional);
+
+        // 1. Logos
+        if (imgLogoIzq) { try { doc.addImage(imgLogoIzq, 'PNG', 25, 12, 25, 25); } catch(e){} }
+        // Se añade un texto azul en cursiva debajo del logo izquierdo
+        doc.setFont('helvetica', 'italic'); doc.setFontSize(10); doc.setTextColor(30, 64, 175);
+        doc.text("Educación de calidad\npara la vida, en paz y\nen democracia", 37, 43, { align: 'center' });
+
+        // 2. Cabecera Central
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(14); doc.setTextColor(220, 38, 38);
+        doc.text('UNIDAD EDUCATIVA', 145, 18, { align: 'center' });
+        doc.setFontSize(18); doc.setTextColor(30, 64, 175);
+        doc.text('"VICENTE ROCAFUERTE"', 145, 26, { align: 'center' });
+
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(0, 0, 0);
+        doc.text(infoInstitucion?.direccion_1 || 'Cantón Pichincha - Manabí - Ecuador', 145, 32, { align: 'center' });
+        doc.text(`Correo: ${infoInstitucion?.correo || '13H03021@educacion.gob.ec'}`, 145, 37, { align: 'center' });
+        doc.text(`Código AMIE: ${infoInstitucion?.amie || '13H03021'}`, 145, 42, { align: 'center' });
+        doc.text(`Teléfono: ${infoInstitucion?.telefono_1 || infoInstitucion?.telefono || '05 2323232'}`, 145, 47, { align: 'center' });
+
+        // 3. Título de Citación y Fecha
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(15); doc.setTextColor(0,0,0);
+        doc.text(`C I T A C I Ó N # ${cit.numero_citacion}`, 85, 65, { align: 'center' });
+
+        const fechaCreacion = new Date(cit.fecha_creacion);
+        const opcionesMes = { month: 'long' };
+        const mesStr = fechaCreacion.toLocaleDateString('es-EC', opcionesMes);
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(12);
+        doc.text(`Pichincha, ${fechaCreacion.getDate()} de ${mesStr} del ${fechaCreacion.getFullYear()}`, 180, 75, { align: 'right' });
+
+        // 4. Saludo
+        let nomRep = cit.estudiantes?.representante_nombres || `${cit.estudiantes?.rep_nombres || ''} ${cit.estudiantes?.rep_apellidos || ''}`.trim() || 'Representante Legal';
+        doc.text(`Para: Sra/Sr. ${nomRep}`, 20, 88);
+
+        // 5. Cuerpo del documento (Formateo de Fecha Cita)
+        const fechaCitaObj = new Date(cit.fecha_cita);
+        const diaSemana = fechaCitaObj.toLocaleDateString('es-EC', { weekday: 'long' });
+        const mesCita = fechaCitaObj.toLocaleDateString('es-EC', { month: 'long' });
+        const strFechaCita = `${diaSemana} ${fechaCitaObj.getDate()} de ${mesCita} del ${fechaCitaObj.getFullYear()}`;
+        const strHoraCita = fechaCitaObj.toLocaleTimeString('es-EC', { hour: '2-digit', minute:'2-digit', hour12: true });
+
+        const nombreEst = cit.estudiantes?.nombres || '';
+        const cursoEst = cit.estudiantes?.cursos?.nombre || '';
+        
+        // Párrafo con texto enriquecido
+        const parrafo = `Se cita a la representante del estudiante **${nombreEst}** de ${cursoEst} de este Plantel Educativo, el día ${strFechaCita}, a las ${strHoraCita}. Para tratar asuntos referentes a ${cit.motivos} de su representada. Por favor presentarse en la fecha y hora indicada.`;
+
+        dibujarTextoEnriquecidoJustificado(doc, parrafo, 20, 105, 160, 7);
+
+        // 6. Despedida y Firma
+        doc.setFont('helvetica', 'normal');
+        doc.text('Atentamente,', 95, 145, { align: 'center' });
+
+        // Espacio para la firma y el sello centrado-derecha
+        doc.setLineWidth(0.3); doc.setDrawColor(0);
+        doc.line(65, 185, 125, 185);
+
+        const nombreRector = (infoInstitucion?.rector_nombre || 'Ing. Dídimo Saltos Sabando');
+        doc.text(nombreRector, 95, 191, { align: 'center' });
+        doc.setFont('helvetica', 'bold');
+        doc.text('Rector', 95, 197, { align: 'center' });
+
+        // Marca de sello simulada o logo si hay
+        if (imgLogoIzq) {
+            doc.saveGraphicsState();
+            doc.setGState(new doc.GState({ opacity: 0.7 })); 
+            try { doc.addImage(imgLogoIzq, 'PNG', 125, 160, 30, 30); } catch(e){}
+            doc.restoreGraphicsState();
+        }
+
+        doc.save(`Citacion_${cit.numero_citacion}_${nombreEst.replace(/\s+/g, '_')}.pdf`);
+    } catch(err) { alert('Error: ' + err.message); }
+}
 
     
   </script>
