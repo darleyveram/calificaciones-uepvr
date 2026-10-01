@@ -7310,15 +7310,22 @@ async function cargarVistaMejoresEstudiantes() {
 
         let notasP = [], notasT = [];
         
+        // CORRECCIÓN: Iteramos materia por materia para evitar el límite de 1000 registros de Supabase
         if (trimestreVal === 'anual') {
-             const resP = await supabaseClient.from('notas_parcial_actividades').select('asignacion_id, estudiante_id, trimestre, parcial, nota_parcial').in('asignacion_id', asigIdsAUsar);
-             const resT = await supabaseClient.from('notas_trimestre').select('asignacion_id, estudiante_id, trimestre, examen').in('asignacion_id', asigIdsAUsar);
-             notasP = resP.data || []; notasT = resT.data || [];
+             for (let mId of asigIdsAUsar) {
+                 const { data: dp } = await supabaseClient.from('notas_parcial_actividades').select('asignacion_id, estudiante_id, trimestre, parcial, nota_parcial').eq('asignacion_id', mId);
+                 if (dp) notasP.push(...dp);
+                 const { data: dt } = await supabaseClient.from('notas_trimestre').select('asignacion_id, estudiante_id, trimestre, examen').eq('asignacion_id', mId);
+                 if (dt) notasT.push(...dt);
+             }
         } else {
              const tNum = parseInt(trimestreVal);
-             const resP = await supabaseClient.from('notas_parcial_actividades').select('asignacion_id, estudiante_id, parcial, nota_parcial').in('asignacion_id', asigIdsAUsar).eq('trimestre', tNum);
-             const resT = await supabaseClient.from('notas_trimestre').select('asignacion_id, estudiante_id, examen').in('asignacion_id', asigIdsAUsar).eq('trimestre', tNum);
-             notasP = resP.data || []; notasT = resT.data || [];
+             for (let mId of asigIdsAUsar) {
+                 const { data: dp } = await supabaseClient.from('notas_parcial_actividades').select('asignacion_id, estudiante_id, parcial, nota_parcial').eq('asignacion_id', mId).eq('trimestre', tNum);
+                 if (dp) notasP.push(...dp);
+                 const { data: dt } = await supabaseClient.from('notas_trimestre').select('asignacion_id, estudiante_id, examen').eq('asignacion_id', mId).eq('trimestre', tNum);
+                 if (dt) notasT.push(...dt);
+             }
         }
         if (reqId !== currentViewRequestId) return;
 
