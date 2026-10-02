@@ -2617,7 +2617,7 @@
 // MÓDULO: GESTIÓN DE HORARIOS (INTERFAZ BASE)
 // =========================================================================
 
-function filtrarCursosHorario() {
+async function filtrarCursosHorario() {
     const jornada = document.getElementById('horarioJornada').value;
     const selectCurso = document.getElementById('horarioCurso');
     const contenedor = document.getElementById('contenedorHorario');
@@ -2629,19 +2629,33 @@ function filtrarCursosHorario() {
         return;
     }
 
-    // Filtrar cursos por nombre asumiendo que incluye la palabra BÁSICA o BACHILLERATO/CIENCIAS/TÉCNICO
-    // Puedes ajustar esta lógica si tienes una columna real de "jornada" en tu tabla de cursos
-    const cursosFiltrados = cursosList.filter(c => {
-        if (jornada === 'Matutina') return c.nombre.toUpperCase().includes('BÁSICA');
-        if (jornada === 'Vespertina') return !c.nombre.toUpperCase().includes('BÁSICA');
-        return true; 
-    });
-    
-    selectCurso.innerHTML = '<option value="">Seleccione el curso a editar...</option>' + 
-        cursosFiltrados.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
-    
-    selectCurso.disabled = false;
-    contenedor.classList.add('d-none'); // Mantenemos la tabla oculta hasta que escoja el curso
+    try {
+        // Consultamos la tabla de Juntas para ver si ya definieron la jornada de cada curso
+        const { data: configJuntas } = await supabaseClient.from('juntas_config').select('curso_id, seccion');
+        
+        const cursosFiltrados = cursosList.filter(c => {
+            // Buscamos si el curso ya tiene una sección definida en la BD de Juntas
+            const conf = (configJuntas || []).find(j => j.curso_id === c.id);
+            
+            if (conf && conf.seccion) {
+                // Si existe en la BD, la respetamos a rajatabla
+                return conf.seccion.toLowerCase() === jornada.toLowerCase();
+            } else {
+                // Si aún no han guardado la sección en la BD, usamos lógica por defecto:
+                // Asumimos que todo es Vespertina por defecto en el Vicente Rocafuerte
+                return jornada === 'Vespertina';
+            }
+        });
+        
+        selectCurso.innerHTML = '<option value="">Seleccione el curso a editar...</option>' + 
+            cursosFiltrados.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
+        
+        selectCurso.disabled = false;
+        contenedor.classList.add('d-none'); // Ocultar tabla hasta que seleccione el curso
+        
+    } catch (e) {
+        console.error("Error al filtrar cursos por jornada:", e);
+    }
 }
 
     let modalCeldaInst;
