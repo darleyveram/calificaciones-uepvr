@@ -565,14 +565,14 @@
               <div class="card border-0 shadow-sm h-100">
                 <div class="table-responsive">
                   <table class="table table-bordered table-sm text-center align-middle mb-0" id="tablaCuadriculaHorario" style="font-size: 0.78rem; table-layout: fixed;">
-                    <thead class="table-dark">
+                    <thead>
                       <tr>
-                        <th style="width: 110px;">HORA</th>
-                        <th>LUNES</th>
-                        <th>MARTES</th>
-                        <th>MIÉRCOLES</th>
-                        <th>JUEVES</th>
-                        <th>VIERNES</th>
+                        <th class="bg-secondary text-white border-secondary" style="width: 110px;">HORA</th>
+                        <th class="bg-secondary text-white border-secondary">LUNES</th>
+                        <th class="bg-secondary text-white border-secondary">MARTES</th>
+                        <th class="bg-secondary text-white border-secondary">MIÉRCOLES</th>
+                        <th class="bg-secondary text-white border-secondary">JUEVES</th>
+                        <th class="bg-secondary text-white border-secondary">VIERNES</th>
                       </tr>
                     </thead>
                     <tbody id="bodyCuadriculaHorario">
@@ -2686,13 +2686,14 @@ function dibujarEsqueletoTablaHorario() {
     const tbody = document.getElementById('bodyCuadriculaHorario');
     let html = '';
     
+    // Generamos 7 bloques según el formato oficial (6 horas de clase + 1 receso)
     for (let i = 1; i <= 7; i++) {
-        // Al agregar "onclick='abrirModalCelda(this)'", la celda se vuelve un botón invisible
+        // Se cambió <span>B-${i}</span> por <span>Hora${i}</span>
         html += `
             <tr>
                 <td class="bg-light fw-bold text-muted border-end-0">
                     <div class="d-flex flex-column align-items-center justify-content-center h-100">
-                        <span>B-${i}</span>
+                        <span>Hora ${i}</span>
                         <input type="time" class="form-control form-control-sm text-center border-0 bg-transparent p-0 mt-1 text-primary fw-bold" value="13:30" style="font-size:0.75rem; width: 60px;">
                         <input type="time" class="form-control form-control-sm text-center border-0 bg-transparent p-0 text-primary fw-bold" value="14:10" style="font-size:0.75rem; width: 60px;">
                     </div>
