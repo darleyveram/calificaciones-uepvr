@@ -523,7 +523,8 @@
               <h4 class="fw-bold mb-0">Gestión de Horarios de Clases</h4>
               <small class="text-muted">Configuración de bloques, recesos y asignación gráfica de materias.</small>
             </div>
-            <button class="btn btn-primary btn-sm px-4 fw-bold" id="btnGuardarHorario"><i class="bi bi-save me-1"></i> Guardar Horario</button>
+            <button class="btn btn-warning btn-sm px-3 fw-bold shadow-sm me-2" onclick="generarHorarioAutomatico()"><i class="bi bi-magic me-1"></i> Generar Automático</button>
+            <button class="btn btn-primary btn-sm px-4 fw-bold shadow-sm" id="btnGuardarHorario"><i class="bi bi-save me-1"></i> Guardar Horario</button>
           </div>
 
           <div class="card p-3 mb-3 bg-white shadow-sm border-0">
@@ -2682,11 +2683,11 @@ function dibujarEsqueletoTablaHorario() {
                         <input type="time" class="form-control form-control-sm text-center border-0 bg-transparent p-0 text-primary fw-bold" value="14:10" style="font-size:0.75rem; width: 60px;">
                     </div>
                 </td>
-                <td class="celda-horario p-1 bg-white" data-dia="1" data-bloque="${i}" onclick="abrirModalCelda(this)"></td>
-                <td class="celda-horario p-1 bg-white" data-dia="2" data-bloque="${i}" onclick="abrirModalCelda(this)"></td>
-                <td class="celda-horario p-1 bg-white" data-dia="3" data-bloque="${i}" onclick="abrirModalCelda(this)"></td>
-                <td class="celda-horario p-1 bg-white" data-dia="4" data-bloque="${i}" onclick="abrirModalCelda(this)"></td>
-                <td class="celda-horario p-1 bg-white" data-dia="5" data-bloque="${i}" onclick="abrirModalCelda(this)"></td>
+                <td class="celda-horario p-1 bg-white" data-dia="1" data-bloque="${i}" onclick="abrirModalCelda(this)" ondragover="permitirSoltar(event)" ondrop="soltarMateria(event, this)"></td>
+                <td class="celda-horario p-1 bg-white" data-dia="2" data-bloque="${i}" onclick="abrirModalCelda(this)" ondragover="permitirSoltar(event)" ondrop="soltarMateria(event, this)"></td>
+                <td class="celda-horario p-1 bg-white" data-dia="3" data-bloque="${i}" onclick="abrirModalCelda(this)" ondragover="permitirSoltar(event)" ondrop="soltarMateria(event, this)"></td>
+                <td class="celda-horario p-1 bg-white" data-dia="4" data-bloque="${i}" onclick="abrirModalCelda(this)" ondragover="permitirSoltar(event)" ondrop="soltarMateria(event, this)"></td>
+                <td class="celda-horario p-1 bg-white" data-dia="5" data-bloque="${i}" onclick="abrirModalCelda(this)" ondragover="permitirSoltar(event)" ondrop="soltarMateria(event, this)"></td>
             </tr>
         `;
     }
@@ -2737,7 +2738,7 @@ function renderizarPanelMaterias() {
         const horasTotales = m.horas_semanales || 0;
         
         return `
-        <div class="border rounded p-2 mb-2 bg-white shadow-sm" style="border-left: 5px solid ${m.color} !important;">
+        <div class="border rounded p-2 mb-2 bg-white shadow-sm" style="border-left: 5px solid ${m.color} !important; cursor: grab;" draggable="true" ondragstart="iniciarArrastre(event, ${m.id})">
             <div class="fw-bold text-dark" style="font-size: 0.75rem;">${m.materias?.nombre}</div>
             <div class="text-muted text-truncate" style="font-size: 0.65rem;" title="${docName}"><i class="bi bi-person-fill"></i> ${docName}</div>
             <div class="d-flex justify-content-between align-items-center mt-1 pt-1 border-top">
@@ -2880,16 +2881,13 @@ async function cargarHorarioGlobalMemoria() {
 }
 
 // Función validadora
-function validarChoqueHorario(asigId, dia, bloque) {
+function validarChoqueHorario(asigId, dia, bloque, silencioso = false) {
     const matInfo = materiasCursoHorarioGlobal.find(m => String(m.id) === String(asigId));
-    
-    // Si la materia no tiene docente asignado en la malla, no hay choque humano que validar
     if (!matInfo || !matInfo.docente_id) return false; 
 
     const docenteId = matInfo.docente_id;
     const cursoActual = document.getElementById('horarioCurso').value;
 
-    // Buscamos en la memoria global si este docente ya tiene clases el mismo Día y Bloque, pero en OTRO curso
     const choque = horarioGlobalMemoria.find(h => 
         String(h.dia_semana) === String(dia) && 
         String(h.hora_bloque) === String(bloque) && 
@@ -2898,17 +2896,51 @@ function validarChoqueHorario(asigId, dia, bloque) {
     );
 
     if (choque) {
-        // Encontramos un cruce, preparamos el mensaje
-        const docObj = docentesList.find(d => d.id === docenteId);
-        const nombreDocente = docObj ? `${docObj.nombres} ${docObj.apellidos || ''}`.trim() : 'El docente';
-        const nombreCursoChoque = choque.cursos?.nombre || 'otro curso';
-
-        alert(`⚠️ ALERTA DE CHOQUE DE HORARIO:\n\nEl docente ${nombreDocente} ya tiene asignada una clase en "${nombreCursoChoque}" el Día ${dia} - Bloque ${bloque}.\n\nNo se puede guardar esta asignación.`);
-        return true; // Retorna true porque SÍ hay choque
+        if (!silencioso) {
+            const docObj = docentesList.find(d => d.id === docenteId);
+            const nombreDocente = docObj ? `${docObj.nombres} ${docObj.apellidos || ''}`.trim() : 'El docente';
+            const nombreCursoChoque = choque.cursos?.nombre || 'otro curso';
+            alert(`⚠️ ALERTA DE CHOQUE:\nEl docente ${nombreDocente} ya tiene asignada una clase en "${nombreCursoChoque}" el Día ${dia} - Bloque ${bloque}.`);
+        }
+        return true; 
     }
-    
-    return false; // No hay choque
+    return false; 
 }
+
+    function iniciarArrastre(e, asigId) {
+    e.dataTransfer.setData('text/plain', asigId);
+}
+
+function permitirSoltar(e) {
+    e.preventDefault(); // Necesario para que el navegador permita soltar aquí
+}
+
+function soltarMateria(e, celda) {
+    e.preventDefault();
+    const asigId = e.dataTransfer.getData('text/plain');
+    if (!asigId) return;
+
+    const dia = celda.getAttribute('data-dia');
+    const bloque = celda.getAttribute('data-bloque');
+    const matInfo = materiasCursoHorarioGlobal.find(m => String(m.id) === String(asigId));
+    const limite = matInfo.horas_semanales || 0;
+
+    // Verificar Límite
+    let asignadas = document.querySelectorAll(`.celda-horario[data-asig-id="${asigId}"]`).length;
+    if (celda.getAttribute('data-asig-id') === asigId) asignadas--; // Ignorar si suelta en el mismo lugar
+    if (limite > 0 && asignadas >= limite) {
+        return alert(`⚠️ Límite de ${limite} horas alcanzado para ${matInfo.materias?.nombre}.`);
+    }
+
+    // Verificar Choques
+    if (validarChoqueHorario(asigId, dia, bloque)) return;
+
+    // Aplicar a la celda
+    asignarMateriaDirectaDOM(celda, asigId);
+    actualizarConteoHoras();
+}
+
+    
 
     // =========================================================================
 // MÓDULO: CONTROL DE LÍMITES DE HORAS (PASO 5)
