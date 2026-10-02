@@ -2605,19 +2605,26 @@
         }
     }
     // =========================================================================
-// MÓDULO: GESTIÓN DE HORARIOS (INTERFAZ BASE)
-// =========================================================================
-
-// =========================================================================
 // MÓDULO: HORARIO GENERAL (MASTER GRID)
 // =========================================================================
 const coloresMaterias = ['#e0f2fe', '#dcfce7', '#fef3c7', '#fce7f3', '#f3e8ff', '#ffedd5', '#e0e7ff', '#ccfbf1', '#fef08a', '#fee2e2'];
 let horarioGlobalMemoria = [];
 let materiasModalTemp = []; // Guarda las materias del curso que recibió el clic
 
+// ¡ESTAS DOS VARIABLES FALTABAN Y POR ESO NO SE ABRÍA LA VENTANA!
+let modalCeldaInst = null;
+let celdaActivaHorario = null;
+
 async function cargarHorarioGlobalMemoria() {
     try {
-        const { data } = await supabaseClient.from('horarios').select('*, curso_materia_docente(docente_id)');
+        // Ahora traemos también el nombre de la materia de la base de datos
+        const { data } = await supabaseClient.from('horarios').select(`
+            *,
+            curso_materia_docente (
+                docente_id,
+                materias (nombre)
+            )
+        `);
         horarioGlobalMemoria = data || [];
     } catch (err) { console.error(err); }
 }
@@ -2629,12 +2636,11 @@ async function cargarCuadriculaMaster() {
     if (!jornada) { contenedor.classList.add('d-none'); return; }
     contenedor.classList.remove('d-none');
     
-    // 1. Filtrar cursos por sección (Usamos la tabla juntas_config o lógica básica)
     const { data: configJuntas } = await supabaseClient.from('juntas_config').select('curso_id, seccion');
     const cursosSeccion = cursosList.filter(c => {
         const conf = (configJuntas || []).find(j => j.curso_id === c.id);
         if (conf && conf.seccion) return conf.seccion.toLowerCase() === jornada.toLowerCase();
-        return jornada === 'Vespertina'; // Por defecto en el Vicente Rocafuerte
+        return jornada === 'Vespertina'; 
     });
 
     if (cursosSeccion.length === 0) {
@@ -2646,15 +2652,13 @@ async function cargarCuadriculaMaster() {
     const tbody = document.getElementById('bodyCuadriculaHorario');
     let html = '';
     
-    // 2. Dibujar estructura (Agrupando por Hora y luego por Curso)
+    // Dibujar estructura vacía
     for (let i = 1; i <= 7; i++) {
         cursosSeccion.forEach((c, idx) => {
             html += `<tr>`;
-            // Celdas combinadas (rowspan) para el número de hora y el tiempo
             if (idx === 0) {
                 html += `<td rowspan="${cursosSeccion.length}" class="bg-secondary text-white fw-bold align-middle fs-5 border-secondary">${i}</td>`;
             }
-            // Nombre del curso (Fila individual)
             html += `<td class="fw-bold bg-light text-start ps-2 border-secondary" style="font-size:0.68rem; white-space:nowrap;">${c.nombre}</td>`;
             
             if (idx === 0) {
@@ -2663,7 +2667,6 @@ async function cargarCuadriculaMaster() {
                     <input type="time" class="form-control form-control-sm text-center border-secondary bg-white p-0 fw-bold text-primary" value="14:10" style="font-size:0.68rem;">
                 </td>`;
             }
-            // Celdas de los 5 días
             for (let d = 1; d <= 5; d++) {
                 html += `<td class="celda-horario p-1 bg-white border-secondary" data-curso-id="${c.id}" data-dia="${d}" data-bloque="${i}" onclick="abrirModalCeldaMaster(this)"></td>`;
             }
@@ -2671,6 +2674,34 @@ async function cargarCuadriculaMaster() {
         });
     }
     tbody.innerHTML = html;
+
+    // AHORA PINTAMOS LO QUE YA ESTÁ GUARDADO EN LA BASE DE DATOS
+    horarioGlobalMemoria.forEach(h => {
+        const celda = document.querySelector(`.celda-horario[data-curso-id="${h.curso_id}"][data-dia="${h.dia_semana}"][data-bloque="${h.hora_bloque}"]`);
+        if (celda) {
+            if (h.es_receso) {
+                celda.innerHTML = `<div class="fw-bold d-flex align-items-center justify-content-center h-100 text-dark" style="font-size: 0.70rem; letter-spacing: 1px;">RECESO</div>`;
+                celda.style.backgroundColor = h.color_fondo || '#fde047';
+                celda.setAttribute('data-tipo', 'receso');
+            } else if (h.curso_materia_docente) {
+                const matNombre = h.curso_materia_docente.materias?.nombre || 'Materia';
+                const docObj = docentesList.find(d => d.id === h.curso_materia_docente.docente_id);
+                const docName = docObj ? docObj.apellidos || docObj.nombres : 'S/N';
+                
+                celda.innerHTML = `
+                    <div class="d-flex flex-column h-100 justify-content-center">
+                        <span class="fw-bold text-dark text-wrap" style="font-size: 0.65rem; line-height: 1.1;">${matNombre}</span>
+                        <span class="text-muted mt-1 text-truncate w-100" style="font-size: 0.55rem;">${docName}</span>
+                    </div>
+                `;
+                // Asignamos un color por defecto al cargar de la base
+                celda.style.backgroundColor = '#e0f2fe'; 
+                celda.setAttribute('data-tipo', 'materia');
+                celda.setAttribute('data-asig-id', h.asignacion_id);
+                celda.setAttribute('data-docente-id', h.curso_materia_docente.docente_id);
+            }
+        }
+    });
 }
 
 // 3. Modal al hacer clic en una celda
@@ -2818,6 +2849,70 @@ async function generarHorarioAutomatico() {
     
     if (asignacionesTotales > 0) alert(`¡Generación Finalizada!\nSe asignaron ${asignacionesTotales} horas de clase automáticamente.\nVerifique los espacios en blanco restantes.`);
     else alert('No se encontraron más espacios compatibles o todas las materias ya cumplieron sus horas semanales límite.');
+}
+    // =========================================================================
+// FUNCIÓN PARA GUARDAR EL HORARIO MAESTRO EN SUPABASE
+// =========================================================================
+async function guardarHorarioMaster() {
+    const btn = document.getElementById('btnGuardarHorario');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Guardando...';
+
+    try {
+        const celdas = document.querySelectorAll('.celda-horario');
+        const cursosEnPantalla = new Set();
+        const payload = [];
+
+        // Extraemos la información de cada celda que tenga datos
+        celdas.forEach(c => {
+            const cursoId = parseInt(c.getAttribute('data-curso-id'));
+            cursosEnPantalla.add(cursoId);
+
+            const tipo = c.getAttribute('data-tipo');
+            if (tipo) {
+                const dia = parseInt(c.getAttribute('data-dia'));
+                const bloque = parseInt(c.getAttribute('data-bloque'));
+                
+                if (tipo === 'materia') {
+                    payload.push({
+                        curso_id: cursoId,
+                        dia_semana: dia,
+                        hora_bloque: bloque,
+                        asignacion_id: parseInt(c.getAttribute('data-asig-id')),
+                        es_receso: false
+                    });
+                } else if (tipo === 'receso') {
+                    payload.push({
+                        curso_id: cursoId,
+                        dia_semana: dia,
+                        hora_bloque: bloque,
+                        es_receso: true,
+                        color_fondo: c.style.backgroundColor
+                    });
+                }
+            }
+        });
+
+        // 1. Borramos el horario anterior SOLO de los cursos que estamos viendo en la pantalla actual
+        const arrayCursos = Array.from(cursosEnPantalla);
+        if (arrayCursos.length > 0) {
+            await supabaseClient.from('horarios').delete().in('curso_id', arrayCursos);
+        }
+
+        // 2. Insertamos el nuevo horario fresco
+        if (payload.length > 0) {
+            const { error } = await supabaseClient.from('horarios').insert(payload);
+            if (error) throw error;
+        }
+
+        alert('¡Horario guardado correctamente en la base de datos!');
+        await cargarHorarioGlobalMemoria(); // Refrescamos la memoria interna
+    } catch (err) {
+        alert('Error al guardar: ' + err.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-save me-1"></i> Guardar Horario';
+    }
 }
     
   </script>
