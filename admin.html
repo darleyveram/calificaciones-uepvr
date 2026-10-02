@@ -2774,16 +2774,32 @@ function aplicarMateriaACelda() {
     
     if (!asigId) return alert('Por favor, seleccione una materia.');
     
-    // --- INICIO PASO 4: INTERCEPTOR DE CHOQUES ---
     const dia = celdaActivaHorario.getAttribute('data-dia');
     const bloque = celdaActivaHorario.getAttribute('data-bloque');
     
-    if (validarChoqueHorario(asigId, dia, bloque)) {
-        return; // Si la función detecta choque y retorna 'true', DETIENE el proceso aquí mismo.
-    }
-    // --- FIN PASO 4 ---
+    // VALIDACIÓN 1: Choque de Horarios (Paso 4)
+    if (validarChoqueHorario(asigId, dia, bloque)) return; 
 
     const matInfo = materiasCursoHorarioGlobal.find(m => String(m.id) === String(asigId));
+    const limiteHoras = matInfo.horas_semanales || 0;
+
+    // VALIDACIÓN 2: Límite de Horas (Paso 5)
+    let asignadasActualmente = 0;
+    document.querySelectorAll('.celda-horario[data-tipo="materia"]').forEach(td => {
+        if (td.getAttribute('data-asig-id') === asigId) asignadasActualmente++;
+    });
+
+    // Si la celda que estamos editando YA tenía esta misma materia, restamos 1 para no contarla doble
+    if (celdaActivaHorario.getAttribute('data-tipo') === 'materia' && celdaActivaHorario.getAttribute('data-asig-id') === asigId) {
+        asignadasActualmente--;
+    }
+
+    // Si tiene un límite establecido (mayor a 0) y ya llegó al tope, bloqueamos
+    if (limiteHoras > 0 && asignadasActualmente >= limiteHoras) {
+        alert(`⚠️ LÍMITE ALCANZADO:\n\nYa has asignado las ${limiteHoras} horas semanales permitidas para ${matInfo.materias?.nombre}.\nNo puedes asignar más horas de esta materia en este curso.`);
+        return; 
+    }
+
     const docObj = docentesList.find(d => d.id === matInfo.docente_id);
     const docName = docObj ? docObj.apellidos || docObj.nombres : 'S/N';
     
@@ -2803,7 +2819,7 @@ function aplicarMateriaACelda() {
     celdaActivaHorario.removeAttribute('data-color');
     
     modalCeldaInst.hide();
-    // actualizarConteoLimitesHoras(); // Se activará en el Paso 5
+    actualizarConteoHoras(); // Disparamos el recálculo visual
 }
 
 function aplicarRecesoACelda() {
@@ -2811,7 +2827,6 @@ function aplicarRecesoACelda() {
     const texto = document.getElementById('celdaTextoReceso').value.trim() || 'RECESO';
     const color = document.getElementById('celdaColorReceso').value;
     
-    // Color de texto invertido dependiendo del fondo (claro/oscuro)
     celdaActivaHorario.innerHTML = `
         <div class="fw-bold d-flex align-items-center justify-content-center h-100 text-dark" style="font-size: 0.75rem; letter-spacing: 1px;">
             ${texto}
@@ -2825,7 +2840,7 @@ function aplicarRecesoACelda() {
     celdaActivaHorario.removeAttribute('data-asig-id');
     
     modalCeldaInst.hide();
-    // actualizarConteoLimitesHoras(); // Se activará en el Paso 5
+    actualizarConteoHoras(); // Recalculamos por si borró una materia al poner receso
 }
 
 function limpiarCelda() {
@@ -2836,8 +2851,9 @@ function limpiarCelda() {
     celdaActivaHorario.removeAttribute('data-asig-id');
     celdaActivaHorario.removeAttribute('data-texto');
     celdaActivaHorario.removeAttribute('data-color');
+    
     modalCeldaInst.hide();
-    // actualizarConteoLimitesHoras(); // Se activará en el Paso 5
+    actualizarConteoHoras(); // Recalculamos al vaciar
 }
     // =========================================================================
 // MÓDULO: CONTROL DE CHOQUES EN TIEMPO REAL (PASO 4)
@@ -2892,6 +2908,56 @@ function validarChoqueHorario(asigId, dia, bloque) {
     }
     
     return false; // No hay choque
+}
+
+    // =========================================================================
+// MÓDULO: CONTROL DE LÍMITES DE HORAS (PASO 5)
+// =========================================================================
+function actualizarConteoHoras() {
+    // 1. Reiniciamos los contadores a 0
+    const conteos = {};
+    materiasCursoHorarioGlobal.forEach(m => conteos[m.id] = 0);
+
+    // 2. Escaneamos la cuadrícula para contar cuántas veces se repite cada materia
+    document.querySelectorAll('.celda-horario[data-tipo="materia"]').forEach(td => {
+        const asigId = td.getAttribute('data-asig-id');
+        if (conteos[asigId] !== undefined) conteos[asigId]++;
+    });
+
+    // 3. Actualizamos la interfaz del panel lateral izquierdo
+    materiasCursoHorarioGlobal.forEach(m => {
+        const spanConteo = document.getElementById(`conteo-mat-${m.id}`);
+        const cardContenedor = spanConteo?.closest('.border.rounded'); 
+        
+        if (spanConteo && cardContenedor) {
+            const asigCount = conteos[m.id];
+            const limit = m.horas_semanales || 0;
+            
+            // Evaluamos para pintar
+            if (limit > 0 && asigCount === limit) {
+                // Completado -> Pinta de Verde pálido
+                cardContenedor.style.backgroundColor = '#d1e7dd'; 
+                cardContenedor.style.borderColor = '#198754';
+                cardContenedor.style.opacity = '0.75'; // Semi transparente para indicar "Listo"
+                spanConteo.parentElement.className = 'badge bg-success border shadow-sm';
+                spanConteo.parentElement.innerHTML = `<i class="bi bi-check-circle-fill me-1"></i><span id="conteo-mat-${m.id}">${asigCount}</span> / ${limit}`;
+            } else if (limit > 0 && asigCount > limit) {
+                // Excedido (por si ocurre un fallo o error manual) -> Pinta de Rojo
+                cardContenedor.style.backgroundColor = '#f8d7da';
+                cardContenedor.style.borderColor = '#dc3545';
+                cardContenedor.style.opacity = '1';
+                spanConteo.parentElement.className = 'badge bg-danger border shadow-sm';
+                spanConteo.parentElement.innerHTML = `<i class="bi bi-exclamation-triangle-fill me-1"></i><span id="conteo-mat-${m.id}">${asigCount}</span> / ${limit}`;
+            } else {
+                // Incompleto -> Estado normal
+                cardContenedor.style.backgroundColor = '#ffffff';
+                cardContenedor.style.borderColor = '#dee2e6'; // Gris por defecto de Bootstrap
+                cardContenedor.style.opacity = '1';
+                spanConteo.parentElement.className = 'badge bg-light text-dark border shadow-sm';
+                spanConteo.parentElement.innerHTML = `H: <span id="conteo-mat-${m.id}">${asigCount}</span> / ${limit}`;
+            }
+        }
+    });
 }
     
   </script>
