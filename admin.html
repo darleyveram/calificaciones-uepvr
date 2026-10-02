@@ -46,7 +46,7 @@
   <div class="container" id="seccionLogin" style="max-width: 420px; margin-top: 80px;">
     <div class="card shadow">
       <div class="card-header bg-dark text-white text-center py-3">
-        <h5 class="mb-0 fw-bold"><i class="bi bi-shield-lock me-2"></i>Acceso Administrativo V2.2</h5>
+        <h5 class="mb-0 fw-bold"><i class="bi bi-shield-lock me-2"></i>Acceso Administrativo V2.3</h5>
         <small class="text-secondary header-nombre-inst">UEP Vicente Rocafuerte</small>
       </div>
       <div class="card-body p-4">
@@ -2770,57 +2770,67 @@ function abrirModalCelda(tdElement) {
 }
 
 function aplicarMateriaACelda() {
-    if (!celdaActivaHorario) return;
     const asigId = document.getElementById('celdaSelectMateria').value;
-    
     if (!asigId) return alert('Por favor, seleccione una materia.');
-    
     const dia = celdaActivaHorario.getAttribute('data-dia');
     const bloque = celdaActivaHorario.getAttribute('data-bloque');
     
-    // VALIDACIÓN 1: Choque de Horarios (Paso 4)
     if (validarChoqueHorario(asigId, dia, bloque)) return; 
 
     const matInfo = materiasCursoHorarioGlobal.find(m => String(m.id) === String(asigId));
-    const limiteHoras = matInfo.horas_semanales || 0;
+    const limite = matInfo.horas_semanales || 0;
+    let asignadas = document.querySelectorAll(`.celda-horario[data-asig-id="${asigId}"]`).length;
+    if (celdaActivaHorario.getAttribute('data-asig-id') === asigId) asignadas--;
+    if (limite > 0 && asignadas >= limite) return alert(`⚠️ Límite de horas alcanzado para ${matInfo.materias?.nombre}.`);
 
-    // VALIDACIÓN 2: Límite de Horas (Paso 5)
-    let asignadasActualmente = 0;
-    document.querySelectorAll('.celda-horario[data-tipo="materia"]').forEach(td => {
-        if (td.getAttribute('data-asig-id') === asigId) asignadasActualmente++;
+    asignarMateriaDirectaDOM(celdaActivaHorario, asigId);
+    modalCeldaInst.hide();
+    actualizarConteoHoras();
+}
+
+    function generarHorarioAutomatico() {
+    if (!confirm('Esta acción llenará los espacios vacíos del horario de forma automática intentando no provocar choques.\n¿Desea continuar?')) return;
+    
+    let asignacionesExitosas = 0;
+
+    // Iteramos materia por materia
+    materiasCursoHorarioGlobal.forEach(mat => {
+        let limite = mat.horas_semanales || 0;
+        if (limite <= 0) return;
+
+        // Cuántas faltan por asignar
+        let asignadas = document.querySelectorAll(`.celda-horario[data-asig-id="${mat.id}"]`).length;
+        let faltantes = limite - asignadas;
+
+        // Intentar ubicar horas faltantes
+        for (let dia = 1; dia <= 5 && faltantes > 0; dia++) {
+            
+            // Regla de oro: No asignar más de 2 bloques de la misma materia en el mismo día para que no se sature
+            let horasHoy = document.querySelectorAll(`.celda-horario[data-dia="${dia}"][data-asig-id="${mat.id}"]`).length;
+
+            for (let bloque = 1; bloque <= 7 && faltantes > 0 && horasHoy < 2; bloque++) {
+                const celda = document.querySelector(`.celda-horario[data-dia="${dia}"][data-bloque="${bloque}"]`);
+                
+                // Si la celda está completamente vacía y no hay choque con otro curso
+                if (celda && !celda.getAttribute('data-tipo')) {
+                    if (!validarChoqueHorario(mat.id, dia, bloque, true)) { // true = silenciamos la alerta roja
+                        asignarMateriaDirectaDOM(celda, mat.id);
+                        faltantes--;
+                        horasHoy++;
+                        asignacionesExitosas++;
+                    }
+                }
+            }
+        }
     });
 
-    // Si la celda que estamos editando YA tenía esta misma materia, restamos 1 para no contarla doble
-    if (celdaActivaHorario.getAttribute('data-tipo') === 'materia' && celdaActivaHorario.getAttribute('data-asig-id') === asigId) {
-        asignadasActualmente--;
+    actualizarConteoHoras();
+    
+    if (asignacionesExitosas > 0) {
+        alert(`¡Completado! Se asignaron ${asignacionesExitosas} horas exitosamente.\n\nRevise el horario y realice los ajustes finales arrastrando las fichas manualmente.`);
+    } else {
+        alert('No se encontraron más espacios libres compatibles para las horas faltantes.');
     }
-
-    // Si tiene un límite establecido (mayor a 0) y ya llegó al tope, bloqueamos
-    if (limiteHoras > 0 && asignadasActualmente >= limiteHoras) {
-        alert(`⚠️ LÍMITE ALCANZADO:\n\nYa has asignado las ${limiteHoras} horas semanales permitidas para ${matInfo.materias?.nombre}.\nNo puedes asignar más horas de esta materia en este curso.`);
-        return; 
-    }
-
-    const docObj = docentesList.find(d => d.id === matInfo.docente_id);
-    const docName = docObj ? docObj.apellidos || docObj.nombres : 'S/N';
-    
-    // Transformación visual de la celda (DOM)
-    celdaActivaHorario.innerHTML = `
-        <div class="d-flex flex-column h-100 justify-content-center">
-            <span class="fw-bold text-dark text-wrap" style="font-size: 0.68rem; line-height: 1;">${matInfo.materias?.nombre}</span>
-            <span class="text-muted mt-1 text-truncate w-100" style="font-size: 0.55rem; line-height: 1;">${docName}</span>
-        </div>
-    `;
-    celdaActivaHorario.style.backgroundColor = matInfo.color;
-    
-    // Guardar "Metadatos" en la misma celda
-    celdaActivaHorario.setAttribute('data-tipo', 'materia');
-    celdaActivaHorario.setAttribute('data-asig-id', asigId);
-    celdaActivaHorario.removeAttribute('data-texto');
-    celdaActivaHorario.removeAttribute('data-color');
-    
-    modalCeldaInst.hide();
-    actualizarConteoHoras(); // Disparamos el recálculo visual
 }
 
 function aplicarRecesoACelda() {
@@ -2938,6 +2948,24 @@ function soltarMateria(e, celda) {
     // Aplicar a la celda
     asignarMateriaDirectaDOM(celda, asigId);
     actualizarConteoHoras();
+}
+
+    function asignarMateriaDirectaDOM(celda, asigId) {
+    const matInfo = materiasCursoHorarioGlobal.find(m => String(m.id) === String(asigId));
+    const docObj = docentesList.find(d => d.id === matInfo.docente_id);
+    const docName = docObj ? docObj.apellidos || docObj.nombres : 'S/N';
+    
+    celda.innerHTML = `
+        <div class="d-flex flex-column h-100 justify-content-center">
+            <span class="fw-bold text-dark text-wrap" style="font-size: 0.68rem; line-height: 1;">${matInfo.materias?.nombre}</span>
+            <span class="text-muted mt-1 text-truncate w-100" style="font-size: 0.55rem; line-height: 1;">${docName}</span>
+        </div>
+    `;
+    celda.style.backgroundColor = matInfo.color;
+    celda.setAttribute('data-tipo', 'materia');
+    celda.setAttribute('data-asig-id', asigId);
+    celda.removeAttribute('data-texto');
+    celda.removeAttribute('data-color');
 }
 
     
