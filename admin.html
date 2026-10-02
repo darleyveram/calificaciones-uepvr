@@ -2649,7 +2649,7 @@ let materiasCursoHorarioGlobal = [];
 // Paleta de colores pastel agradables para diferenciar materias
 const coloresMaterias = ['#e0f2fe', '#dcfce7', '#fef3c7', '#fce7f3', '#f3e8ff', '#ffedd5', '#e0e7ff', '#ccfbf1', '#fef08a', '#fee2e2'];
 
-function cargarCuadriculaHorario() {
+async function cargarCuadriculaHorario() {
     const cursoId = document.getElementById('horarioCurso').value;
     const contenedor = document.getElementById('contenedorHorario');
     
@@ -2660,7 +2660,11 @@ function cargarCuadriculaHorario() {
     
     contenedor.classList.remove('d-none');
     dibujarEsqueletoTablaHorario();
-    cargarMateriasParaHorario(cursoId); // Consulta la DB para llenar el panel lateral
+    
+    // NUEVO: Antes de dejar que el usuario edite, descargamos la matriz global de choques
+    await cargarHorarioGlobalMemoria(); 
+    
+    cargarMateriasParaHorario(cursoId);
 }
 
 function dibujarEsqueletoTablaHorario() {
@@ -2770,7 +2774,14 @@ function aplicarMateriaACelda() {
     
     if (!asigId) return alert('Por favor, seleccione una materia.');
     
-    // AQUÍ IRA EL CONTROL DE CHOQUE DE HORARIOS (Paso 4)
+    // --- INICIO PASO 4: INTERCEPTOR DE CHOQUES ---
+    const dia = celdaActivaHorario.getAttribute('data-dia');
+    const bloque = celdaActivaHorario.getAttribute('data-bloque');
+    
+    if (validarChoqueHorario(asigId, dia, bloque)) {
+        return; // Si la función detecta choque y retorna 'true', DETIENE el proceso aquí mismo.
+    }
+    // --- FIN PASO 4 ---
 
     const matInfo = materiasCursoHorarioGlobal.find(m => String(m.id) === String(asigId));
     const docObj = docentesList.find(d => d.id === matInfo.docente_id);
@@ -2785,7 +2796,7 @@ function aplicarMateriaACelda() {
     `;
     celdaActivaHorario.style.backgroundColor = matInfo.color;
     
-    // Guardar "Metadatos" en la misma celda para leerlos al guardar en la BD
+    // Guardar "Metadatos" en la misma celda
     celdaActivaHorario.setAttribute('data-tipo', 'materia');
     celdaActivaHorario.setAttribute('data-asig-id', asigId);
     celdaActivaHorario.removeAttribute('data-texto');
@@ -2827,6 +2838,60 @@ function limpiarCelda() {
     celdaActivaHorario.removeAttribute('data-color');
     modalCeldaInst.hide();
     // actualizarConteoLimitesHoras(); // Se activará en el Paso 5
+}
+    // =========================================================================
+// MÓDULO: CONTROL DE CHOQUES EN TIEMPO REAL (PASO 4)
+// =========================================================================
+let horarioGlobalMemoria = [];
+
+async function cargarHorarioGlobalMemoria() {
+    try {
+        // Descargamos todos los horarios actuales (excepto recesos) cruzando con el ID del docente y el nombre del curso
+        const { data, error } = await supabaseClient
+            .from('horarios')
+            .select(`
+                id, curso_id, dia_semana, hora_bloque, asignacion_id,
+                curso_materia_docente (docente_id),
+                cursos (nombre)
+            `)
+            .eq('es_receso', false);
+            
+        if (error) throw error;
+        horarioGlobalMemoria = data || [];
+    } catch (err) {
+        console.error("Error cargando memoria de horarios:", err);
+    }
+}
+
+// Función validadora
+function validarChoqueHorario(asigId, dia, bloque) {
+    const matInfo = materiasCursoHorarioGlobal.find(m => String(m.id) === String(asigId));
+    
+    // Si la materia no tiene docente asignado en la malla, no hay choque humano que validar
+    if (!matInfo || !matInfo.docente_id) return false; 
+
+    const docenteId = matInfo.docente_id;
+    const cursoActual = document.getElementById('horarioCurso').value;
+
+    // Buscamos en la memoria global si este docente ya tiene clases el mismo Día y Bloque, pero en OTRO curso
+    const choque = horarioGlobalMemoria.find(h => 
+        String(h.dia_semana) === String(dia) && 
+        String(h.hora_bloque) === String(bloque) && 
+        h.curso_materia_docente?.docente_id === docenteId &&
+        String(h.curso_id) !== String(cursoActual)
+    );
+
+    if (choque) {
+        // Encontramos un cruce, preparamos el mensaje
+        const docObj = docentesList.find(d => d.id === docenteId);
+        const nombreDocente = docObj ? `${docObj.nombres} ${docObj.apellidos || ''}`.trim() : 'El docente';
+        const nombreCursoChoque = choque.cursos?.nombre || 'otro curso';
+
+        alert(`⚠️ ALERTA DE CHOQUE DE HORARIO:\n\nEl docente ${nombreDocente} ya tiene asignada una clase en "${nombreCursoChoque}" el Día ${dia} - Bloque ${bloque}.\n\nNo se puede guardar esta asignación.`);
+        return true; // Retorna true porque SÍ hay choque
+    }
+    
+    return false; // No hay choque
 }
     
   </script>
