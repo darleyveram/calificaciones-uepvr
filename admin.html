@@ -25,6 +25,19 @@
       .table th, .table td { white-space: nowrap; } /* Evita que el texto se aplaste */
       .modal-dialog { margin: 0.5rem; }
     }
+
+    /* Estilos para las celdas del horario */
+    .celda-horario { 
+        cursor: pointer; 
+        transition: all 0.2s ease-in-out;
+        border: 1px solid #e2e8f0;
+        vertical-align: middle;
+        height: 65px;
+    }
+    .celda-horario:hover { 
+        background-color: #f1f5f9 !important; 
+        box-shadow: inset 0 0 0 2px #0d6efd; 
+    }
   </style>
 </head>
 <body>
@@ -92,6 +105,7 @@
             <li class="nav-item"><a href="#" class="nav-link" id="nav-calendario" onclick="mostrarModulo('calendario', this)"><i class="bi bi-calendar3 me-2"></i> Calendario Asistencia</a></li>
             <li class="nav-item"><a href="#" class="nav-link" id="nav-cursos" onclick="mostrarModulo('cursos', this)"><i class="bi bi-grid-3x3-gap me-2"></i> Cursos y Tutores</a></li>
             <li class="nav-item"><a href="#" class="nav-link" id="nav-asignaciones" onclick="mostrarModulo('asignaciones', this)"><i class="bi bi-journal-check me-2"></i> Asignar Materias</a></li>
+            <li class="nav-item"><a href="#" class="nav-link" id="nav-horarios" onclick="mostrarModulo('horarios', this)"><i class="bi bi-calendar3-range me-2"></i> Gestión de Horarios</a></li>
             <li class="nav-item"><a href="#" class="nav-link" id="nav-materias" onclick="mostrarModulo('materias', this)"><i class="bi bi-book me-2"></i> Materias</a></li>
             <li class="nav-item"><a href="#" class="nav-link" id="nav-estudiantes" onclick="mostrarModulo('estudiantes', this)"><i class="bi bi-people me-2"></i> Estudiantes</a></li>
             <li class="nav-item"><a href="#" class="nav-link" id="nav-docentes" onclick="mostrarModulo('docentes', this)"><i class="bi bi-person-badge me-2"></i> Nómina Personal</a></li>
@@ -501,6 +515,75 @@
             </div>
           </div>
         </div>
+
+        <!-- MODULO 10: HORARIOS -->
+        <div class="modulo d-none" id="mod-horarios">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+              <h4 class="fw-bold mb-0">Gestión de Horarios de Clases</h4>
+              <small class="text-muted">Configuración de bloques, recesos y asignación gráfica de materias.</small>
+            </div>
+            <button class="btn btn-primary btn-sm px-4 fw-bold" id="btnGuardarHorario"><i class="bi bi-save me-1"></i> Guardar Horario</button>
+          </div>
+
+          <div class="card p-3 mb-3 bg-white shadow-sm border-0">
+            <div class="row g-3 align-items-end">
+              <div class="col-md-4">
+                <label class="form-label fw-bold small text-primary">Sección / Jornada</label>
+                <select id="horarioJornada" class="form-select form-select-sm border-primary fw-bold" onchange="filtrarCursosHorario()">
+                  <option value="">Seleccione jornada...</option>
+                  <option value="Matutina">Matutina</option>
+                  <option value="Vespertina">Vespertina</option>
+                </select>
+              </div>
+              <div class="col-md-5">
+                <label class="form-label fw-bold small text-primary">Curso a Editar</label>
+                <select id="horarioCurso" class="form-select form-select-sm border-primary" onchange="cargarCuadriculaHorario()" disabled>
+                  <option value="">Seleccione un curso...</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div id="contenedorHorario" class="row g-3 d-none">
+            <!-- PANEL LATERAL: MATERIAS Y CONTEO -->
+            <div class="col-md-3">
+              <div class="card border-primary shadow-sm h-100">
+                <div class="card-header bg-primary text-white fw-bold py-2" style="font-size: 0.85rem;">
+                  <i class="bi bi-journal-bookmark-fill me-1"></i> Malla del Curso
+                </div>
+                <div class="card-body p-2" id="panelMateriasHorario" style="max-height: 65vh; overflow-y: auto;">
+                  <div class="text-center py-4 text-muted small">Seleccione un curso...</div>
+                  <!-- Las materias y sus barras de progreso se inyectarán aquí -->
+                </div>
+              </div>
+            </div>
+
+            <!-- CUADRÍCULA CENTRAL -->
+            <div class="col-md-9">
+              <div class="card border-0 shadow-sm h-100">
+                <div class="table-responsive">
+                  <table class="table table-bordered table-sm text-center align-middle mb-0" id="tablaCuadriculaHorario" style="font-size: 0.78rem; table-layout: fixed;">
+                    <thead class="table-dark">
+                      <tr>
+                        <th style="width: 110px;">HORA</th>
+                        <th>LUNES</th>
+                        <th>MARTES</th>
+                        <th>MIÉRCOLES</th>
+                        <th>JUEVES</th>
+                        <th>VIERNES</th>
+                      </tr>
+                    </thead>
+                    <tbody id="bodyCuadriculaHorario">
+                      <!-- El esqueleto de 7 filas se llenará con JS -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
           <!-- SECCIÓN: DATOS DE JUNTAS -->
 <!-- SECCIÓN: DATOS DE JUNTAS -->
 <div class="modulo d-none" id="mod-juntas">
@@ -1013,6 +1096,49 @@
     </div>
   </div>
 
+  <!-- Modal Asignar Celda de Horario -->
+  <div class="modal fade" id="modalAsignarCelda" tabindex="-1">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+      <div class="modal-content border-0 shadow">
+        <div class="modal-header bg-primary text-white py-2">
+          <h6 class="modal-title fw-bold"><i class="bi bi-calendar-plus me-2"></i>Configurar Celda</h6>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body bg-light p-3">
+          <!-- Pestañas para elegir entre Materia o Receso -->
+          <ul class="nav nav-pills nav-fill mb-3" id="pills-celda-tab" role="tablist">
+            <li class="nav-item">
+              <button class="nav-link active py-1 fw-bold border" data-bs-toggle="pill" data-bs-target="#tab-materia" type="button"><i class="bi bi-book me-1"></i>Materia</button>
+            </li>
+            <li class="nav-item">
+              <button class="nav-link py-1 fw-bold text-secondary border" data-bs-toggle="pill" data-bs-target="#tab-receso" type="button"><i class="bi bi-cup-hot me-1"></i>Receso</button>
+            </li>
+          </ul>
+
+          <div class="tab-content">
+            <!-- PESTAÑA MATERIA -->
+            <div class="tab-pane fade show active" id="tab-materia">
+              <label class="form-label fw-bold small text-primary">Seleccione la Asignatura:</label>
+              <select id="celdaSelectMateria" class="form-select form-select-sm border-primary mb-3 shadow-sm"></select>
+              <button class="btn btn-primary btn-sm w-100 fw-bold shadow-sm" onclick="aplicarMateriaACelda()">Insertar Materia</button>
+            </div>
+
+            <!-- PESTAÑA RECESO -->
+            <div class="tab-pane fade" id="tab-receso">
+              <label class="form-label fw-bold small text-secondary">Texto de Etiqueta:</label>
+              <input type="text" id="celdaTextoReceso" class="form-control form-control-sm border-secondary mb-2" value="RECESO" onkeyup="this.value = this.value.toUpperCase();">
+              <label class="form-label fw-bold small text-secondary">Color de Fondo:</label>
+              <input type="color" id="celdaColorReceso" class="form-control form-control-color w-100 mb-3" value="#fde047" title="Elegir color">
+              <button class="btn btn-warning btn-sm w-100 fw-bold shadow-sm" onclick="aplicarRecesoACelda()">Insertar Receso</button>
+            </div>
+          </div>
+          <hr class="my-3">
+          <button class="btn btn-outline-danger btn-sm w-100 fw-bold" onclick="limpiarCelda()"><i class="bi bi-eraser-fill me-1"></i>Limpiar Celda Vacia</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   
   <!-- Modal Configuraciones -->
   <div class="modal fade" id="modalConfiguraciones" tabindex="-1">
@@ -1195,6 +1321,11 @@
       if (id === 'actividades') cargarActividades();
       if (id === 'control') cargarControlAccesos();
       if (id === 'juntas') cargarTablaJuntas(); // <--- LÍNEA NUEVA
+      if (id === 'horarios') {
+          cargarDatosIniciales();
+          document.getElementById('horarioJornada').value = '';
+          filtrarCursosHorario();
+      }
     }
 
     async function verificarSesion() {
@@ -2481,6 +2612,223 @@
             alert("Error al guardar: " + err.message);
         }
     }
+    // =========================================================================
+// MÓDULO: GESTIÓN DE HORARIOS (INTERFAZ BASE)
+// =========================================================================
+
+function filtrarCursosHorario() {
+    const jornada = document.getElementById('horarioJornada').value;
+    const selectCurso = document.getElementById('horarioCurso');
+    const contenedor = document.getElementById('contenedorHorario');
+
+    if (!jornada) {
+        selectCurso.innerHTML = '<option value="">Seleccione un curso...</option>';
+        selectCurso.disabled = true;
+        contenedor.classList.add('d-none');
+        return;
+    }
+
+    // Filtrar cursos por nombre asumiendo que incluye la palabra BÁSICA o BACHILLERATO/CIENCIAS/TÉCNICO
+    // Puedes ajustar esta lógica si tienes una columna real de "jornada" en tu tabla de cursos
+    const cursosFiltrados = cursosList.filter(c => {
+        if (jornada === 'Matutina') return c.nombre.toUpperCase().includes('BÁSICA');
+        if (jornada === 'Vespertina') return !c.nombre.toUpperCase().includes('BÁSICA');
+        return true; 
+    });
+    
+    selectCurso.innerHTML = '<option value="">Seleccione el curso a editar...</option>' + 
+        cursosFiltrados.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
+    
+    selectCurso.disabled = false;
+    contenedor.classList.add('d-none'); // Mantenemos la tabla oculta hasta que escoja el curso
+}
+
+    let modalCeldaInst;
+let celdaActivaHorario = null;
+let materiasCursoHorarioGlobal = [];
+// Paleta de colores pastel agradables para diferenciar materias
+const coloresMaterias = ['#e0f2fe', '#dcfce7', '#fef3c7', '#fce7f3', '#f3e8ff', '#ffedd5', '#e0e7ff', '#ccfbf1', '#fef08a', '#fee2e2'];
+
+function cargarCuadriculaHorario() {
+    const cursoId = document.getElementById('horarioCurso').value;
+    const contenedor = document.getElementById('contenedorHorario');
+    
+    if (!cursoId) {
+        contenedor.classList.add('d-none');
+        return;
+    }
+    
+    contenedor.classList.remove('d-none');
+    dibujarEsqueletoTablaHorario();
+    cargarMateriasParaHorario(cursoId); // Consulta la DB para llenar el panel lateral
+}
+
+function dibujarEsqueletoTablaHorario() {
+    const tbody = document.getElementById('bodyCuadriculaHorario');
+    let html = '';
+    
+    for (let i = 1; i <= 7; i++) {
+        // Al agregar "onclick='abrirModalCelda(this)'", la celda se vuelve un botón invisible
+        html += `
+            <tr>
+                <td class="bg-light fw-bold text-muted border-end-0">
+                    <div class="d-flex flex-column align-items-center justify-content-center h-100">
+                        <span>B-${i}</span>
+                        <input type="time" class="form-control form-control-sm text-center border-0 bg-transparent p-0 mt-1 text-primary fw-bold" value="13:30" style="font-size:0.75rem; width: 60px;">
+                        <input type="time" class="form-control form-control-sm text-center border-0 bg-transparent p-0 text-primary fw-bold" value="14:10" style="font-size:0.75rem; width: 60px;">
+                    </div>
+                </td>
+                <td class="celda-horario p-1 bg-white" data-dia="1" data-bloque="${i}" onclick="abrirModalCelda(this)"></td>
+                <td class="celda-horario p-1 bg-white" data-dia="2" data-bloque="${i}" onclick="abrirModalCelda(this)"></td>
+                <td class="celda-horario p-1 bg-white" data-dia="3" data-bloque="${i}" onclick="abrirModalCelda(this)"></td>
+                <td class="celda-horario p-1 bg-white" data-dia="4" data-bloque="${i}" onclick="abrirModalCelda(this)"></td>
+                <td class="celda-horario p-1 bg-white" data-dia="5" data-bloque="${i}" onclick="abrirModalCelda(this)"></td>
+            </tr>
+        `;
+    }
+    tbody.innerHTML = html;
+}
+
+    async function cargarMateriasParaHorario(cursoId) {
+    const panel = document.getElementById('panelMateriasHorario');
+    panel.innerHTML = '<div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div></div>';
+    
+    try {
+        // Traemos las materias obligatorias y optativas de este curso específico
+        const { data, error } = await supabaseClient.from('curso_materia_docente')
+            .select('id, horas_semanales, docente_id, materias(nombre)')
+            .eq('curso_id', cursoId);
+        
+        if (error) throw error;
+        materiasCursoHorarioGlobal = data || [];
+        
+        // Auto-asignamos un color único a cada materia de este curso para el renderizado
+        materiasCursoHorarioGlobal.forEach((m, i) => {
+            m.color = coloresMaterias[i % coloresMaterias.length];
+        });
+        
+        renderizarPanelMaterias();
+        
+        // Llenamos el select del Modal
+        const select = document.getElementById('celdaSelectMateria');
+        select.innerHTML = '<option value="">Seleccione una materia...</option>' + 
+            materiasCursoHorarioGlobal.map(m => `<option value="${m.id}">${m.materias?.nombre}</option>`).join('');
+        
+    } catch(e) {
+        panel.innerHTML = `<div class="text-danger small fw-bold">Error: ${e.message}</div>`;
+    }
+}
+
+function renderizarPanelMaterias() {
+    const panel = document.getElementById('panelMateriasHorario');
+    if (materiasCursoHorarioGlobal.length === 0) {
+        panel.innerHTML = '<div class="text-muted small">No hay materias asignadas a este curso en el sistema.</div>';
+        return;
+    }
+    
+    panel.innerHTML = materiasCursoHorarioGlobal.map(m => {
+        const docObj = docentesList.find(d => d.id === m.docente_id);
+        const docName = docObj ? `${docObj.nombres} ${docObj.apellidos || ''}`.trim() : 'Sin asignar';
+        const horasAsignadas = 0; // Se actualizará visualmente en el Paso 5
+        const horasTotales = m.horas_semanales || 0;
+        
+        return `
+        <div class="border rounded p-2 mb-2 bg-white shadow-sm" style="border-left: 5px solid ${m.color} !important;">
+            <div class="fw-bold text-dark" style="font-size: 0.75rem;">${m.materias?.nombre}</div>
+            <div class="text-muted text-truncate" style="font-size: 0.65rem;" title="${docName}"><i class="bi bi-person-fill"></i> ${docName}</div>
+            <div class="d-flex justify-content-between align-items-center mt-1 pt-1 border-top">
+                <span class="text-muted" style="font-size: 0.65rem;">Progreso:</span>
+                <span class="badge bg-light text-dark border">H: <span id="conteo-mat-${m.id}" class="conteo-actual">0</span> / ${horasTotales}</span>
+            </div>
+        </div>
+        `;
+    }).join('');
+}
+
+function abrirModalCelda(tdElement) {
+    celdaActivaHorario = tdElement;
+    if (!modalCeldaInst) modalCeldaInst = new bootstrap.Modal(document.getElementById('modalAsignarCelda'));
+    
+    // Si la celda ya tiene asignada una materia, la pre-seleccionamos
+    if (tdElement.getAttribute('data-tipo') === 'materia') {
+        document.getElementById('celdaSelectMateria').value = tdElement.getAttribute('data-asig-id');
+        bootstrap.Tab.getOrCreateInstance(document.querySelector('#pills-celda-tab button[data-bs-target="#tab-materia"]')).show();
+    } else if (tdElement.getAttribute('data-tipo') === 'receso') {
+        document.getElementById('celdaTextoReceso').value = tdElement.getAttribute('data-texto') || 'RECESO';
+        document.getElementById('celdaColorReceso').value = tdElement.getAttribute('data-color') || '#fde047';
+        bootstrap.Tab.getOrCreateInstance(document.querySelector('#pills-celda-tab button[data-bs-target="#tab-receso"]')).show();
+    } else {
+        document.getElementById('celdaSelectMateria').value = '';
+    }
+
+    modalCeldaInst.show();
+}
+
+function aplicarMateriaACelda() {
+    if (!celdaActivaHorario) return;
+    const asigId = document.getElementById('celdaSelectMateria').value;
+    
+    if (!asigId) return alert('Por favor, seleccione una materia.');
+    
+    // AQUÍ IRA EL CONTROL DE CHOQUE DE HORARIOS (Paso 4)
+
+    const matInfo = materiasCursoHorarioGlobal.find(m => String(m.id) === String(asigId));
+    const docObj = docentesList.find(d => d.id === matInfo.docente_id);
+    const docName = docObj ? docObj.apellidos || docObj.nombres : 'S/N';
+    
+    // Transformación visual de la celda (DOM)
+    celdaActivaHorario.innerHTML = `
+        <div class="d-flex flex-column h-100 justify-content-center">
+            <span class="fw-bold text-dark text-wrap" style="font-size: 0.68rem; line-height: 1;">${matInfo.materias?.nombre}</span>
+            <span class="text-muted mt-1 text-truncate w-100" style="font-size: 0.55rem; line-height: 1;">${docName}</span>
+        </div>
+    `;
+    celdaActivaHorario.style.backgroundColor = matInfo.color;
+    
+    // Guardar "Metadatos" en la misma celda para leerlos al guardar en la BD
+    celdaActivaHorario.setAttribute('data-tipo', 'materia');
+    celdaActivaHorario.setAttribute('data-asig-id', asigId);
+    celdaActivaHorario.removeAttribute('data-texto');
+    celdaActivaHorario.removeAttribute('data-color');
+    
+    modalCeldaInst.hide();
+    // actualizarConteoLimitesHoras(); // Se activará en el Paso 5
+}
+
+function aplicarRecesoACelda() {
+    if (!celdaActivaHorario) return;
+    const texto = document.getElementById('celdaTextoReceso').value.trim() || 'RECESO';
+    const color = document.getElementById('celdaColorReceso').value;
+    
+    // Color de texto invertido dependiendo del fondo (claro/oscuro)
+    celdaActivaHorario.innerHTML = `
+        <div class="fw-bold d-flex align-items-center justify-content-center h-100 text-dark" style="font-size: 0.75rem; letter-spacing: 1px;">
+            ${texto}
+        </div>
+    `;
+    celdaActivaHorario.style.backgroundColor = color;
+    
+    celdaActivaHorario.setAttribute('data-tipo', 'receso');
+    celdaActivaHorario.setAttribute('data-texto', texto);
+    celdaActivaHorario.setAttribute('data-color', color);
+    celdaActivaHorario.removeAttribute('data-asig-id');
+    
+    modalCeldaInst.hide();
+    // actualizarConteoLimitesHoras(); // Se activará en el Paso 5
+}
+
+function limpiarCelda() {
+    if (!celdaActivaHorario) return;
+    celdaActivaHorario.innerHTML = '';
+    celdaActivaHorario.style.backgroundColor = '#ffffff';
+    celdaActivaHorario.removeAttribute('data-tipo');
+    celdaActivaHorario.removeAttribute('data-asig-id');
+    celdaActivaHorario.removeAttribute('data-texto');
+    celdaActivaHorario.removeAttribute('data-color');
+    modalCeldaInst.hide();
+    // actualizarConteoLimitesHoras(); // Se activará en el Paso 5
+}
+    
   </script>
 </body>
 </html>
