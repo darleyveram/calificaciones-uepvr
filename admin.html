@@ -1115,7 +1115,16 @@
             <!-- PESTAÑA MATERIA -->
             <div class="tab-pane fade show active" id="tab-materia">
               <label class="form-label fw-bold small text-primary">Seleccione la Asignatura:</label>
-              <select id="celdaSelectMateria" class="form-select form-select-sm border-primary mb-3 shadow-sm"></select>
+              <select id="celdaSelectMateria" class="form-select form-select-sm border-primary mb-2 shadow-sm"></select>
+              
+              <!-- NUEVO SELECTOR PARA MÚSICA / DIBUJO -->
+              <label class="form-label fw-bold small text-secondary mt-2">Detalle / Especialidad (Opcional):</label>
+              <select id="celdaDetalleMateria" class="form-select form-select-sm border-secondary mb-3 shadow-sm">
+                <option value="">-- Ninguno (Materia normal) --</option>
+                <option value="Música">🎵 Música</option>
+                <option value="Dibujo">🎨 Dibujo</option>
+              </select>
+
               <button class="btn btn-primary btn-sm w-100 fw-bold shadow-sm" onclick="aplicarMateriaACelda()">Insertar Materia</button>
             </div>
 
@@ -2765,12 +2774,13 @@ async function cargarCuadriculaMaster() {
                 celda.setAttribute('data-tipo', 'receso');
             } else if (h.curso_materia_docente) {
                 const matNombre = h.curso_materia_docente.materias?.nombre || 'Materia';
+                const detalleInfo = h.detalle_materia ? `<br><span class="text-primary fw-bolder">(${h.detalle_materia})</span>` : '';
                 const docObj = docentesList.find(d => d.id === h.curso_materia_docente.docente_id);
                 const docName = docObj ? docObj.apellidos || docObj.nombres : 'S/N';
                 
                 celda.innerHTML = `
                     <div class="d-flex flex-column h-100 justify-content-center">
-                        <span class="fw-bold text-dark text-wrap" style="font-size: 0.65rem; line-height: 1.1;">${matNombre}</span>
+                        <span class="fw-bold text-dark text-wrap" style="font-size: 0.65rem; line-height: 1.1;">${matNombre}${detalleInfo}</span>
                         <span class="text-muted mt-1 text-truncate w-100" style="font-size: 0.55rem;">${docName}</span>
                     </div>
                 `;
@@ -2778,6 +2788,7 @@ async function cargarCuadriculaMaster() {
                 celda.setAttribute('data-tipo', 'materia');
                 celda.setAttribute('data-asig-id', h.asignacion_id);
                 celda.setAttribute('data-docente-id', h.curso_materia_docente.docente_id);
+                if (h.detalle_materia) celda.setAttribute('data-detalle', h.detalle_materia);
             }
         }
     });
@@ -2800,9 +2811,11 @@ async function abrirModalCeldaMaster(celda) {
 
     if (celda.getAttribute('data-tipo') === 'materia') {
         select.value = celda.getAttribute('data-asig-id');
+        document.getElementById('celdaDetalleMateria').value = celda.getAttribute('data-detalle') || ''; // Carga Música/Dibujo
         bootstrap.Tab.getOrCreateInstance(document.querySelector('#pills-celda-tab button[data-bs-target="#tab-materia"]')).show();
     } else {
         select.value = '';
+        document.getElementById('celdaDetalleMateria').value = ''; // Limpia el combo
     }
     modalCeldaInst.show();
 }
@@ -2839,6 +2852,7 @@ function validarChoqueMaster(docenteId, dia, bloque, cursoIgnoradoId) {
 function aplicarMateriaACelda() {
     if (!celdaActivaHorario) return;
     const asigId = document.getElementById('celdaSelectMateria').value;
+    const detalle = document.getElementById('celdaDetalleMateria').value; // Captura Música/Dibujo
     if (!asigId) return alert('Seleccione una materia.');
     
     const dia = celdaActivaHorario.getAttribute('data-dia');
@@ -2846,7 +2860,6 @@ function aplicarMateriaACelda() {
     const cursoId = celdaActivaHorario.getAttribute('data-curso-id');
     const matInfo = materiasModalTemp.find(m => String(m.id) === String(asigId));
     
-    // Alerta específica y detallada
     const validacion = validarChoqueMaster(matInfo.docente_id, dia, bloque, cursoId);
     if (validacion.choque) {
         return alert(`⚠️ CHOQUE DE HORARIO:\nEl docente ya está dando la materia "${validacion.materia}" en el curso "${validacion.curso}" a esta misma hora.`);
@@ -2859,17 +2872,20 @@ function aplicarMateriaACelda() {
         return alert(`⚠️ LÍMITE ALCANZADO: Ya has asignado las ${limite} horas semanales.`);
     }
 
-    asignarMateriaDOM(celdaActivaHorario, matInfo);
+    asignarMateriaDOM(celdaActivaHorario, matInfo, detalle); // Pasa el detalle
     modalCeldaInst.hide();
 }
 
-function asignarMateriaDOM(celda, matInfo) {
+function asignarMateriaDOM(celda, matInfo, detalle = '') {
     const docObj = docentesList.find(d => d.id === matInfo.docente_id);
     const docName = docObj ? docObj.apellidos || docObj.nombres : 'S/N';
     
+    // Si hay detalle (Ej: Música), lo añade visualmente en azul abajo de la materia
+    const nombreVisual = detalle ? `${matInfo.materias?.nombre}<br><span class="text-primary fw-bolder">(${detalle})</span>` : matInfo.materias?.nombre;
+    
     celda.innerHTML = `
         <div class="d-flex flex-column h-100 justify-content-center">
-            <span class="fw-bold text-dark text-wrap" style="font-size: 0.65rem; line-height: 1.1;">${matInfo.materias?.nombre}</span>
+            <span class="fw-bold text-dark text-wrap" style="font-size: 0.65rem; line-height: 1.1;">${nombreVisual}</span>
             <span class="text-muted mt-1 text-truncate w-100" style="font-size: 0.55rem;">${docName}</span>
         </div>
     `;
@@ -2877,6 +2893,10 @@ function asignarMateriaDOM(celda, matInfo) {
     celda.setAttribute('data-tipo', 'materia');
     celda.setAttribute('data-asig-id', matInfo.id);
     celda.setAttribute('data-docente-id', matInfo.docente_id);
+    
+    // Guardar el metadato en la celda
+    if (detalle) celda.setAttribute('data-detalle', detalle);
+    else celda.removeAttribute('data-detalle');
 }
 
 function aplicarRecesoACelda() {
@@ -2982,6 +3002,7 @@ async function guardarHorarioMaster() {
                         hora_inicio: valIni,
                         hora_fin: valFin,
                         asignacion_id: parseInt(c.getAttribute('data-asig-id')),
+                        detalle_materia: c.getAttribute('data-detalle') || null, // <--- LÍNEA NUEVA
                         es_receso: false
                     });
                 } else if (tipo === 'receso') {
