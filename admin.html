@@ -578,6 +578,28 @@
               </table>
             </div>
           </div>
+
+          <!-- NUEVO: LEYENDAS INFORMATIVAS (Ocultas por defecto) -->
+          <div id="leyendasHorario" class="row g-3 d-none mt-1">
+            <div class="col-md-5">
+              <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-dark text-white fw-bold py-2 small"><i class="bi bi-palette-fill text-info me-2"></i>Color por Docente</div>
+                <div class="card-body p-2 d-flex flex-wrap gap-2" id="leyendaDocentes">
+                  <!-- Se llena con JS -->
+                </div>
+              </div>
+            </div>
+            <div class="col-md-7">
+              <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-dark text-white fw-bold py-2 small"><i class="bi bi-hourglass-split text-warning me-2"></i>Límite de Horas por Materia</div>
+                <div class="card-body p-2 d-flex flex-wrap gap-2" id="leyendaHoras">
+                  <!-- Se llena con JS -->
+                </div>
+              </div>
+            </div>
+          </div>
+
+          
         </div>
         
           <!-- SECCIÓN: DATOS DE JUNTAS -->
@@ -2665,24 +2687,68 @@
     // =========================================================================
 // MÓDULO: HORARIO GENERAL (MASTER GRID)
 // =========================================================================
-const coloresMaterias = ['#e0f2fe', '#dcfce7', '#fef3c7', '#fce7f3', '#f3e8ff', '#ffedd5', '#e0e7ff', '#ccfbf1', '#fef08a', '#fee2e2'];
+const coloresMaterias = ['#e0f2fe', '#dcfce7', '#fef3c7', '#fce7f3', '#f3e8ff', '#ffedd5', '#e0e7ff', '#ccfbf1', '#fef08a', '#fee2e2', '#cffafe', '#f3e8ff', '#ffecbc'];
 let horarioGlobalMemoria = [];
-let materiasModalTemp = []; // Guarda las materias del curso que recibió el clic
-
-// ¡ESTAS DOS VARIABLES FALTABAN Y POR ESO NO SE ABRÍA LA VENTANA!
+let materiasModalTemp = [];
+let mapaColoresDocentes = {}; // NUEVO: Diccionario para guardar el color fijo de cada profesor
 let modalCeldaInst = null;
 let celdaActivaHorario = null;
 
+    // NUEVO: Generador de colores fijos por docente
+function obtenerColorDocente(docenteId) {
+    if (!docenteId) return '#e2e8f0';
+    if (mapaColoresDocentes[docenteId]) return mapaColoresDocentes[docenteId];
+    const color = coloresMaterias[Object.keys(mapaColoresDocentes).length % coloresMaterias.length];
+    mapaColoresDocentes[docenteId] = color;
+    return color;
+}
+
+    // NUEVO: Función para actualizar los recuadros de la parte inferior
+async function actualizarLeyendas(cursoId) {
+    const contenedorLeyendas = document.getElementById('leyendasHorario');
+    if (!cursoId || cursoId === 'TODOS') {
+        contenedorLeyendas.classList.add('d-none');
+        return;
+    }
+    contenedorLeyendas.classList.remove('d-none');
+
+    const { data } = await supabaseClient.from('curso_materia_docente')
+        .select('id, horas_semanales, docente_id, materias(nombre)')
+        .eq('curso_id', cursoId);
+    
+    const materias = data || [];
+    let htmlDocentes = '';
+    let htmlHoras = '';
+    const docentesProcesados = new Set();
+
+    materias.forEach(mat => {
+        // Leyenda de Horas
+        const limite = mat.horas_semanales || 0;
+        let asignadas = document.querySelectorAll(`.celda-horario[data-curso-id="${cursoId}"][data-asig-id="${mat.id}"]`).length;
+        let badgeClass = asignadas === limite ? 'bg-success text-white' : (asignadas > limite ? 'bg-danger text-white' : 'bg-light text-dark');
+        htmlHoras += `<span class="badge ${badgeClass} border shadow-sm p-2" style="font-size: 0.70rem;">${mat.materias?.nombre}: ${asignadas}/${limite}H</span>`;
+
+        // Leyenda de Docentes
+        if (mat.docente_id && !docentesProcesados.has(mat.docente_id)) {
+            docentesProcesados.add(mat.docente_id);
+            const color = obtenerColorDocente(mat.docente_id);
+            const docObj = docentesList.find(d => d.id === mat.docente_id);
+            const docName = docObj ? `${docObj.nombres} ${docObj.apellidos || ''}`.trim() : 'S/N';
+            htmlDocentes += `<span class="badge text-dark border shadow-sm p-2" style="background-color: ${color}; font-size: 0.70rem;">${docName}</span>`;
+        }
+    });
+
+    document.getElementById('leyendaHoras').innerHTML = htmlHoras || '<span class="text-muted small">Sin materias.</span>';
+    document.getElementById('leyendaDocentes').innerHTML = htmlDocentes || '<span class="text-muted small">Sin docentes.</span>';
+}
+
+    
+
+    
+
 async function cargarHorarioGlobalMemoria() {
     try {
-        // Ahora traemos también el nombre de la materia de la base de datos
-        const { data } = await supabaseClient.from('horarios').select(`
-            *,
-            curso_materia_docente (
-                docente_id,
-                materias (nombre)
-            )
-        `);
+        const { data } = await supabaseClient.from('horarios').select(`*, curso_materia_docente(docente_id, materias(nombre))`);
         horarioGlobalMemoria = data || [];
     } catch (err) { console.error(err); }
 }
@@ -2695,7 +2761,7 @@ async function cargarHorarioGlobalMemoria() {
     if (!jornada) { 
         selectCurso.innerHTML = '<option value="">Primero seleccione jornada...</option>';
         selectCurso.disabled = true;
-        contenedor.classList.add('d-none'); 
+        contenedor.classList.add('d-none'); document.getElementById('leyendasHorario').classList.add('d-none');
         return; 
     }
 
@@ -2711,7 +2777,7 @@ async function cargarHorarioGlobalMemoria() {
     
     selectCurso.innerHTML = html;
     selectCurso.disabled = false;
-    cargarCuadriculaMaster(); // Dispara el dibujado de la tabla
+    cargarCuadriculaMaster(); 
 }
 
 async function cargarCuadriculaMaster() {
@@ -2722,7 +2788,6 @@ async function cargarCuadriculaMaster() {
     if (!jornada || !filtroCursoId) { contenedor.classList.add('d-none'); return; }
     contenedor.classList.remove('d-none');
 
-    // CONTROL DE BOTONES: Mostrar/Ocultar Generador y Limpiar
     const esVistaGeneral = (filtroCursoId === 'TODOS');
     document.getElementById('btnGenerarAuto').classList.toggle('d-none', esVistaGeneral);
     document.getElementById('btnBorrarHorario').classList.toggle('d-none', esVistaGeneral);
@@ -2734,9 +2799,7 @@ async function cargarCuadriculaMaster() {
         return jornada === 'Vespertina'; 
     });
 
-    if (!esVistaGeneral) {
-        cursosFiltrados = cursosFiltrados.filter(c => String(c.id) === String(filtroCursoId));
-    }
+    if (!esVistaGeneral) cursosFiltrados = cursosFiltrados.filter(c => String(c.id) === String(filtroCursoId));
 
     if (cursosFiltrados.length === 0) {
         document.getElementById('bodyCuadriculaHorario').innerHTML = '<tr><td colspan="8" class="text-danger fw-bold py-4">No hay cursos configurados.</td></tr>';
@@ -2750,9 +2813,7 @@ async function cargarCuadriculaMaster() {
     for (let i = 1; i <= 7; i++) {
         cursosFiltrados.forEach((c, idx) => {
             html += `<tr>`;
-            if (idx === 0) {
-                html += `<td rowspan="${cursosFiltrados.length}" class="bg-secondary text-white fw-bold align-middle fs-5 border-secondary">${i}</td>`;
-            }
+            if (idx === 0) html += `<td rowspan="${cursosFiltrados.length}" class="bg-secondary text-white fw-bold align-middle fs-5 border-secondary">${i}</td>`;
             html += `<td class="fw-bold bg-light text-start ps-2 border-secondary" style="font-size:0.68rem; white-space:nowrap;">${c.nombre}</td>`;
             
             html += `<td class="bg-light align-middle px-1 border-secondary">
@@ -2796,7 +2857,7 @@ async function cargarCuadriculaMaster() {
                         <span class="text-muted mt-1 text-truncate w-100" style="font-size: 0.55rem;">${docName}</span>
                     </div>
                 `;
-                celda.style.backgroundColor = '#e0f2fe'; 
+                celda.style.backgroundColor = obtenerColorDocente(h.curso_materia_docente.docente_id); 
                 celda.setAttribute('data-tipo', 'materia');
                 celda.setAttribute('data-asig-id', h.asignacion_id);
                 celda.setAttribute('data-docente-id', h.curso_materia_docente.docente_id);
@@ -2804,37 +2865,36 @@ async function cargarCuadriculaMaster() {
             }
         }
     });
+    
+    actualizarLeyendas(filtroCursoId); // Pinta las leyendas
 }
 
 // 3. Modal al hacer clic en una celda
 async function abrirModalCeldaMaster(celda) {
     celdaActivaHorario = celda;
     const cursoId = celda.getAttribute('data-curso-id');
-    
     if (!modalCeldaInst) modalCeldaInst = new bootstrap.Modal(document.getElementById('modalAsignarCelda'));
     
     const { data } = await supabaseClient.from('curso_materia_docente').select('id, horas_semanales, docente_id, materias(nombre)').eq('curso_id', cursoId);
     materiasModalTemp = data || [];
-    materiasModalTemp.forEach((m, i) => m.color = coloresMaterias[i % coloresMaterias.length]);
-
+    
     const select = document.getElementById('celdaSelectMateria');
     select.innerHTML = '<option value="">Seleccione una materia...</option>' + 
         materiasModalTemp.map(m => `<option value="${m.id}">${m.materias?.nombre} (Límite: ${m.horas_semanales || 0}H)</option>`).join('');
 
     if (celda.getAttribute('data-tipo') === 'materia') {
         select.value = celda.getAttribute('data-asig-id');
-        document.getElementById('celdaDetalleMateria').value = celda.getAttribute('data-detalle') || ''; // Carga Música/Dibujo
+        document.getElementById('celdaDetalleMateria').value = celda.getAttribute('data-detalle') || ''; 
         bootstrap.Tab.getOrCreateInstance(document.querySelector('#pills-celda-tab button[data-bs-target="#tab-materia"]')).show();
     } else {
         select.value = '';
-        document.getElementById('celdaDetalleMateria').value = ''; // Limpia el combo
+        document.getElementById('celdaDetalleMateria').value = '';
     }
     modalCeldaInst.show();
 }
 
 // 4. NUEVO: Validador con respuesta detallada (Qué curso y qué materia)
 function validarChoqueMaster(docenteId, dia, bloque, cursoIgnoradoId) {
-    // A) Buscar en DOM (Visual actual)
     const celdasDOM = document.querySelectorAll(`.celda-horario[data-dia="${dia}"][data-bloque="${bloque}"][data-tipo="materia"]`);
     for (let c of celdasDOM) {
         if (c.getAttribute('data-docente-id') == docenteId && c.getAttribute('data-curso-id') != cursoIgnoradoId) {
@@ -2845,7 +2905,6 @@ function validarChoqueMaster(docenteId, dia, bloque, cursoIgnoradoId) {
         }
     }
     
-    // B) Buscar en BD (Por si el curso chocado no está visible en el filtro actual)
     const choqueBD = horarioGlobalMemoria.find(h => 
         String(h.dia_semana) === String(dia) && 
         String(h.hora_bloque) === String(bloque) && 
@@ -2861,10 +2920,11 @@ function validarChoqueMaster(docenteId, dia, bloque, cursoIgnoradoId) {
     return { choque: false };
 }
 
+    
 function aplicarMateriaACelda() {
     if (!celdaActivaHorario) return;
     const asigId = document.getElementById('celdaSelectMateria').value;
-    const detalle = document.getElementById('celdaDetalleMateria').value; // Captura Música/Dibujo
+    const detalle = document.getElementById('celdaDetalleMateria').value; 
     if (!asigId) return alert('Seleccione una materia.');
     
     const dia = celdaActivaHorario.getAttribute('data-dia');
@@ -2873,26 +2933,21 @@ function aplicarMateriaACelda() {
     const matInfo = materiasModalTemp.find(m => String(m.id) === String(asigId));
     
     const validacion = validarChoqueMaster(matInfo.docente_id, dia, bloque, cursoId);
-    if (validacion.choque) {
-        return alert(`⚠️ CHOQUE DE HORARIO:\nEl docente ya está dando la materia "${validacion.materia}" en el curso "${validacion.curso}" a esta misma hora.`);
-    }
+    if (validacion.choque) return alert(`⚠️ CHOQUE DE HORARIO:\nEl docente ya está dando la materia "${validacion.materia}" en el curso "${validacion.curso}" a esta misma hora.`);
 
     const limite = matInfo.horas_semanales || 0;
     let asignadasDOM = document.querySelectorAll(`.celda-horario[data-curso-id="${cursoId}"][data-asig-id="${asigId}"]`).length;
     if (celdaActivaHorario.getAttribute('data-asig-id') === asigId) asignadasDOM--; 
-    if (limite > 0 && asignadasDOM >= limite) {
-        return alert(`⚠️ LÍMITE ALCANZADO: Ya has asignado las ${limite} horas semanales.`);
-    }
+    if (limite > 0 && asignadasDOM >= limite) return alert(`⚠️ LÍMITE ALCANZADO: Ya has asignado las ${limite} horas semanales.`);
 
-    asignarMateriaDOM(celdaActivaHorario, matInfo, detalle); // Pasa el detalle
+    asignarMateriaDOM(celdaActivaHorario, matInfo, detalle); 
     modalCeldaInst.hide();
+    actualizarLeyendas(cursoId);
 }
 
 function asignarMateriaDOM(celda, matInfo, detalle = '') {
     const docObj = docentesList.find(d => d.id === matInfo.docente_id);
     const docName = docObj ? docObj.apellidos || docObj.nombres : 'S/N';
-    
-    // Si hay detalle (Ej: Música), lo añade visualmente en azul abajo de la materia
     const nombreVisual = detalle ? `${matInfo.materias?.nombre}<br><span class="text-primary fw-bolder">(${detalle})</span>` : matInfo.materias?.nombre;
     
     celda.innerHTML = `
@@ -2901,12 +2956,10 @@ function asignarMateriaDOM(celda, matInfo, detalle = '') {
             <span class="text-muted mt-1 text-truncate w-100" style="font-size: 0.55rem;">${docName}</span>
         </div>
     `;
-    celda.style.backgroundColor = matInfo.color || '#e0f2fe';
+    celda.style.backgroundColor = obtenerColorDocente(matInfo.docente_id); // Color unificado por profesor
     celda.setAttribute('data-tipo', 'materia');
     celda.setAttribute('data-asig-id', matInfo.id);
     celda.setAttribute('data-docente-id', matInfo.docente_id);
-    
-    // Guardar el metadato en la celda
     if (detalle) celda.setAttribute('data-detalle', detalle);
     else celda.removeAttribute('data-detalle');
 }
@@ -2933,17 +2986,16 @@ function aplicarRecesoACelda() {
         c.removeAttribute('data-detalle');
     });
     modalCeldaInst.hide();
+    actualizarLeyendas(cursoId);
 }
 
 function limpiarCelda() {
     if (!celdaActivaHorario) return;
     const todaLaSemana = document.getElementById('celdaRecesoSemana').checked;
     const isRecesoTab = document.querySelector('#tab-receso').classList.contains('active');
-    
     const cursoId = celdaActivaHorario.getAttribute('data-curso-id');
     const bloque = celdaActivaHorario.getAttribute('data-bloque');
     
-    // Si marcó el check y le da a borrar desde la pestaña de recesos, borra toda la fila
     const celdas = (todaLaSemana && isRecesoTab) 
         ? document.querySelectorAll(`.celda-horario[data-curso-id="${cursoId}"][data-bloque="${bloque}"]`) 
         : [celdaActivaHorario];
@@ -2957,6 +3009,7 @@ function limpiarCelda() {
         c.removeAttribute('data-detalle');
     });
     modalCeldaInst.hide();
+    actualizarLeyendas(cursoId);
 }
 
     // NUEVA FUNCIÓN: Borrar todas las clases de un curso (manteniendo recesos y horas)
@@ -2974,51 +3027,53 @@ function borrarHorarioCurso() {
         c.removeAttribute('data-docente-id');
         c.removeAttribute('data-detalle');
     });
+    actualizarLeyendas(cursoId);
 }
+
+    
 
 // 5. GENERADOR AUTOMÁTICO MAGISTRAL
 async function generarHorarioAutomatico() {
-    if (!confirm('Esta acción intentará llenar automáticamente TODOS los espacios vacíos del horario en pantalla.\n\nAsegúrese de haber colocado la cantidad de "Horas Semanales" a cada materia en el módulo "Asignar Materias".\n\n¿Desea continuar?')) return;
+    const cursoId = document.getElementById('horarioFiltroCurso').value;
+    if (cursoId === 'TODOS' || cursoId === '') return alert("Por seguridad, seleccione un curso específico en la pestaña superior para auto-generar su horario.");
+
+    if (!confirm('El sistema insertará las horas de las materias intentando evitar cruces con otros cursos.\n¿Desea continuar?')) return;
     
     let asignacionesTotales = 0;
-    const celdasDOM = document.querySelectorAll('.celda-horario');
-    const cursosEnPantalla = new Set();
-    celdasDOM.forEach(c => cursosEnPantalla.add(c.getAttribute('data-curso-id')));
+    const { data } = await supabaseClient.from('curso_materia_docente').select('id, horas_semanales, docente_id, materias(nombre)').eq('curso_id', cursoId);
+    const materias = data || [];
     
-    for (let cursoId of cursosEnPantalla) {
-        const { data } = await supabaseClient.from('curso_materia_docente').select('id, horas_semanales, docente_id, materias(nombre)').eq('curso_id', cursoId);
-        const materias = data || [];
-        materias.forEach((m, i) => m.color = coloresMaterias[i % coloresMaterias.length]);
-        
-        materias.forEach(mat => {
-            let limite = mat.horas_semanales || 0;
-            if (limite <= 0) return; 
+    materias.forEach(mat => {
+        let limite = mat.horas_semanales || 0;
+        if (limite <= 0) return; 
 
-            let asignadas = document.querySelectorAll(`.celda-horario[data-curso-id="${cursoId}"][data-asig-id="${mat.id}"]`).length;
-            let faltantes = limite - asignadas;
+        let asignadas = document.querySelectorAll(`.celda-horario[data-curso-id="${cursoId}"][data-asig-id="${mat.id}"]`).length;
+        let faltantes = limite - asignadas;
 
-            for (let dia = 1; dia <= 5 && faltantes > 0; dia++) {
-                let horasMismoDia = document.querySelectorAll(`.celda-horario[data-curso-id="${cursoId}"][data-dia="${dia}"][data-asig-id="${mat.id}"]`).length;
+        for (let dia = 1; dia <= 5 && faltantes > 0; dia++) {
+            let horasMismoDia = document.querySelectorAll(`.celda-horario[data-curso-id="${cursoId}"][data-dia="${dia}"][data-asig-id="${mat.id}"]`).length;
+            
+            for (let bloque = 1; bloque <= 7 && faltantes > 0; bloque++) {
+                if (horasMismoDia >= 2) break; // Regla: Maximo 2 horas por día. Si se cumple, salta al siguiente día.
+
+                const celda = document.querySelector(`.celda-horario[data-curso-id="${cursoId}"][data-dia="${dia}"][data-bloque="${bloque}"]`);
                 
-                for (let bloque = 1; bloque <= 7 && faltantes > 0 && horasMismoDia < 2; bloque++) {
-                    const celda = document.querySelector(`.celda-horario[data-curso-id="${cursoId}"][data-dia="${dia}"][data-bloque="${bloque}"]`);
-                    
-                    if (celda && !celda.getAttribute('data-tipo')) {
-                        // Se actualizó para leer la propiedad .choque
-                        if (!validarChoqueMaster(mat.docente_id, dia, bloque, cursoId).choque) {
-                            asignarMateriaDOM(celda, mat);
-                            faltantes--;
-                            horasMismoDia++;
-                            asignacionesTotales++;
-                        }
+                if (celda && !celda.getAttribute('data-tipo')) {
+                    if (!validarChoqueMaster(mat.docente_id, dia, bloque, cursoId).choque) {
+                        asignarMateriaDOM(celda, mat);
+                        faltantes--;
+                        horasMismoDia++;
+                        asignacionesTotales++;
                     }
                 }
             }
-        });
-    }
+        }
+    });
     
-    if (asignacionesTotales > 0) alert(`¡Generación Finalizada!\nSe asignaron ${asignacionesTotales} horas de clase automáticamente.\nVerifique los espacios en blanco restantes.`);
-    else alert('No se encontraron más espacios compatibles o todas las materias ya cumplieron sus horas semanales límite.');
+    actualizarLeyendas(cursoId);
+    
+    if (asignacionesTotales > 0) alert(`¡Generación Finalizada!\nSe asignaron ${asignacionesTotales} horas de clase.\nRevise si quedaron horas pendientes en el bloque de leyendas inferior.`);
+    else alert('No se encontraron más espacios libres compatibles en los horarios del profesorado.');
 }
     // =========================================================================
 // FUNCIÓN PARA GUARDAR EL HORARIO MAESTRO EN SUPABASE
@@ -3029,45 +3084,52 @@ async function guardarHorarioMaster() {
     btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Guardando...';
 
     try {
+        const celdas = document.querySelectorAll('.celda-horario');
         const cursosEnPantalla = new Set();
-        document.querySelectorAll('.celda-horario').forEach(c => cursosEnPantalla.add(parseInt(c.getAttribute('data-curso-id'))));
-        
         const payload = [];
 
-        cursosEnPantalla.forEach(cursoId => {
-            for(let bloque = 1; bloque <= 7; bloque++) {
+        celdas.forEach(c => {
+            const cursoId = parseInt(c.getAttribute('data-curso-id'));
+            cursosEnPantalla.add(cursoId);
+
+            const tipo = c.getAttribute('data-tipo');
+            if (tipo) {
+                const dia = parseInt(c.getAttribute('data-dia'));
+                const bloque = parseInt(c.getAttribute('data-bloque'));
+                
                 const inIni = document.querySelector(`.in-hora-ini[data-curso-id="${cursoId}"][data-bloque="${bloque}"]`);
                 const inFin = document.querySelector(`.in-hora-fin[data-curso-id="${cursoId}"][data-bloque="${bloque}"]`);
                 const valIni = inIni ? inIni.value : null;
                 const valFin = inFin ? inFin.value : null;
                 
-                let bloqueTieneDatos = false;
-
-                for(let dia = 1; dia <= 5; dia++) {
-                    const c = document.querySelector(`.celda-horario[data-curso-id="${cursoId}"][data-bloque="${bloque}"][data-dia="${dia}"]`);
-                    if (!c) continue;
-                    
-                    const tipo = c.getAttribute('data-tipo');
-                    if (tipo === 'materia') {
-                        payload.push({ curso_id: cursoId, dia_semana: dia, hora_bloque: bloque, hora_inicio: valIni, hora_fin: valFin, asignacion_id: parseInt(c.getAttribute('data-asig-id')), detalle_materia: c.getAttribute('data-detalle') || null, es_receso: false });
-                        bloqueTieneDatos = true;
-                    } else if (tipo === 'receso') {
-                        payload.push({ curso_id: cursoId, dia_semana: dia, hora_bloque: bloque, hora_inicio: valIni, hora_fin: valFin, es_receso: true, color_fondo: c.style.backgroundColor });
-                        bloqueTieneDatos = true;
-                    }
+                if (tipo === 'materia') {
+                    payload.push({ curso_id: cursoId, dia_semana: dia, hora_bloque: bloque, hora_inicio: valIni, hora_fin: valFin, asignacion_id: parseInt(c.getAttribute('data-asig-id')), detalle_materia: c.getAttribute('data-detalle') || null, es_receso: false });
+                } else if (tipo === 'receso') {
+                    payload.push({ curso_id: cursoId, dia_semana: dia, hora_bloque: bloque, hora_inicio: valIni, hora_fin: valFin, es_receso: true, color_fondo: c.style.backgroundColor });
                 }
+            }
+        });
 
-                // ESTRATEGIA FANTASMA: Si borraron todas las celdas pero configuraron los tiempos, guardamos un registro silencioso para no perder la hora.
-                if (!bloqueTieneDatos && valIni && valFin) {
-                    payload.push({ curso_id: cursoId, dia_semana: 1, hora_bloque: bloque, hora_inicio: valIni, hora_fin: valFin, es_receso: false, asignacion_id: null });
+        // Insertar los bloques de tiempo vacíos para que no se borren las horas
+        cursosEnPantalla.forEach(cursoId => {
+            for(let bloque = 1; bloque <= 7; bloque++) {
+                const inIni = document.querySelector(`.in-hora-ini[data-curso-id="${cursoId}"][data-bloque="${bloque}"]`);
+                const inFin = document.querySelector(`.in-hora-fin[data-curso-id="${cursoId}"][data-bloque="${bloque}"]`);
+                if (inIni && inFin && inIni.value && inFin.value) {
+                    let bloqueVacio = true;
+                    for(let dia = 1; dia <= 5; dia++) {
+                        const c = document.querySelector(`.celda-horario[data-curso-id="${cursoId}"][data-bloque="${bloque}"][data-dia="${dia}"]`);
+                        if (c && c.getAttribute('data-tipo')) bloqueVacio = false;
+                    }
+                    if (bloqueVacio) {
+                        payload.push({ curso_id: cursoId, dia_semana: 1, hora_bloque: bloque, hora_inicio: inIni.value, hora_fin: inFin.value, es_receso: false, asignacion_id: null });
+                    }
                 }
             }
         });
 
         const arrayCursos = Array.from(cursosEnPantalla);
-        if (arrayCursos.length > 0) {
-            await supabaseClient.from('horarios').delete().in('curso_id', arrayCursos);
-        }
+        if (arrayCursos.length > 0) await supabaseClient.from('horarios').delete().in('curso_id', arrayCursos);
 
         if (payload.length > 0) {
             const { error } = await supabaseClient.from('horarios').insert(payload);
@@ -3085,43 +3147,32 @@ async function guardarHorarioMaster() {
 }
 
     let modalCopiarTiemposInst = null;
-
 function abrirModalCopiarTiempos() {
     if (!modalCopiarTiemposInst) modalCopiarTiemposInst = new bootstrap.Modal(document.getElementById('modalCopiarTiempos'));
-    
     const jornada = document.getElementById('horarioJornada').value;
     if (!jornada) return alert("Primero seleccione la Sección/Jornada.");
 
-    // Llenar los combos con los cursos disponibles en el filtro
-    const selectOptions = Array.from(document.getElementById('horarioFiltroCurso').options)
-                               .filter(o => o.value !== '' && o.value !== 'TODOS')
-                               .map(o => `<option value="${o.value}">${o.text}</option>`)
-                               .join('');
-                               
+    const selectOptions = Array.from(document.getElementById('horarioFiltroCurso').options).filter(o => o.value !== '' && o.value !== 'TODOS').map(o => `<option value="${o.value}">${o.text}</option>`).join('');
     document.getElementById('copiarDesdeCurso').innerHTML = selectOptions;
     document.getElementById('copiarHaciaCurso').innerHTML = selectOptions;
 
-    // Si está en un curso específico, usarlo como origen por defecto
     const filtroActivo = document.getElementById('horarioFiltroCurso').value;
-    if (filtroActivo !== 'TODOS' && filtroActivo !== '') {
-        document.getElementById('copiarDesdeCurso').value = filtroActivo;
-    }
+    if (filtroActivo !== 'TODOS' && filtroActivo !== '') document.getElementById('copiarDesdeCurso').value = filtroActivo;
 
     modalCopiarTiemposInst.show();
 }
 
+    
 function ejecutarCopiaTiempos() {
     const origenId = document.getElementById('copiarDesdeCurso').value;
     const destinoId = document.getElementById('copiarHaciaCurso').value;
     if (origenId === destinoId) return alert("Seleccione cursos diferentes.");
 
-    // Buscamos los tiempos del curso origen: Primero en lo visual, si no está visible, en la base de datos
     let tiempos = {};
     for(let i=1; i<=7; i++) {
         const inIni = document.querySelector(`.in-hora-ini[data-curso-id="${origenId}"][data-bloque="${i}"]`);
-        if (inIni) {
-            tiempos[i] = { ini: inIni.value, fin: document.querySelector(`.in-hora-fin[data-curso-id="${origenId}"][data-bloque="${i}"]`).value };
-        } else {
+        if (inIni) tiempos[i] = { ini: inIni.value, fin: document.querySelector(`.in-hora-fin[data-curso-id="${origenId}"][data-bloque="${i}"]`).value };
+        else {
             const bdRow = horarioGlobalMemoria.find(h => String(h.curso_id) === String(origenId) && String(h.hora_bloque) === String(i));
             if (bdRow && bdRow.hora_inicio) tiempos[i] = { ini: bdRow.hora_inicio, fin: bdRow.hora_fin };
         }
@@ -3137,10 +3188,9 @@ function ejecutarCopiaTiempos() {
         }
     }
 
-    if (aplicados === 0) {
-        alert("El curso destino no está en pantalla. Asegúrese de visualizar el curso destino para aplicarle los cambios.");
-    } else {
-        alert(`¡Tiempos copiados a ${aplicados} bloques en pantalla!\n\nNo olvide presionar el botón azul "Guardar Horario" para que los cambios sean permanentes.`);
+    if (aplicados === 0) alert("El curso destino no está en pantalla.");
+    else {
+        alert(`¡Tiempos copiados a ${aplicados} bloques en pantalla!\n\nNo olvide presionar el botón azul "Guardar Horario".`);
         modalCopiarTiemposInst.hide();
     }
 }
