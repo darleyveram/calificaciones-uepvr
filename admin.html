@@ -1635,7 +1635,7 @@
 
       const { data } = await supabaseClient
         .from('curso_materia_docente')
-        .select(`id, curso_id, materia_id, docente_id, docente_id_2, docente_id_3, es_optativa, materias(id, nombre)`)
+        .select(`id, curso_id, materia_id, docente_id, docente_id_2, docente_id_3, es_optativa, horas_semanales, materias(id, nombre)`)
         .eq('curso_id', parseInt(cursoId));
 
       // --- INICIO: CÁLCULO DE MATERIAS ---
@@ -1679,7 +1679,7 @@
             <td>${esOpt ? '<span class="badge bg-warning text-dark">Optativa</span>' : '<span class="badge bg-success">Obligatoria</span>'}</td>
             <td><small>${strDocentes}</small></td>
             <td>
-              <button class="btn btn-sm btn-outline-primary py-0 me-1" onclick="editarAsignacionModal(${a.id}, ${a.materia_id}, '${a.docente_id || ''}', '${a.docente_id_2 || ''}', '${a.docente_id_3 || ''}', ${esOpt})">Editar</button>
+              <button class="btn btn-sm btn-outline-primary py-0 me-1" onclick="editarAsignacionModal(${a.id}, ${a.materia_id}, '${a.docente_id || ''}', '${a.docente_id_2 || ''}', '${a.docente_id_3 || ''}', ${esOpt}, ${a.horas_semanales || 0})">Editar</button>
               <button class="btn btn-sm btn-outline-danger py-0" onclick="eliminarRegistro('curso_materia_docente', ${a.id})">Quitar</button>
             </td>
           </tr>
@@ -1709,7 +1709,7 @@
       modalAsignarInst.show();
     }
 
-    function editarAsignacionModal(asigId, materiaId, doc1, doc2, doc3, esOpt) {
+    function editarAsignacionModal(asigId, materiaId, doc1, doc2, doc3, esOpt, horasSemanales) {
       const cursoId = document.getElementById('selectCursoAsignar').value;
       document.getElementById('asigCursoId').value = cursoId;
       document.getElementById('modalAsigTitulo').innerText = `Editar Asignación`;
@@ -1726,7 +1726,12 @@
       document.getElementById('asigSelectDocente2').value = doc2;
       document.getElementById('asigSelectDocente3').innerHTML = '<option value="">Ninguno</option>' + opcionesDocentes;
       document.getElementById('asigSelectDocente3').value = doc3;
+      
       document.getElementById('asigEsOptativa').checked = esOpt;
+      
+      // NUEVO: Poner las horas correctas en la casilla
+      document.getElementById('asigHorasSemanales').value = horasSemanales;
+
       modalAsignarInst.show();
     }
 
