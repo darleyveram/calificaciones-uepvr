@@ -46,7 +46,7 @@
   <div class="container" id="seccionLogin" style="max-width: 420px; margin-top: 80px;">
     <div class="card shadow">
       <div class="card-header bg-dark text-white text-center py-3">
-        <h5 class="mb-0 fw-bold"><i class="bi bi-shield-lock me-2"></i>Acceso Administrativo V2.5</h5>
+        <h5 class="mb-0 fw-bold"><i class="bi bi-shield-lock me-2"></i>Acceso Administrativo V2.7</h5>
         <small class="text-secondary header-nombre-inst">UEP Vicente Rocafuerte</small>
       </div>
       <div class="card-body p-4">
@@ -96,7 +96,7 @@
             <i id="sidebarIconDef" class="bi bi-mortarboard-fill text-primary fs-3"></i>
             <div>
               <h6 class="mb-0 fw-bold header-siglas-inst">UEPVR</h6>
-              <small class="text-secondary">Administración V2. 6</small>
+              <small class="text-secondary">Administración V2.7</small>
             </div>
           </div>
           
@@ -524,6 +524,7 @@
               <small class="text-muted">Cuadro maestro para visualizar y editar todas las secciones simultáneamente.</small>
             </div>
             <div>
+              <button class="btn btn-info btn-sm px-3 fw-bold shadow-sm me-2 text-white" onclick="abrirModalCopiarTiempos()"><i class="bi bi-copy me-1"></i> Copiar Tiempos</button>
               <button class="btn btn-warning btn-sm px-3 fw-bold shadow-sm me-2" onclick="generarHorarioAutomatico()"><i class="bi bi-magic me-1"></i> Generar Automático</button>
               <button class="btn btn-primary btn-sm px-4 fw-bold shadow-sm" id="btnGuardarHorario" onclick="guardarHorarioMaster()"><i class="bi bi-save me-1"></i> Guardar Horario</button>
             </div>
@@ -1129,6 +1130,32 @@
           </div>
           <hr class="my-3">
           <button class="btn btn-outline-danger btn-sm w-100 fw-bold" onclick="limpiarCelda()"><i class="bi bi-eraser-fill me-1"></i>Limpiar Celda Vacia</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Copiar Tiempos -->
+  <div class="modal fade" id="modalCopiarTiempos" tabindex="-1">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+      <div class="modal-content border-0 shadow">
+        <div class="modal-header bg-info text-white py-2">
+          <h6 class="modal-title fw-bold"><i class="bi bi-copy me-2"></i>Copiar Tiempos (Horas)</h6>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body bg-light p-3">
+          <div class="mb-3">
+            <label class="form-label fw-bold small text-primary">Copiar DESDE el curso:</label>
+            <select id="copiarDesdeCurso" class="form-select form-select-sm border-primary"></select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-bold small text-danger">Pegar HACIA el curso:</label>
+            <select id="copiarHaciaCurso" class="form-select form-select-sm border-danger"></select>
+          </div>
+          <div class="alert alert-warning small py-2 mb-3 lh-sm">
+            <i class="bi bi-info-circle-fill me-1"></i> Esto copiará las horas de inicio y fin de los 7 bloques de un curso a otro en la vista actual.
+          </div>
+          <button class="btn btn-info text-white btn-sm w-100 fw-bold shadow-sm" onclick="ejecutarCopiaTiempos()">Aplicar Copia</button>
         </div>
       </div>
     </div>
@@ -2682,7 +2709,6 @@ async function cargarCuadriculaMaster() {
         return jornada === 'Vespertina'; 
     });
 
-    // Si seleccionó un curso específico, filtramos el arreglo
     if (filtroCursoId !== 'TODOS') {
         cursosFiltrados = cursosFiltrados.filter(c => String(c.id) === String(filtroCursoId));
     }
@@ -2704,12 +2730,12 @@ async function cargarCuadriculaMaster() {
             }
             html += `<td class="fw-bold bg-light text-start ps-2 border-secondary" style="font-size:0.68rem; white-space:nowrap;">${c.nombre}</td>`;
             
-            if (idx === 0) {
-                html += `<td rowspan="${cursosFiltrados.length}" class="bg-light align-middle px-1 border-secondary">
-                    <input type="time" class="form-control form-control-sm text-center border-secondary bg-white p-0 fw-bold mb-1 text-primary" value="13:30" style="font-size:0.68rem;">
-                    <input type="time" class="form-control form-control-sm text-center border-secondary bg-white p-0 fw-bold text-primary" value="14:10" style="font-size:0.68rem;">
-                </td>`;
-            }
+            // ELIMINADO EL ROWSPAN: Ahora CADA CURSO tiene su propio input de tiempo independiente
+            html += `<td class="bg-light align-middle px-1 border-secondary">
+                <input type="time" class="form-control form-control-sm text-center border-secondary bg-white p-0 fw-bold mb-1 text-primary in-hora-ini" data-curso-id="${c.id}" data-bloque="${i}" value="13:30" style="font-size:0.68rem;">
+                <input type="time" class="form-control form-control-sm text-center border-secondary bg-white p-0 fw-bold text-primary in-hora-fin" data-curso-id="${c.id}" data-bloque="${i}" value="14:10" style="font-size:0.68rem;">
+            </td>`;
+            
             for (let d = 1; d <= 5; d++) {
                 html += `<td class="celda-horario p-1 bg-white border-secondary" data-curso-id="${c.id}" data-dia="${d}" data-bloque="${i}" onclick="abrirModalCeldaMaster(this)"></td>`;
             }
@@ -2720,6 +2746,17 @@ async function cargarCuadriculaMaster() {
 
     // Pintar lo guardado en BD
     horarioGlobalMemoria.forEach(h => {
+        // Cargar las horas (tiempos) que se guardaron para este bloque específico
+        if (h.hora_inicio) {
+            const inIni = document.querySelector(`.in-hora-ini[data-curso-id="${h.curso_id}"][data-bloque="${h.hora_bloque}"]`);
+            if (inIni) inIni.value = h.hora_inicio;
+        }
+        if (h.hora_fin) {
+            const inFin = document.querySelector(`.in-hora-fin[data-curso-id="${h.curso_id}"][data-bloque="${h.hora_bloque}"]`);
+            if (inFin) inFin.value = h.hora_fin;
+        }
+
+        // Pintar celdas de materias/recesos
         const celda = document.querySelector(`.celda-horario[data-curso-id="${h.curso_id}"][data-dia="${h.dia_semana}"][data-bloque="${h.hora_bloque}"]`);
         if (celda) {
             if (h.es_receso) {
@@ -2922,7 +2959,6 @@ async function guardarHorarioMaster() {
         const cursosEnPantalla = new Set();
         const payload = [];
 
-        // Extraemos la información de cada celda que tenga datos
         celdas.forEach(c => {
             const cursoId = parseInt(c.getAttribute('data-curso-id'));
             cursosEnPantalla.add(cursoId);
@@ -2932,11 +2968,19 @@ async function guardarHorarioMaster() {
                 const dia = parseInt(c.getAttribute('data-dia'));
                 const bloque = parseInt(c.getAttribute('data-bloque'));
                 
+                // NUEVO: Capturar los tiempos exactos que el usuario tipeó en la pantalla
+                const inIni = document.querySelector(`.in-hora-ini[data-curso-id="${cursoId}"][data-bloque="${bloque}"]`);
+                const inFin = document.querySelector(`.in-hora-fin[data-curso-id="${cursoId}"][data-bloque="${bloque}"]`);
+                const valIni = inIni ? inIni.value : null;
+                const valFin = inFin ? inFin.value : null;
+                
                 if (tipo === 'materia') {
                     payload.push({
                         curso_id: cursoId,
                         dia_semana: dia,
                         hora_bloque: bloque,
+                        hora_inicio: valIni,
+                        hora_fin: valFin,
                         asignacion_id: parseInt(c.getAttribute('data-asig-id')),
                         es_receso: false
                     });
@@ -2945,6 +2989,8 @@ async function guardarHorarioMaster() {
                         curso_id: cursoId,
                         dia_semana: dia,
                         hora_bloque: bloque,
+                        hora_inicio: valIni,
+                        hora_fin: valFin,
                         es_receso: true,
                         color_fondo: c.style.backgroundColor
                     });
@@ -2952,20 +2998,18 @@ async function guardarHorarioMaster() {
             }
         });
 
-        // 1. Borramos el horario anterior SOLO de los cursos que estamos viendo en la pantalla actual
         const arrayCursos = Array.from(cursosEnPantalla);
         if (arrayCursos.length > 0) {
             await supabaseClient.from('horarios').delete().in('curso_id', arrayCursos);
         }
 
-        // 2. Insertamos el nuevo horario fresco
         if (payload.length > 0) {
             const { error } = await supabaseClient.from('horarios').insert(payload);
             if (error) throw error;
         }
 
         alert('¡Horario guardado correctamente en la base de datos!');
-        await cargarHorarioGlobalMemoria(); // Refrescamos la memoria interna
+        await cargarHorarioGlobalMemoria(); 
     } catch (err) {
         alert('Error al guardar: ' + err.message);
     } finally {
@@ -2973,6 +3017,72 @@ async function guardarHorarioMaster() {
         btn.innerHTML = '<i class="bi bi-save me-1"></i> Guardar Horario';
     }
 }
+
+    let modalCopiarTiemposInst = null;
+
+function abrirModalCopiarTiempos() {
+    if (!modalCopiarTiemposInst) modalCopiarTiemposInst = new bootstrap.Modal(document.getElementById('modalCopiarTiempos'));
+    
+    const jornada = document.getElementById('horarioJornada').value;
+    if (!jornada) return alert("Primero seleccione la Sección/Jornada.");
+
+    // Llenar los combos con los cursos disponibles en el filtro
+    const selectOptions = Array.from(document.getElementById('horarioFiltroCurso').options)
+                               .filter(o => o.value !== '' && o.value !== 'TODOS')
+                               .map(o => `<option value="${o.value}">${o.text}</option>`)
+                               .join('');
+                               
+    document.getElementById('copiarDesdeCurso').innerHTML = selectOptions;
+    document.getElementById('copiarHaciaCurso').innerHTML = selectOptions;
+
+    // Si está en un curso específico, usarlo como origen por defecto
+    const filtroActivo = document.getElementById('horarioFiltroCurso').value;
+    if (filtroActivo !== 'TODOS' && filtroActivo !== '') {
+        document.getElementById('copiarDesdeCurso').value = filtroActivo;
+    }
+
+    modalCopiarTiemposInst.show();
+}
+
+function ejecutarCopiaTiempos() {
+    const origenId = document.getElementById('copiarDesdeCurso').value;
+    const destinoId = document.getElementById('copiarHaciaCurso').value;
+
+    if (origenId === destinoId) return alert("Seleccione cursos diferentes.");
+
+    // Recolectar las horas del curso de origen visualizadas en el DOM
+    let tiempos = {};
+    for(let i=1; i<=7; i++) {
+        const inIni = document.querySelector(`.in-hora-ini[data-curso-id="${origenId}"][data-bloque="${i}"]`);
+        const inFin = document.querySelector(`.in-hora-fin[data-curso-id="${origenId}"][data-bloque="${i}"]`);
+        if(inIni && inFin) tiempos[i] = { ini: inIni.value, fin: inFin.value };
+    }
+
+    if(Object.keys(tiempos).length === 0) {
+        return alert("El curso de origen no está visible actualmente. Asegúrese de estar en 'TODOS LOS CURSOS' o de que el curso origen esté cargado en pantalla.");
+    }
+
+    // Aplicar a los inputs del curso destino
+    let aplicados = 0;
+    for(let i=1; i<=7; i++) {
+        const inIni = document.querySelector(`.in-hora-ini[data-curso-id="${destinoId}"][data-bloque="${i}"]`);
+        const inFin = document.querySelector(`.in-hora-fin[data-curso-id="${destinoId}"][data-bloque="${i}"]`);
+        if(inIni && inFin && tiempos[i]) {
+            inIni.value = tiempos[i].ini;
+            inFin.value = tiempos[i].fin;
+            aplicados++;
+        }
+    }
+
+    if(aplicados === 0) {
+        alert("El curso destino no está visible. Por favor, cambie a 'TODOS LOS CURSOS' para realizar la copia en pantalla.");
+    } else {
+        alert(`¡Tiempos copiados a ${aplicados} bloques en pantalla!\n\nNo olvide presionar el botón azul "Guardar Horario" para guardar los cambios.`);
+        modalCopiarTiemposInst.hide();
+    }
+}
+
+    
     
   </script>
 </body>
