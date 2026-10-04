@@ -611,13 +611,14 @@
                   <table class="table table-bordered table-sm text-center align-middle mb-0" style="font-size: 0.75rem;">
                     <thead class="sticky-top bg-dark text-white" style="z-index: 10;">
                       <tr>
-                        <th class="bg-dark text-white border-secondary" style="width: 100px;">SECCIÓN</th>
-                        <th class="bg-dark text-white border-secondary" style="width: 120px;">TIEMPO</th>
-                        <th class="bg-dark text-white border-secondary" style="width: 15%;">LUNES</th>
-                        <th class="bg-dark text-white border-secondary" style="width: 15%;">MARTES</th>
-                        <th class="bg-dark text-white border-secondary" style="width: 15%;">MIÉRCOLES</th>
-                        <th class="bg-dark text-white border-secondary" style="width: 15%;">JUEVES</th>
-                        <th class="bg-dark text-white border-secondary" style="width: 15%;">VIERNES</th>
+                        <th class="bg-dark text-white border-secondary" style="width: 50px;">HORA</th>
+                        <th class="bg-dark text-white border-secondary" style="width: 150px;">CURSO</th>
+                        <th class="bg-dark text-white border-secondary" style="width: 100px;">TIEMPO</th>
+                        <th class="bg-dark text-white border-secondary" style="width: 14%;">LUNES</th>
+                        <th class="bg-dark text-white border-secondary" style="width: 14%;">MARTES</th>
+                        <th class="bg-dark text-white border-secondary" style="width: 14%;">MIÉRCOLES</th>
+                        <th class="bg-dark text-white border-secondary" style="width: 14%;">JUEVES</th>
+                        <th class="bg-dark text-white border-secondary" style="width: 14%;">VIERNES</th>
                       </tr>
                     </thead>
                     <tbody id="bodyCuadriculaExamenes">
@@ -2934,7 +2935,7 @@ async function cargarCuadriculaMaster() {
     });
     
     actualizarLeyendas(filtroCursoId); 
-    dibujarEspejoExamenes(); // NUEVO: Llamamos al constructor del espejo
+    dibujarEspejoExamenes(cursosFiltrados); 
 }
     
 // 3. Modal al hacer clic en una celda
@@ -3294,12 +3295,11 @@ function ejecutarCopiaTiempos() {
     // =========================================================================
 // MÓDULO DE EXÁMENES (ESPEJO INTERACTIVO)
 // =========================================================================
-function dibujarEspejoExamenes() {
-    const filtroCursoId = document.getElementById('horarioFiltroCurso').value;
+function dibujarEspejoExamenes(cursosFiltrados) {
     const seccionEspejo = document.getElementById('seccionEspejoExamenes');
     
-    // Solo mostramos el espejo si se ha seleccionado un curso específico (no en TODOS)
-    if (!filtroCursoId || filtroCursoId === 'TODOS') {
+    // Si no hay cursos o no hay jornada seleccionada, lo ocultamos
+    if (!cursosFiltrados || cursosFiltrados.length === 0) {
         seccionEspejo.classList.add('d-none');
         return;
     }
@@ -3308,76 +3308,82 @@ function dibujarEspejoExamenes() {
     const tbodyEspejo = document.getElementById('bodyCuadriculaExamenes');
     let html = '';
 
+    // Iteramos por los 7 bloques de hora y por todos los cursos filtrados (sea 1 o todos)
     for (let i = 1; i <= 7; i++) {
-        const inIni = document.querySelector(`.in-hora-ini[data-curso-id="${filtroCursoId}"][data-bloque="${i}"]`)?.value || '';
-        const inFin = document.querySelector(`.in-hora-fin[data-curso-id="${filtroCursoId}"][data-bloque="${i}"]`)?.value || '';
-        
-        // Si el bloque está vacío (sin horas ni materias), lo ignoramos visualmente en el espejo para ahorrar espacio
-        if (!inIni) continue; 
-
-        html += `<tr>`;
-        html += `<td class="bg-secondary text-white fw-bold align-middle fs-6 border-secondary">Exámenes</td>`;
-        html += `<td class="bg-light align-middle px-1 border-secondary fw-bold text-primary" style="font-size:0.68rem;">${inIni} - ${inFin}</td>`;
-
-        for (let d = 1; d <= 5; d++) {
-            const mainCell = document.querySelector(`.celda-horario[data-curso-id="${filtroCursoId}"][data-dia="${d}"][data-bloque="${i}"]`);
+        cursosFiltrados.forEach((c, idx) => {
+            const inIni = document.querySelector(`.in-hora-ini[data-curso-id="${c.id}"][data-bloque="${i}"]`)?.value || '--:--';
+            const inFin = document.querySelector(`.in-hora-fin[data-curso-id="${c.id}"][data-bloque="${i}"]`)?.value || '--:--';
             
-            if (mainCell) {
-                const tipo = mainCell.getAttribute('data-tipo');
-                if (tipo === 'materia') {
-                    const asigId = mainCell.getAttribute('data-asig-id');
-                    const nombre = mainCell.getAttribute('data-materia-nombre') || 'Materia';
-                    const detalle = mainCell.getAttribute('data-detalle') ? ` (${mainCell.getAttribute('data-detalle')})` : '';
-                    const esExamen = mainCell.getAttribute('data-es-examen') === 'true';
-                    
-                    let bgClass = esExamen ? 'bg-success text-white' : 'bg-white text-dark';
-                    
-                    html += `<td class="celda-espejo p-1 border-secondary align-middle shadow-sm ${bgClass}" 
-                                 style="cursor:pointer; font-size:0.65rem; transition: 0.2s;" 
-                                 data-asig-id="${asigId}" data-dia="${d}" data-bloque="${i}"
-                                 onclick="toggleExamenCelda(${asigId}, this)">
-                                <div class="d-flex flex-column justify-content-center h-100">
-                                    <span class="fw-bold">${nombre}${detalle}</span>
-                                    <span style="font-size:0.5rem; opacity:0.8;">Clic para Examen</span>
-                                </div>
-                             </td>`;
-                } else if (tipo === 'receso') {
-                    html += `<td class="bg-warning bg-opacity-50 text-dark border-secondary align-middle" style="font-size:0.65rem;"><b>RECESO</b></td>`;
+            html += `<tr>`;
+            if (idx === 0) {
+                html += `<td rowspan="${cursosFiltrados.length}" class="bg-secondary text-white fw-bold align-middle fs-5 border-secondary">${i}</td>`;
+            }
+            html += `<td class="fw-bold bg-light text-start ps-2 border-secondary" style="font-size:0.68rem; white-space:nowrap;">${c.nombre}</td>`;
+            html += `<td class="bg-light align-middle px-1 border-secondary fw-bold text-primary" style="font-size:0.68rem;">${inIni} - ${inFin}</td>`;
+
+            for (let d = 1; d <= 5; d++) {
+                const mainCell = document.querySelector(`.celda-horario[data-curso-id="${c.id}"][data-dia="${d}"][data-bloque="${i}"]`);
+                
+                if (mainCell) {
+                    const tipo = mainCell.getAttribute('data-tipo');
+                    if (tipo === 'materia') {
+                        const asigId = mainCell.getAttribute('data-asig-id');
+                        const detalle = mainCell.getAttribute('data-detalle') || '';
+                        const nombre = mainCell.getAttribute('data-materia-nombre') || 'Materia';
+                        const esExamen = mainCell.getAttribute('data-es-examen') === 'true';
+                        
+                        const strDetalle = detalle ? `<br><span class="text-primary fw-bolder">(${detalle})</span>` : '';
+                        let bgClass = esExamen ? 'bg-success text-white' : 'bg-white text-dark';
+                        
+                        // Añadimos data-detalle y data-curso-id para independizar los controles
+                        html += `<td class="celda-espejo p-1 border-secondary align-middle shadow-sm ${bgClass}" 
+                                     style="cursor:pointer; font-size:0.65rem; transition: 0.2s;" 
+                                     data-curso-id="${c.id}" data-asig-id="${asigId}" data-detalle="${detalle}" data-dia="${d}" data-bloque="${i}"
+                                     onclick="toggleExamenCelda('${c.id}', ${asigId}, '${detalle}', this)">
+                                    <div class="d-flex flex-column justify-content-center h-100">
+                                        <span class="fw-bold text-wrap" style="line-height: 1.1;">${nombre}${strDetalle}</span>
+                                        <span style="font-size:0.5rem; opacity:0.8; margin-top:2px;">Clic para Examen</span>
+                                    </div>
+                                 </td>`;
+                    } else if (tipo === 'receso') {
+                        html += `<td class="bg-warning bg-opacity-50 text-dark border-secondary align-middle" style="font-size:0.65rem;"><b>RECESO</b></td>`;
+                    } else {
+                        html += `<td class="bg-light border-secondary"></td>`;
+                    }
                 } else {
                     html += `<td class="bg-light border-secondary"></td>`;
                 }
-            } else {
-                html += `<td class="bg-light border-secondary"></td>`;
             }
-        }
-        html += `</tr>`;
+            html += `</tr>`;
+        });
     }
     tbodyEspejo.innerHTML = html;
-    aplicarBloqueosEspejo(); // Ejecuta los bloqueos visuales al cargar
+    aplicarBloqueosEspejo(); // Ejecuta los bloqueos visuales
 }
 
-function toggleExamenCelda(asigId, celdaDOM) {
+function toggleExamenCelda(cursoId, asigId, detalle, celdaDOM) {
     const isSelected = celdaDOM.classList.contains('bg-success');
     
+    // Identificador único (Id de materia + la especialidad)
+    const selectorMismaMateria = `.celda-espejo[data-curso-id="${cursoId}"][data-asig-id="${asigId}"][data-detalle="${detalle}"]`;
+    
     if (!isSelected) {
-        // Al seleccionar uno nuevo, primero deseleccionamos cualquier otro examen de LA MISMA materia en este curso
-        document.querySelectorAll(`.celda-espejo[data-asig-id="${asigId}"]`).forEach(c => {
+        // Deseleccionamos CUALQUIER OTRO horario de esta misma materia Y detalle en ESTE curso específico
+        document.querySelectorAll(selectorMismaMateria).forEach(c => {
             c.classList.remove('bg-success', 'text-white');
             c.classList.add('bg-white', 'text-dark');
             c.setAttribute('data-seleccionado', 'false');
             
-            // Replicamos el estado "false" en el cuadro principal
-            const mainC = document.querySelector(`.celda-horario[data-dia="${c.getAttribute('data-dia')}"][data-bloque="${c.getAttribute('data-bloque')}"]`);
+            const mainC = document.querySelector(`.celda-horario[data-curso-id="${cursoId}"][data-dia="${c.getAttribute('data-dia')}"][data-bloque="${c.getAttribute('data-bloque')}"]`);
             if(mainC) mainC.setAttribute('data-es-examen', 'false');
         });
         
-        // Activamos el actual
+        // Activamos el que se cliqueó
         celdaDOM.classList.remove('bg-white', 'text-dark');
         celdaDOM.classList.add('bg-success', 'text-white');
         celdaDOM.setAttribute('data-seleccionado', 'true');
         
-        // Replicamos el estado "true" en el cuadro principal
-        const mainCelda = document.querySelector(`.celda-horario[data-dia="${celdaDOM.getAttribute('data-dia')}"][data-bloque="${celdaDOM.getAttribute('data-bloque')}"]`);
+        const mainCelda = document.querySelector(`.celda-horario[data-curso-id="${cursoId}"][data-dia="${celdaDOM.getAttribute('data-dia')}"][data-bloque="${celdaDOM.getAttribute('data-bloque')}"]`);
         if(mainCelda) mainCelda.setAttribute('data-es-examen', 'true');
 
     } else {
@@ -3386,24 +3392,26 @@ function toggleExamenCelda(asigId, celdaDOM) {
         celdaDOM.classList.add('bg-white', 'text-dark');
         celdaDOM.setAttribute('data-seleccionado', 'false');
         
-        const mainCelda = document.querySelector(`.celda-horario[data-dia="${celdaDOM.getAttribute('data-dia')}"][data-bloque="${celdaDOM.getAttribute('data-bloque')}"]`);
+        const mainCelda = document.querySelector(`.celda-horario[data-curso-id="${cursoId}"][data-dia="${celdaDOM.getAttribute('data-dia')}"][data-bloque="${celdaDOM.getAttribute('data-bloque')}"]`);
         if(mainCelda) mainCelda.setAttribute('data-es-examen', 'false');
     }
     
     aplicarBloqueosEspejo();
 }
 
+    
 function aplicarBloqueosEspejo() {
-    // Escanea cuáles ID de asignación (materias) ya tienen un examen fijado en verde
-    const asigIdsSeleccionados = new Set();
+    const clavesSeleccionadas = new Set();
+    
+    // Escanea todas las celdas en verde y guarda su combinación "Curso-Asignatura-Especialidad"
     document.querySelectorAll('.celda-espejo.bg-success').forEach(c => {
-        asigIdsSeleccionados.add(c.getAttribute('data-asig-id'));
+        clavesSeleccionadas.add(`${c.getAttribute('data-curso-id')}-${c.getAttribute('data-asig-id')}-${c.getAttribute('data-detalle')}`);
     });
 
-    // Recorre todas las celdas y bloquea las que sean de la misma materia pero no sean la verde
+    // Bloquea los que pertenezcan al mismo set de arriba pero no estén en verde
     document.querySelectorAll('.celda-espejo').forEach(c => {
-        const asigId = c.getAttribute('data-asig-id');
-        if (asigIdsSeleccionados.has(asigId) && !c.classList.contains('bg-success')) {
+        const clave = `${c.getAttribute('data-curso-id')}-${c.getAttribute('data-asig-id')}-${c.getAttribute('data-detalle')}`;
+        if (clavesSeleccionadas.has(clave) && !c.classList.contains('bg-success')) {
             c.style.opacity = '0.3';
             c.style.pointerEvents = 'none';
         } else {
