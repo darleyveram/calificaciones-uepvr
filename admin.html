@@ -46,7 +46,7 @@
   <div class="container" id="seccionLogin" style="max-width: 420px; margin-top: 80px;">
     <div class="card shadow">
       <div class="card-header bg-dark text-white text-center py-3">
-        <h5 class="mb-0 fw-bold"><i class="bi bi-shield-lock me-2"></i>Acceso Administrativo V2.10</h5>
+        <h5 class="mb-0 fw-bold"><i class="bi bi-shield-lock me-2"></i>Acceso Administrativo V2.11</h5>
         <small class="text-secondary header-nombre-inst">UEP Vicente Rocafuerte</small>
       </div>
       <div class="card-body p-4">
@@ -96,7 +96,7 @@
             <i id="sidebarIconDef" class="bi bi-mortarboard-fill text-primary fs-3"></i>
             <div>
               <h6 class="mb-0 fw-bold header-siglas-inst">UEPVR</h6>
-              <small class="text-secondary">Administración V2.10</small>
+              <small class="text-secondary">Administración V2.11</small>
             </div>
           </div>
           
@@ -596,6 +596,35 @@
                   <!-- Se llena con JS -->
                 </div>
               </div>
+            </div>
+          </div>
+
+          <!-- NUEVO: SECCIÓN ESPEJO DE EXÁMENES -->
+          <div id="seccionEspejoExamenes" class="card border-0 shadow-sm mt-4 d-none">
+            <div class="card-header bg-primary text-white fw-bold d-flex justify-content-between align-items-center py-2">
+              <span><i class="bi bi-calendar-check me-2"></i>Horario de Evaluaciones y Exámenes (Espejo)</span>
+              <button class="btn btn-light btn-sm fw-bold text-primary px-3 shadow-sm" onclick="guardarHorarioMaster()"><i class="bi bi-save me-1"></i> Guardar Exámenes</button>
+            </div>
+            <div class="card-body p-0">
+                <div class="alert alert-primary m-2 small py-2"><i class="bi bi-info-circle-fill me-1"></i> Haga clic en una materia para fijar el día de su examen. Las demás horas de esa misma materia se bloquearán automáticamente para evitar duplicados.</div>
+                <div class="table-responsive" style="max-height: 50vh; overflow-y: auto;">
+                  <table class="table table-bordered table-sm text-center align-middle mb-0" style="font-size: 0.75rem;">
+                    <thead class="sticky-top bg-dark text-white" style="z-index: 10;">
+                      <tr>
+                        <th class="bg-dark text-white border-secondary" style="width: 100px;">SECCIÓN</th>
+                        <th class="bg-dark text-white border-secondary" style="width: 120px;">TIEMPO</th>
+                        <th class="bg-dark text-white border-secondary" style="width: 15%;">LUNES</th>
+                        <th class="bg-dark text-white border-secondary" style="width: 15%;">MARTES</th>
+                        <th class="bg-dark text-white border-secondary" style="width: 15%;">MIÉRCOLES</th>
+                        <th class="bg-dark text-white border-secondary" style="width: 15%;">JUEVES</th>
+                        <th class="bg-dark text-white border-secondary" style="width: 15%;">VIERNES</th>
+                      </tr>
+                    </thead>
+                    <tbody id="bodyCuadriculaExamenes">
+                      <!-- Se llena dinámicamente con JS -->
+                    </tbody>
+                  </table>
+                </div>
             </div>
           </div>
 
@@ -2818,7 +2847,7 @@ async function cargarCuadriculaMaster() {
     const filtroCursoId = document.getElementById('horarioFiltroCurso').value;
     const contenedor = document.getElementById('contenedorHorario');
     
-    if (!jornada || !filtroCursoId) { contenedor.classList.add('d-none'); return; }
+    if (!jornada || !filtroCursoId) { contenedor.classList.add('d-none'); document.getElementById('seccionEspejoExamenes').classList.add('d-none'); return; }
     contenedor.classList.remove('d-none');
 
     const esVistaGeneral = (filtroCursoId === 'TODOS');
@@ -2836,6 +2865,7 @@ async function cargarCuadriculaMaster() {
 
     if (cursosFiltrados.length === 0) {
         document.getElementById('bodyCuadriculaHorario').innerHTML = '<tr><td colspan="8" class="text-danger fw-bold py-4">No hay cursos configurados.</td></tr>';
+        document.getElementById('seccionEspejoExamenes').classList.add('d-none');
         return;
     }
 
@@ -2855,7 +2885,6 @@ async function cargarCuadriculaMaster() {
             </td>`;
             
             for (let d = 1; d <= 5; d++) {
-                // CORRECCIÓN DE COLOR: Quitamos 'bg-white' y ponemos style="background-color: #ffffff;"
                 html += `<td class="celda-horario p-1 border-secondary" style="background-color: #ffffff;" data-curso-id="${c.id}" data-dia="${d}" data-bloque="${i}" onclick="abrirModalCeldaMaster(this)"></td>`;
             }
             html += `</tr>`;
@@ -2895,15 +2924,19 @@ async function cargarCuadriculaMaster() {
                 celda.setAttribute('data-tipo', 'materia');
                 celda.setAttribute('data-asig-id', h.asignacion_id);
                 celda.setAttribute('data-docente-id', h.curso_materia_docente.docente_id);
-                // NUEVO: Guardamos el nombre en el DOM para la excepción de choque
                 celda.setAttribute('data-materia-nombre', matNombre);
                 if (h.detalle_materia) celda.setAttribute('data-detalle', h.detalle_materia);
+                
+                // NUEVO: Marcamos si es examen en el DOM de la tabla principal
+                celda.setAttribute('data-es-examen', h.es_examen ? 'true' : 'false');
             }
         }
     });
+    
     actualizarLeyendas(filtroCursoId); 
+    dibujarEspejoExamenes(); // NUEVO: Llamamos al constructor del espejo
 }
-
+    
 // 3. Modal al hacer clic en una celda
 async function abrirModalCeldaMaster(celda) {
     celdaActivaHorario = celda;
@@ -3155,14 +3188,23 @@ async function guardarHorarioMaster() {
                 const valFin = inFin ? inFin.value : null;
                 
                 if (tipo === 'materia') {
-                    payload.push({ curso_id: cursoId, dia_semana: dia, hora_bloque: bloque, hora_inicio: valIni, hora_fin: valFin, asignacion_id: parseInt(c.getAttribute('data-asig-id')), detalle_materia: c.getAttribute('data-detalle') || null, es_receso: false });
+                    payload.push({ 
+                        curso_id: cursoId, 
+                        dia_semana: dia, 
+                        hora_bloque: bloque, 
+                        hora_inicio: valIni, 
+                        hora_fin: valFin, 
+                        asignacion_id: parseInt(c.getAttribute('data-asig-id')), 
+                        detalle_materia: c.getAttribute('data-detalle') || null, 
+                        es_examen: c.getAttribute('data-es-examen') === 'true', // NUEVO GUARDADO
+                        es_receso: false 
+                    });
                 } else if (tipo === 'receso') {
                     payload.push({ curso_id: cursoId, dia_semana: dia, hora_bloque: bloque, hora_inicio: valIni, hora_fin: valFin, es_receso: true, color_fondo: c.style.backgroundColor });
                 }
             }
         });
 
-        // Insertar los bloques de tiempo vacíos para que no se borren las horas
         cursosEnPantalla.forEach(cursoId => {
             for(let bloque = 1; bloque <= 7; bloque++) {
                 const inIni = document.querySelector(`.in-hora-ini[data-curso-id="${cursoId}"][data-bloque="${bloque}"]`);
@@ -3188,8 +3230,9 @@ async function guardarHorarioMaster() {
             if (error) throw error;
         }
 
-        alert('¡Horario guardado correctamente en la base de datos!');
+        alert('¡Horario y Exámenes guardados correctamente en la base de datos!');
         await cargarHorarioGlobalMemoria(); 
+        dibujarEspejoExamenes(); // Refrescar espejo
     } catch (err) {
         alert('Error al guardar: ' + err.message);
     } finally {
@@ -3198,6 +3241,7 @@ async function guardarHorarioMaster() {
     }
 }
 
+    
     let modalCopiarTiemposInst = null;
 function abrirModalCopiarTiempos() {
     if (!modalCopiarTiemposInst) modalCopiarTiemposInst = new bootstrap.Modal(document.getElementById('modalCopiarTiempos'));
@@ -3245,6 +3289,128 @@ function ejecutarCopiaTiempos() {
         alert(`¡Tiempos copiados a ${aplicados} bloques en pantalla!\n\nNo olvide presionar el botón azul "Guardar Horario".`);
         modalCopiarTiemposInst.hide();
     }
+}
+
+    // =========================================================================
+// MÓDULO DE EXÁMENES (ESPEJO INTERACTIVO)
+// =========================================================================
+function dibujarEspejoExamenes() {
+    const filtroCursoId = document.getElementById('horarioFiltroCurso').value;
+    const seccionEspejo = document.getElementById('seccionEspejoExamenes');
+    
+    // Solo mostramos el espejo si se ha seleccionado un curso específico (no en TODOS)
+    if (!filtroCursoId || filtroCursoId === 'TODOS') {
+        seccionEspejo.classList.add('d-none');
+        return;
+    }
+    seccionEspejo.classList.remove('d-none');
+
+    const tbodyEspejo = document.getElementById('bodyCuadriculaExamenes');
+    let html = '';
+
+    for (let i = 1; i <= 7; i++) {
+        const inIni = document.querySelector(`.in-hora-ini[data-curso-id="${filtroCursoId}"][data-bloque="${i}"]`)?.value || '';
+        const inFin = document.querySelector(`.in-hora-fin[data-curso-id="${filtroCursoId}"][data-bloque="${i}"]`)?.value || '';
+        
+        // Si el bloque está vacío (sin horas ni materias), lo ignoramos visualmente en el espejo para ahorrar espacio
+        if (!inIni) continue; 
+
+        html += `<tr>`;
+        html += `<td class="bg-secondary text-white fw-bold align-middle fs-6 border-secondary">Exámenes</td>`;
+        html += `<td class="bg-light align-middle px-1 border-secondary fw-bold text-primary" style="font-size:0.68rem;">${inIni} - ${inFin}</td>`;
+
+        for (let d = 1; d <= 5; d++) {
+            const mainCell = document.querySelector(`.celda-horario[data-curso-id="${filtroCursoId}"][data-dia="${d}"][data-bloque="${i}"]`);
+            
+            if (mainCell) {
+                const tipo = mainCell.getAttribute('data-tipo');
+                if (tipo === 'materia') {
+                    const asigId = mainCell.getAttribute('data-asig-id');
+                    const nombre = mainCell.getAttribute('data-materia-nombre') || 'Materia';
+                    const detalle = mainCell.getAttribute('data-detalle') ? ` (${mainCell.getAttribute('data-detalle')})` : '';
+                    const esExamen = mainCell.getAttribute('data-es-examen') === 'true';
+                    
+                    let bgClass = esExamen ? 'bg-success text-white' : 'bg-white text-dark';
+                    
+                    html += `<td class="celda-espejo p-1 border-secondary align-middle shadow-sm ${bgClass}" 
+                                 style="cursor:pointer; font-size:0.65rem; transition: 0.2s;" 
+                                 data-asig-id="${asigId}" data-dia="${d}" data-bloque="${i}"
+                                 onclick="toggleExamenCelda(${asigId}, this)">
+                                <div class="d-flex flex-column justify-content-center h-100">
+                                    <span class="fw-bold">${nombre}${detalle}</span>
+                                    <span style="font-size:0.5rem; opacity:0.8;">Clic para Examen</span>
+                                </div>
+                             </td>`;
+                } else if (tipo === 'receso') {
+                    html += `<td class="bg-warning bg-opacity-50 text-dark border-secondary align-middle" style="font-size:0.65rem;"><b>RECESO</b></td>`;
+                } else {
+                    html += `<td class="bg-light border-secondary"></td>`;
+                }
+            } else {
+                html += `<td class="bg-light border-secondary"></td>`;
+            }
+        }
+        html += `</tr>`;
+    }
+    tbodyEspejo.innerHTML = html;
+    aplicarBloqueosEspejo(); // Ejecuta los bloqueos visuales al cargar
+}
+
+function toggleExamenCelda(asigId, celdaDOM) {
+    const isSelected = celdaDOM.classList.contains('bg-success');
+    
+    if (!isSelected) {
+        // Al seleccionar uno nuevo, primero deseleccionamos cualquier otro examen de LA MISMA materia en este curso
+        document.querySelectorAll(`.celda-espejo[data-asig-id="${asigId}"]`).forEach(c => {
+            c.classList.remove('bg-success', 'text-white');
+            c.classList.add('bg-white', 'text-dark');
+            c.setAttribute('data-seleccionado', 'false');
+            
+            // Replicamos el estado "false" en el cuadro principal
+            const mainC = document.querySelector(`.celda-horario[data-dia="${c.getAttribute('data-dia')}"][data-bloque="${c.getAttribute('data-bloque')}"]`);
+            if(mainC) mainC.setAttribute('data-es-examen', 'false');
+        });
+        
+        // Activamos el actual
+        celdaDOM.classList.remove('bg-white', 'text-dark');
+        celdaDOM.classList.add('bg-success', 'text-white');
+        celdaDOM.setAttribute('data-seleccionado', 'true');
+        
+        // Replicamos el estado "true" en el cuadro principal
+        const mainCelda = document.querySelector(`.celda-horario[data-dia="${celdaDOM.getAttribute('data-dia')}"][data-bloque="${celdaDOM.getAttribute('data-bloque')}"]`);
+        if(mainCelda) mainCelda.setAttribute('data-es-examen', 'true');
+
+    } else {
+        // Si ya estaba en verde y le da clic, lo DESACTIVA
+        celdaDOM.classList.remove('bg-success', 'text-white');
+        celdaDOM.classList.add('bg-white', 'text-dark');
+        celdaDOM.setAttribute('data-seleccionado', 'false');
+        
+        const mainCelda = document.querySelector(`.celda-horario[data-dia="${celdaDOM.getAttribute('data-dia')}"][data-bloque="${celdaDOM.getAttribute('data-bloque')}"]`);
+        if(mainCelda) mainCelda.setAttribute('data-es-examen', 'false');
+    }
+    
+    aplicarBloqueosEspejo();
+}
+
+function aplicarBloqueosEspejo() {
+    // Escanea cuáles ID de asignación (materias) ya tienen un examen fijado en verde
+    const asigIdsSeleccionados = new Set();
+    document.querySelectorAll('.celda-espejo.bg-success').forEach(c => {
+        asigIdsSeleccionados.add(c.getAttribute('data-asig-id'));
+    });
+
+    // Recorre todas las celdas y bloquea las que sean de la misma materia pero no sean la verde
+    document.querySelectorAll('.celda-espejo').forEach(c => {
+        const asigId = c.getAttribute('data-asig-id');
+        if (asigIdsSeleccionados.has(asigId) && !c.classList.contains('bg-success')) {
+            c.style.opacity = '0.3';
+            c.style.pointerEvents = 'none';
+        } else {
+            c.style.opacity = '1';
+            c.style.pointerEvents = 'auto';
+        }
+    });
 }
 
     
