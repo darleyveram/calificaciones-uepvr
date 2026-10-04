@@ -46,7 +46,7 @@
   <div class="container" id="seccionLogin" style="max-width: 420px; margin-top: 80px;">
     <div class="card shadow">
       <div class="card-header bg-dark text-white text-center py-3">
-        <h5 class="mb-0 fw-bold"><i class="bi bi-shield-lock me-2"></i>Acceso Administrativo V2.9</h5>
+        <h5 class="mb-0 fw-bold"><i class="bi bi-shield-lock me-2"></i>Acceso Administrativo V2.10</h5>
         <small class="text-secondary header-nombre-inst">UEP Vicente Rocafuerte</small>
       </div>
       <div class="card-body p-4">
@@ -96,7 +96,7 @@
             <i id="sidebarIconDef" class="bi bi-mortarboard-fill text-primary fs-3"></i>
             <div>
               <h6 class="mb-0 fw-bold header-siglas-inst">UEPVR</h6>
-              <small class="text-secondary">Administración V2.9</small>
+              <small class="text-secondary">Administración V2.10</small>
             </div>
           </div>
           
@@ -2737,13 +2737,18 @@ async function actualizarLeyendas(cursoId) {
     const docentesProcesados = new Set();
 
     materias.forEach(mat => {
-        // Leyenda de Horas
+        // Cajas interactivas de Límites
         const limite = mat.horas_semanales || 0;
         let asignadas = document.querySelectorAll(`.celda-horario[data-curso-id="${cursoId}"][data-asig-id="${mat.id}"]`).length;
-        let badgeClass = asignadas === limite ? 'bg-success text-white' : (asignadas > limite ? 'bg-danger text-white' : 'bg-light text-dark');
-        htmlHoras += `<span class="badge ${badgeClass} border shadow-sm p-2" style="font-size: 0.70rem;">${mat.materias?.nombre}: ${asignadas}/${limite}H</span>`;
+        let colorClase = asignadas === limite ? 'success' : (asignadas > limite ? 'danger' : 'secondary');
+        
+        htmlHoras += `
+            <div class="input-group input-group-sm mb-2 shadow-sm" style="width: auto;">
+                <span class="input-group-text bg-${colorClase} text-white fw-bold" style="font-size:0.7rem; border-color:#ccc;">${mat.materias?.nombre} (${asignadas}/${limite})</span>
+                <input type="number" class="form-control text-center fw-bold" style="max-width: 60px; border-color:#ccc;" value="${limite}" min="0" title="Editar horas de esta materia" onchange="actualizarLimiteDirecto(${mat.id}, this.value, '${cursoId}')">
+            </div>
+        `;
 
-        // Leyenda de Docentes
         if (mat.docente_id && !docentesProcesados.has(mat.docente_id)) {
             docentesProcesados.add(mat.docente_id);
             const color = obtenerColorDocente(mat.docente_id);
@@ -2753,12 +2758,25 @@ async function actualizarLeyendas(cursoId) {
         }
     });
 
-    document.getElementById('leyendaHoras').innerHTML = htmlHoras || '<span class="text-muted small">Sin materias.</span>';
-    document.getElementById('leyendaDocentes').innerHTML = htmlDocentes || '<span class="text-muted small">Sin docentes.</span>';
+    document.getElementById('leyendaHoras').innerHTML = htmlHoras || '<span class="text-muted small">Sin materias asignadas.</span>';
+    document.getElementById('leyendaDocentes').innerHTML = htmlDocentes || '<span class="text-muted small">Sin docentes asignados.</span>';
 }
 
     
-
+async function actualizarLimiteDirecto(asignacionId, nuevoLimite, cursoId) {
+    const limiteFormat = parseInt(nuevoLimite) || 0;
+    try {
+        const { error } = await supabaseClient.from('curso_materia_docente').update({ horas_semanales: limiteFormat }).eq('id', asignacionId);
+        if (error) throw error;
+        
+        const idx = materiasModalTemp.findIndex(m => m.id === asignacionId);
+        if (idx !== -1) materiasModalTemp[idx].horas_semanales = limiteFormat;
+        
+        actualizarLeyendas(cursoId); // Repinta los colores de progreso
+    } catch (err) {
+        alert('Error al actualizar límite: ' + err.message);
+    }
+}
     
 
 async function cargarHorarioGlobalMemoria() {
@@ -2837,7 +2855,8 @@ async function cargarCuadriculaMaster() {
             </td>`;
             
             for (let d = 1; d <= 5; d++) {
-                html += `<td class="celda-horario p-1 bg-white border-secondary" data-curso-id="${c.id}" data-dia="${d}" data-bloque="${i}" onclick="abrirModalCeldaMaster(this)"></td>`;
+                // CORRECCIÓN DE COLOR: Quitamos 'bg-white' y ponemos style="background-color: #ffffff;"
+                html += `<td class="celda-horario p-1 border-secondary" style="background-color: #ffffff;" data-curso-id="${c.id}" data-dia="${d}" data-bloque="${i}" onclick="abrirModalCeldaMaster(this)"></td>`;
             }
             html += `</tr>`;
         });
@@ -2876,12 +2895,13 @@ async function cargarCuadriculaMaster() {
                 celda.setAttribute('data-tipo', 'materia');
                 celda.setAttribute('data-asig-id', h.asignacion_id);
                 celda.setAttribute('data-docente-id', h.curso_materia_docente.docente_id);
+                // NUEVO: Guardamos el nombre en el DOM para la excepción de choque
+                celda.setAttribute('data-materia-nombre', matNombre);
                 if (h.detalle_materia) celda.setAttribute('data-detalle', h.detalle_materia);
             }
         }
     });
-    
-    actualizarLeyendas(filtroCursoId); // Pinta las leyendas
+    actualizarLeyendas(filtroCursoId); 
 }
 
 // 3. Modal al hacer clic en una celda
@@ -2909,17 +2929,27 @@ async function abrirModalCeldaMaster(celda) {
 }
 
 // 4. NUEVO: Validador con respuesta detallada (Qué curso y qué materia)
-function validarChoqueMaster(docenteId, dia, bloque, cursoIgnoradoId) {
+function validarChoqueMaster(docenteId, dia, bloque, cursoIgnoradoId, nombreMateriaNueva) {
+    const materiaNuevaStr = String(nombreMateriaNueva || '').toUpperCase();
+    const esFisicaNueva = materiaNuevaStr.includes('EDUCACIÓN FÍSICA') || materiaNuevaStr.includes('EDUCACION FISICA');
+
+    // Revisar la tabla visual
     const celdasDOM = document.querySelectorAll(`.celda-horario[data-dia="${dia}"][data-bloque="${bloque}"][data-tipo="materia"]`);
     for (let c of celdasDOM) {
         if (c.getAttribute('data-docente-id') == docenteId && c.getAttribute('data-curso-id') != cursoIgnoradoId) {
+            const mNombreGuar = c.getAttribute('data-materia-nombre') || c.querySelector('span.fw-bold')?.innerText || '';
+            const esFisicaGuar = mNombreGuar.toUpperCase().includes('FÍSICA') || mNombreGuar.toUpperCase().includes('FISICA');
+            
+            // EXCEPCIÓN: Si en ambos cursos está dando Educación Física, IGNORA EL CHOQUE.
+            if (esFisicaNueva && esFisicaGuar) continue; 
+
             const cid = c.getAttribute('data-curso-id');
             const cObj = cursosList.find(x => x.id == cid);
-            const mNombre = c.querySelector('span.fw-bold')?.innerText || 'Materia';
-            return { choque: true, curso: cObj ? cObj.nombre : 'Otro curso', materia: mNombre };
+            return { choque: true, curso: cObj ? cObj.nombre : 'Otro curso', materia: mNombreGuar };
         }
     }
     
+    // Revisar en la Base de Datos
     const choqueBD = horarioGlobalMemoria.find(h => 
         String(h.dia_semana) === String(dia) && 
         String(h.hora_bloque) === String(bloque) && 
@@ -2928,9 +2958,13 @@ function validarChoqueMaster(docenteId, dia, bloque, cursoIgnoradoId) {
     );
     
     if (choqueBD) {
+        const mNombreGuarBD = choqueBD.curso_materia_docente?.materias?.nombre || '';
+        const esFisicaGuarBD = mNombreGuarBD.toUpperCase().includes('FÍSICA') || mNombreGuarBD.toUpperCase().includes('FISICA');
+        
+        if (esFisicaNueva && esFisicaGuarBD) return { choque: false }; // Excepción
+
         const cObj = cursosList.find(x => x.id == choqueBD.curso_id);
-        const mNombre = choqueBD.curso_materia_docente?.materias?.nombre || 'Materia';
-        return { choque: true, curso: cObj ? cObj.nombre : 'Otro curso', materia: mNombre };
+        return { choque: true, curso: cObj ? cObj.nombre : 'Otro curso', materia: mNombreGuarBD };
     }
     return { choque: false };
 }
@@ -2947,7 +2981,8 @@ function aplicarMateriaACelda() {
     const cursoId = celdaActivaHorario.getAttribute('data-curso-id');
     const matInfo = materiasModalTemp.find(m => String(m.id) === String(asigId));
     
-    const validacion = validarChoqueMaster(matInfo.docente_id, dia, bloque, cursoId);
+    // Pasamos el nombre para que valide la excepción de Ed Física
+    const validacion = validarChoqueMaster(matInfo.docente_id, dia, bloque, cursoId, matInfo.materias?.nombre);
     if (validacion.choque) return alert(`⚠️ CHOQUE DE HORARIO:\nEl docente ya está dando la materia "${validacion.materia}" en el curso "${validacion.curso}" a esta misma hora.`);
 
     const limite = matInfo.horas_semanales || 0;
@@ -2971,10 +3006,11 @@ function asignarMateriaDOM(celda, matInfo, detalle = '') {
             <span class="text-muted mt-1 text-truncate w-100" style="font-size: 0.55rem;">${docName}</span>
         </div>
     `;
-    celda.style.backgroundColor = obtenerColorDocente(matInfo.docente_id); // Color unificado por profesor
+    celda.style.backgroundColor = obtenerColorDocente(matInfo.docente_id); 
     celda.setAttribute('data-tipo', 'materia');
     celda.setAttribute('data-asig-id', matInfo.id);
     celda.setAttribute('data-docente-id', matInfo.docente_id);
+    celda.setAttribute('data-materia-nombre', matInfo.materias?.nombre || '');
     if (detalle) celda.setAttribute('data-detalle', detalle);
     else celda.removeAttribute('data-detalle');
 }
@@ -3069,12 +3105,13 @@ async function generarHorarioAutomatico() {
             let horasMismoDia = document.querySelectorAll(`.celda-horario[data-curso-id="${cursoId}"][data-dia="${dia}"][data-asig-id="${mat.id}"]`).length;
             
             for (let bloque = 1; bloque <= 7 && faltantes > 0; bloque++) {
-                if (horasMismoDia >= 2) break; // Regla: Maximo 2 horas por día. Si se cumple, salta al siguiente día.
+                if (horasMismoDia >= 2) break; 
 
                 const celda = document.querySelector(`.celda-horario[data-curso-id="${cursoId}"][data-dia="${dia}"][data-bloque="${bloque}"]`);
                 
                 if (celda && !celda.getAttribute('data-tipo')) {
-                    if (!validarChoqueMaster(mat.docente_id, dia, bloque, cursoId).choque) {
+                    // Ahora mandamos el nombre al auto-generador
+                    if (!validarChoqueMaster(mat.docente_id, dia, bloque, cursoId, mat.materias?.nombre).choque) {
                         asignarMateriaDOM(celda, mat);
                         faltantes--;
                         horasMismoDia++;
