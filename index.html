@@ -8142,7 +8142,7 @@ async function cargarVisorHorario() {
         return;
     }
     
-    contenedor.innerHTML = '<div class="py-5 text-center"><div class="spinner-border text-primary me-2"></div><div class="mt-2 fw-bold text-muted">Generando horario...</div></div>';
+    contenedor.innerHTML = '<div class="py-5 text-center"><div class="spinner-border text-primary me-2"></div><div class="mt-2 fw-bold text-muted">Generando horario (Descargando todos los bloques)...</div></div>';
     
     try {
         const { data: configJuntas } = await supabaseClient.from('juntas_config').select('curso_id, seccion');
@@ -8159,14 +8159,33 @@ async function cargarVisorHorario() {
 
         const idsCursosJornada = cursosEnJornada.map(c => c.id);
         
-        // CORRECCIÓN 1: Se agrega .limit(15000) para evitar que Supabase corte la consulta en 1000 registros
-        const { data: horariosData, error } = await supabaseClient.from('horarios')
-            .select('*, curso_materia_docente(docente_id, docente_id_2, docente_id_3, materias(nombre))')
-            .in('curso_id', idsCursosJornada)
-            .limit(15000); 
+        // =========================================================
+        // SOLUCIÓN DEFINITIVA: EXTRACCIÓN EN BLOQUES (PAGINACIÓN)
+        // Burlamos el límite de 1000 del servidor pidiendo por partes
+        // =========================================================
+        let horariosData = [];
+        let fetchMore = true;
+        let startRow = 0;
         
-        if (error) throw error;
-        if (reqId !== currentViewRequestId) return;
+        while (fetchMore) {
+            const { data: chunk, error } = await supabaseClient.from('horarios')
+                .select('*, curso_materia_docente(docente_id, docente_id_2, docente_id_3, materias(nombre))')
+                .in('curso_id', idsCursosJornada)
+                .range(startRow, startRow + 999); // Pedimos de 1000 en 1000
+                
+            if (error) throw error;
+            if (reqId !== currentViewRequestId) return;
+            
+            if (chunk && chunk.length > 0) {
+                horariosData.push(...chunk);
+                startRow += 1000;
+                // Si el bloque trajo menos de 1000, significa que ya no hay más datos
+                if (chunk.length < 1000) fetchMore = false;
+            } else {
+                fetchMore = false;
+            }
+        }
+        // =========================================================
         
         let html = '';
         if (tipo === 'mi_horario' || tipo === 'profesores') {
