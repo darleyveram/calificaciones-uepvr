@@ -8355,6 +8355,7 @@ function construirTablaHorarioAgrupada(registros, todaLaData, cursosListado, idT
     return html;
 }
 
+// FORMATO DE DESCARGA PDF DE HORARIOS SIMÉTRICO Y PROFESIONAL
 async function exportarVisorHorarioPDF() {
     const btn = document.querySelector('#accionesVisorHorarios button');
     const originalHtml = btn.innerHTML;
@@ -8421,19 +8422,23 @@ async function exportarVisorHorarioPDF() {
                 if (data.cell.raw && typeof data.cell.raw.innerText !== 'undefined') {
                     let text = data.cell.raw.innerText.trim();
                     let lines = text.split('\n').map(l => l.trim()).filter(l => l !== '');
-                    data.cell.text = lines.join('\n');
+                    // CORRECCIÓN: Ahora pasamos un Arreglo (Array) a data.cell.text, en lugar de un String
+                    data.cell.text = lines;
                 }
                 
                 // Colorización en vivo de los Recesos y Encabezados de Columna "Hora"
                 if (data.section === 'body') {
-                    if (data.cell.text.join('\n').includes('RECESO')) {
-                        data.cell.text = 'RECESO';
+                    // Convertimos de forma segura a texto para realizar la búsqueda
+                    let textoCelda = Array.isArray(data.cell.text) ? data.cell.text.join(' ') : String(data.cell.text);
+
+                    if (textoCelda.includes('RECESO')) {
+                        data.cell.text = ['RECESO']; // Forzamos a que sea un array
                         data.cell.styles.fillColor = [253, 224, 71]; // Amarillo Advertencia
                         data.cell.styles.textColor = [0, 0, 0];
                         data.cell.styles.fontStyle = 'bold';
                         data.cell.styles.fontSize = 9;
                     }
-                    if (data.column.index === 0 && !isNaN(parseInt(data.cell.text))) {
+                    if (data.column.index === 0 && !isNaN(parseInt(textoCelda))) {
                         data.cell.styles.fillColor = [241, 245, 249];
                         data.cell.styles.fontStyle = 'bold';
                         data.cell.styles.fontSize = 11;
