@@ -152,7 +152,7 @@
       </div>
       <div class="card-footer bg-light text-center py-3 border-0">
         <small class="text-muted fw-semibold header-dir-inst d-block">Pichincha - Manabí - Ecuador</small>
-        <small class="text-muted" style="font-size: 0.65rem; opacity: 0.6;">v1.1.5 (Actualizado el 04/10/2026 23:04:00)</small>
+        <small class="text-muted" style="font-size: 0.65rem; opacity: 0.6;">v1.1.5 (Actualizado el 04/10/2026 23:20:00)</small>
       </div>
     </div>
   </div>
@@ -8159,11 +8159,6 @@ async function cargarVisorHorario() {
 
         const idsCursosJornada = cursosEnJornada.map(c => c.id);
         
-        // =========================================================
-        // SOLUCIÓN DEFINITIVA: EXTRACCIÓN PAGINADA ORDENADA
-        // Obtenemos TODA la tabla de forma segura usando .range() 
-        // y .order() para que Supabase no recorte relaciones anidadas.
-        // =========================================================
         let horariosDataBruto = [];
         let fetchMore = true;
         let start = 0;
@@ -8172,7 +8167,7 @@ async function cargarVisorHorario() {
         while (fetchMore) {
             const { data: chunk, error } = await supabaseClient.from('horarios')
                 .select('*, curso_materia_docente(docente_id, docente_id_2, docente_id_3, materias(nombre))')
-                .order('id', { ascending: true }) // CRÍTICO: Ordenar evita que Postgres se salte datos físicos
+                .order('id', { ascending: true }) 
                 .range(start, start + limit - 1);
                 
             if (error) throw error;
@@ -8181,16 +8176,20 @@ async function cargarVisorHorario() {
             if (chunk && chunk.length > 0) {
                 horariosDataBruto.push(...chunk);
                 start += limit;
-                // Si trajo menos del límite, significa que ya no hay más páginas
                 if (chunk.length < limit) fetchMore = false;
             } else {
                 fetchMore = false;
             }
         }
 
-        // Una vez que tenemos la tabla impecable en memoria, filtramos solo los de la jornada seleccionada
-        let horariosData = horariosDataBruto.filter(h => idsCursosJornada.includes(h.curso_id));
-        // =========================================================
+        // =========================================================================
+        // ELIMINADOR DE FANTASMAS: Filtramos la jornada Y exigimos que el registro
+        // sea un receso válido o tenga una materia vinculada real.
+        // =========================================================================
+        let horariosData = horariosDataBruto.filter(h => 
+            idsCursosJornada.includes(h.curso_id) && 
+            (h.es_receso || h.curso_materia_docente)
+        );
         
         let html = '';
         if (tipo === 'mi_horario' || tipo === 'profesores') {
@@ -8256,7 +8255,9 @@ function construirTablaHorarioPersonal(registros, recesosMap, idTabla, esExamen 
         html += `<tr><td class="bg-secondary text-white fw-bold border-secondary fs-5" style="vertical-align: middle;">${i}</td>`;
         for (let d = 1; d <= 5; d++) {
             const esRecesoGeneral = recesosMap.has(`${d}-${i}`);
-            const clasesBloque = registros.filter(r => r.dia_semana == d && r.hora_bloque == i);
+            
+            // VALIDACIÓN ANTI-FANTASMA
+            const clasesBloque = registros.filter(r => r.dia_semana == d && r.hora_bloque == i && r.curso_materia_docente);
             
             if (esRecesoGeneral && clasesBloque.length === 0) {
                 html += `<td class="bg-warning bg-opacity-25 text-dark fw-bold border-secondary align-middle">RECESO</td>`;
@@ -8345,41 +8346,37 @@ function construirTablaHorarioAgrupada(registros, todaLaData, cursosListado, idT
             
             for (let d = 1; d <= 5; d++) {
                 const recesoFijo = todaLaData.find(r => r.curso_id == c.id && r.dia_semana == d && r.hora_bloque == i && r.es_receso);
-                const regsCelda = registros.filter(r => r.curso_id == c.id && r.dia_semana == d && r.hora_bloque == i);
+                
+                // VALIDACIÓN ANTI-FANTASMA: Filtra exigiendo curso_materia_docente
+                const regsCelda = registros.filter(r => r.curso_id == c.id && r.dia_semana == d && r.hora_bloque == i && r.curso_materia_docente);
                 
                 if (recesoFijo) {
                     html += `<td class="p-1 border-secondary fw-bold text-dark align-middle" style="background-color: #fde047; font-size:0.65rem;">RECESO</td>`;
                 } else if (regsCelda.length > 0) {
                     const cData = regsCelda[0]; 
-                    if (cData.curso_materia_docente) {
-                        const matNombre = cData.curso_materia_docente.materias?.nombre || 'Materia';
-                        const detalleInfo = cData.detalle_materia ? ` (${cData.detalle_materia})` : '';
-                        
-                        // CORRECCIÓN 2: Mostrar a TODOS los docentes asignados a esa clase
-                        let nombresDocentes = [];
-                        const cmd = cData.curso_materia_docente;
-                        [cmd.docente_id, cmd.docente_id_2, cmd.docente_id_3].forEach(dId => {
-                            if (dId) {
-                                const docObj = docentesList.find(x => String(x.id) === String(dId));
-                                if (docObj) nombresDocentes.push(`${docObj.nombres} ${docObj.apellidos || ''}`.trim());
-                            }
-                        });
-                        
-                        // Formateamos los nombres en pequeñas etiquetas que el PDF procesará bien
-                        const htmlDocentes = nombresDocentes.map(n => `<div class="text-muted text-truncate" style="font-size: 0.48rem; line-height: 1.1;">${n}</div>`).join('');
-                        
-                        const colorFondo = esExamen ? '#d1e7dd' : '#e0f2fe';
-                        html += `
-                            <td class="p-1 border-secondary align-middle" style="background-color: ${colorFondo};">
-                                <div class="d-flex flex-column h-100 justify-content-center">
-                                    <span class="fw-bold text-dark text-wrap" style="font-size: 0.65rem; line-height: 1.1;">${matNombre}${detalleInfo}</span>
-                                    <div class="mt-1 w-100">${htmlDocentes}</div>
-                                </div>
-                            </td>
-                        `;
-                    } else {
-                        html += `<td class="bg-white border-secondary"></td>`;
-                    }
+                    const matNombre = cData.curso_materia_docente.materias?.nombre || 'Materia';
+                    const detalleInfo = cData.detalle_materia ? ` (${cData.detalle_materia})` : '';
+                    
+                    let nombresDocentes = [];
+                    const cmd = cData.curso_materia_docente;
+                    [cmd.docente_id, cmd.docente_id_2, cmd.docente_id_3].forEach(dId => {
+                        if (dId) {
+                            const docObj = docentesList.find(x => String(x.id) === String(dId));
+                            if (docObj) nombresDocentes.push(`${docObj.nombres} ${docObj.apellidos || ''}`.trim());
+                        }
+                    });
+                    
+                    const htmlDocentes = nombresDocentes.map(n => `<div class="text-muted text-truncate" style="font-size: 0.48rem; line-height: 1.1;">${n}</div>`).join('');
+                    const colorFondo = esExamen ? '#d1e7dd' : '#e0f2fe';
+                    
+                    html += `
+                        <td class="p-1 border-secondary align-middle" style="background-color: ${colorFondo};">
+                            <div class="d-flex flex-column h-100 justify-content-center">
+                                <span class="fw-bold text-dark text-wrap" style="font-size: 0.65rem; line-height: 1.1;">${matNombre}${detalleInfo}</span>
+                                <div class="mt-1 w-100">${htmlDocentes}</div>
+                            </div>
+                        </td>
+                    `;
                 } else {
                     html += `<td class="bg-white border-secondary"></td>`;
                 }
