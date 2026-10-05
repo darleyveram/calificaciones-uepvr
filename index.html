@@ -8183,12 +8183,12 @@ function generarHTMLHorarioDocente(data, docenteId, jornada) {
     let clases = data.filter(h => h.curso_materia_docente?.docente_id == docenteId && !h.es_examen);
     let examenes = data.filter(h => h.curso_materia_docente?.docente_id == docenteId && h.es_examen);
     
+    // Inyectar Recesos Generales (si la jornada los tiene marcados en cualquier horario)
+    const recesosJornada = data.filter(h => h.es_receso);
+    const recesosMap = new Set(recesosJornada.map(r => `${r.dia_semana}-${r.hora_bloque}`));
+    
     const docObj = docentesList.find(d => String(d.id) === String(docenteId));
     const nombreProf = docObj ? `${docObj.nombres} ${docObj.apellidos || ''}`.trim() : 'Docente';
-
-    if (clases.length === 0 && examenes.length === 0) {
-        return `<div class="alert alert-info text-center fw-bold shadow-sm"><i class="bi bi-info-circle-fill me-2"></i>El docente ${nombreProf} no tiene carga horaria asignada en la jornada ${jornada}.</div>`;
-    }
 
     return `
         <div class="text-center mb-4">
@@ -8197,35 +8197,40 @@ function generarHTMLHorarioDocente(data, docenteId, jornada) {
         </div>
         
         <h6 class="fw-bold border-bottom pb-2 mt-4 text-primary"><i class="bi bi-calendar-week me-2"></i>Horario de Clases Regulares</h6>
-        ${construirTablaHorarioPersonal(clases, 'tablaVisorClases')}
+        ${construirTablaHorarioPersonal(clases, recesosMap, 'tablaVisorClases', false)}
         
         <h6 class="fw-bold border-bottom pb-2 mt-4 text-danger"><i class="bi bi-calendar-check me-2"></i>Horario de Exámenes</h6>
-        ${construirTablaHorarioPersonal(examenes, 'tablaVisorExamenes', true)}
+        ${construirTablaHorarioPersonal(examenes, recesosMap, 'tablaVisorExamenes', true)}
     `;
 }
 
-function construirTablaHorarioPersonal(registros, idTabla, esExamen = false) {
+    
+function construirTablaHorarioPersonal(registros, recesosMap, idTabla, esExamen = false) {
     let html = `
     <div class="table-responsive shadow-sm rounded border mb-4">
         <table id="${idTabla}" class="table table-bordered table-sm text-center align-middle mb-0 bg-white" style="font-size: 0.75rem;">
             <thead class="${esExamen ? 'table-danger' : 'table-dark'}">
                 <tr>
-                    <th style="width: 80px;">BLOQUE</th>
-                    <th style="width: 18%;">LUNES</th>
-                    <th style="width: 18%;">MARTES</th>
-                    <th style="width: 18%;">MIÉRCOLES</th>
-                    <th style="width: 18%;">JUEVES</th>
-                    <th style="width: 18%;">VIERNES</th>
+                    <th style="width: 60px;">HORA</th>
+                    <th style="width: 18.8%;">LUNES</th>
+                    <th style="width: 18.8%;">MARTES</th>
+                    <th style="width: 18.8%;">MIÉRCOLES</th>
+                    <th style="width: 18.8%;">JUEVES</th>
+                    <th style="width: 18.8%;">VIERNES</th>
                 </tr>
             </thead>
             <tbody>
     `;
     
     for (let i = 1; i <= 7; i++) {
-        html += `<tr><td class="bg-light text-dark fw-bold border-secondary">Bloque ${i}</td>`;
+        html += `<tr><td class="bg-secondary text-white fw-bold border-secondary fs-5" style="vertical-align: middle;">${i}</td>`;
         for (let d = 1; d <= 5; d++) {
+            const esRecesoGeneral = recesosMap.has(`${d}-${i}`);
             const clasesBloque = registros.filter(r => r.dia_semana == d && r.hora_bloque == i);
-            if (clasesBloque.length > 0) {
+            
+            if (esRecesoGeneral && clasesBloque.length === 0) {
+                html += `<td class="bg-warning bg-opacity-25 text-dark fw-bold border-secondary align-middle">RECESO</td>`;
+            } else if (clasesBloque.length > 0) {
                 let cellHtml = clasesBloque.map(c => {
                     const cursoObj = todosCursos.find(x => x.id == c.curso_id);
                     const nomCurso = cursoObj ? cursoObj.nombre : '';
@@ -8270,20 +8275,20 @@ function generarHTMLHorarioCursos(data, cursoId, cursosEnJornada) {
         </div>
         
         <h6 class="fw-bold border-bottom pb-2 mt-4 text-primary"><i class="bi bi-calendar-week me-2"></i>Horario de Clases Regulares</h6>
-        ${construirTablaHorarioAgrupada(clases, cursosMostrar, 'tablaVisorClases')}
+        ${construirTablaHorarioAgrupada(clases, data, cursosMostrar, 'tablaVisorClases')}
         
         <h6 class="fw-bold border-bottom pb-2 mt-4 text-danger"><i class="bi bi-calendar-check me-2"></i>Horario de Exámenes</h6>
-        ${construirTablaHorarioAgrupada(examenes, cursosMostrar, 'tablaVisorExamenes', true)}
+        ${construirTablaHorarioAgrupada(examenes, data, cursosMostrar, 'tablaVisorExamenes', true)}
     `;
 }
 
-function construirTablaHorarioAgrupada(registros, cursosListado, idTabla, esExamen = false) {
+function construirTablaHorarioAgrupada(registros, todaLaData, cursosListado, idTabla, esExamen = false) {
     let html = `
     <div class="table-responsive shadow-sm rounded border mb-4">
         <table id="${idTabla}" class="table table-bordered table-sm text-center align-middle mb-0 bg-white" style="font-size: 0.70rem;">
             <thead class="${esExamen ? 'table-danger' : 'table-dark'}">
                 <tr>
-                    <th style="width: 40px;">H.</th>
+                    <th style="width: 40px;">HORA</th>
                     <th style="width: 140px;">CURSO</th>
                     <th style="width: 90px;">TIEMPO</th>
                     <th style="width: 14%;">LUNES</th>
@@ -8299,25 +8304,24 @@ function construirTablaHorarioAgrupada(registros, cursosListado, idTabla, esExam
     for (let i = 1; i <= 7; i++) {
         cursosListado.forEach((c, idx) => {
             html += `<tr>`;
-            if (idx === 0) html += `<td rowspan="${cursosListado.length}" class="bg-secondary text-white fw-bold align-middle fs-6 border-secondary">${i}</td>`;
+            if (idx === 0) html += `<td rowspan="${cursosListado.length}" class="bg-secondary text-white fw-bold align-middle fs-5 border-secondary">${i}</td>`;
             html += `<td class="fw-bold bg-light text-start ps-2 border-secondary" style="font-size:0.65rem; white-space:nowrap;">${c.nombre}</td>`;
             
-            let regTiempo = registros.find(r => r.curso_id == c.id && r.hora_bloque == i && r.hora_inicio);
+            let regTiempo = todaLaData.find(r => r.curso_id == c.id && r.hora_bloque == i && r.hora_inicio);
             const tIni = regTiempo?.hora_inicio || '--:--';
             const tFin = regTiempo?.hora_fin || '--:--';
             
             html += `<td class="bg-light align-middle px-1 border-secondary fw-bold text-primary" style="font-size:0.65rem;">${tIni}<br>${tFin}</td>`;
             
             for (let d = 1; d <= 5; d++) {
+                const recesoFijo = todaLaData.find(r => r.curso_id == c.id && r.dia_semana == d && r.hora_bloque == i && r.es_receso);
                 const regsCelda = registros.filter(r => r.curso_id == c.id && r.dia_semana == d && r.hora_bloque == i);
                 
-                if (regsCelda.length > 0) {
+                if (recesoFijo) {
+                    html += `<td class="p-1 border-secondary fw-bold text-dark align-middle" style="background-color: #fde047; font-size:0.65rem;">RECESO</td>`;
+                } else if (regsCelda.length > 0) {
                     const cData = regsCelda[0]; 
-                    if (cData.es_receso && !esExamen) {
-                        html += `<td class="p-1 border-secondary" style="background-color: ${cData.color_fondo || '#fde047'}; font-size:0.65rem;"><b>RECESO</b></td>`;
-                    } else if (cData.es_receso && esExamen) {
-                        html += `<td class="bg-warning bg-opacity-25 text-dark border-secondary align-middle" style="font-size:0.65rem;"><b>RECESO</b></td>`;
-                    } else if (cData.curso_materia_docente) {
+                    if (cData.curso_materia_docente) {
                         const matNombre = cData.curso_materia_docente.materias?.nombre || 'Materia';
                         const detalleInfo = cData.detalle_materia ? ` (${cData.detalle_materia})` : '';
                         
@@ -8360,8 +8364,8 @@ async function exportarVisorHorarioPDF() {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF({ compress: true, orientation: 'landscape', unit: 'mm', format: 'a4' });
         
-        const nomArriba = (infoInstitucion?.nombre_arriba || 'Unidad Educativa Particular').toUpperCase();
-        const nomAbajo = (infoInstitucion?.nombre_abajo || '"Vicente Rocafuerte"').toUpperCase();
+        const nomArriba = (infoInstitucion?.nombre_arriba || 'UNIDAD EDUCATIVA PARTICULAR').toUpperCase();
+        const nomAbajo = (infoInstitucion?.nombre_abajo || '"VICENTE ROCAFUERTE"').toUpperCase();
         const periodo = infoInstitucion?.periodo_lectivo || '2026-2027';
         
         const imgLogoIzq = await obtenerBase64DesdeUrl(infoInstitucion?.logo_izquierdo || infoInstitucion?.logo_institucion);
@@ -8373,90 +8377,110 @@ async function exportarVisorHorarioPDF() {
         let subtitulo = '';
         if (tipo === 'mi_horario' || tipo === 'profesores') {
             const idDoc = tipo === 'mi_horario' ? usuarioActualPerfil.id : document.getElementById('selectVisorDocente').value;
-            const docObj = docentesList.find(d => d.id == idDoc);
+            const docObj = docentesList.find(d => String(d.id) === String(idDoc));
             subtitulo = `DOCENTE: ${docObj ? docObj.nombres + ' ' + (docObj.apellidos||'') : ''} | JORNADA: ${jornada}`;
         } else {
             const curId = document.getElementById('selectVisorCurso').value;
             if (curId === 'TODOS') subtitulo = `VISTA GENERAL DE TODOS LOS CURSOS | JORNADA: ${jornada}`;
             else {
-                const cObj = todosCursos.find(c => c.id == curId);
+                const cObj = todosCursos.find(c => String(c.id) === String(curId));
                 subtitulo = `CURSO: ${cObj ? cObj.nombre : ''} | JORNADA: ${jornada}`;
             }
         }
 
-        const dibujarCabecera = () => {
-            if (imgLogoIzq) { try { doc.addImage(imgLogoIzq, 'PNG', 14, 10, 20, 20); } catch(e){} }
-            if (imgLogoDer) { try { doc.addImage(imgLogoDer, 'PNG', 263, 10, 20, 20); } catch(e){} }
-            doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.setTextColor(30, 41, 59);
-            doc.text(nomArriba, 148.5, 14, { align: 'center' });
-            doc.setFontSize(15); doc.setTextColor(220, 38, 38); 
-            doc.text(nomAbajo, 148.5, 21, { align: 'center' });
+        const dibujarCabecera = (tituloTabla, isExamen) => {
+            if (imgLogoIzq) { try { doc.addImage(imgLogoIzq, 'PNG', 14, 10, 22, 22); } catch(e){} }
+            if (imgLogoDer) { try { doc.addImage(imgLogoDer, 'PNG', 261, 10, 22, 22); } catch(e){} }
+            doc.setFont('helvetica', 'bold'); doc.setFontSize(14); doc.setTextColor(30, 41, 59);
+            doc.text(nomArriba, 148.5, 15, { align: 'center' });
+            doc.setFontSize(18); doc.setTextColor(220, 38, 38); 
+            doc.text(nomAbajo, 148.5, 22, { align: 'center' });
             doc.setFontSize(10); doc.setTextColor(71, 85, 105); doc.setFont('helvetica', 'normal');
-            doc.text(`AÑO LECTIVO: ${periodo}`, 148.5, 26, { align: 'center' });
-            doc.setDrawColor(200, 200, 200); doc.line(14, 30, 283, 30);
+            doc.text(`AÑO LECTIVO: ${periodo}`, 148.5, 27, { align: 'center' });
+            doc.setDrawColor(200, 200, 200); doc.line(14, 31, 283, 31);
             
-            doc.setFontSize(11); doc.setFont('helvetica', 'bold'); doc.setTextColor(15, 23, 42);
-            doc.text('HORARIO ACADÉMICO', 148.5, 36, { align: 'center' });
-            doc.setFontSize(9); doc.setTextColor(13, 110, 253);
-            doc.text(subtitulo, 148.5, 41, { align: 'center' });
+            doc.setFontSize(12); doc.setFont('helvetica', 'bold'); doc.setTextColor(15, 23, 42);
+            doc.text('HORARIO ACADÉMICO OFICIAL', 148.5, 37, { align: 'center' });
+            doc.setFontSize(10); doc.setTextColor(13, 110, 253);
+            doc.text(subtitulo, 148.5, 42, { align: 'center' });
+            
+            doc.setFontSize(12);
+            doc.setTextColor(isExamen ? 220 : 15, isExamen ? 38 : 23, isExamen ? 38 : 42);
+            doc.text(tituloTabla, 14, 52);
         };
         
-        dibujarCabecera();
-        let startY = 46;
-        
-        // Tabla Clases
-        const tablaClases = document.getElementById('tablaVisorClases');
-        if (tablaClases) {
-            doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(0,0,0);
-            doc.text('Horario de Clases Regulares', 14, startY);
-            startY += 3;
-            
-            doc.autoTable({
-                html: '#tablaVisorClases',
-                startY: startY,
-                theme: 'grid',
-                styles: { fontSize: 6.5, cellPadding: 1.5, valign: 'middle', halign: 'center', lineColor: [100, 100, 100], lineWidth: 0.1 },
-                headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255], fontStyle: 'bold' },
-                margin: { left: 14, right: 14, bottom: 20 },
-                useCss: false, // Desactivar CSS para evitar errores de parseo con jsPDF
-                didParseCell: function(data) {
-                    if (data.cell.raw && typeof data.cell.raw.innerText !== 'undefined') {
-                         data.cell.text = data.cell.raw.innerText.replace(/\n\s+/g, '\n').trim();
+        // CONFIGURACIÓN DE TABLAS SIMÉTRICAS
+        const tableConfigBase = {
+            theme: 'grid',
+            styles: { fontSize: 7, cellPadding: 2, valign: 'middle', halign: 'center', lineColor: [100, 100, 100], lineWidth: 0.1, minCellHeight: 18 },
+            margin: { left: 14, right: 14, bottom: 15 },
+            useCss: false, // Desactivar CSS para poder controlar las posiciones manualmente
+            rowPageBreak: 'avoid',
+            didParseCell: function(data) {
+                // Parseo manual y limpio para evitar que el texto se superponga
+                if (data.cell.raw && typeof data.cell.raw.innerText !== 'undefined') {
+                    let text = data.cell.raw.innerText.trim();
+                    let lines = text.split('\n').map(l => l.trim()).filter(l => l !== '');
+                    data.cell.text = lines.join('\n');
+                }
+                
+                // Colorización en vivo de los Recesos y Encabezados de Columna "Hora"
+                if (data.section === 'body') {
+                    if (data.cell.text.join('\n').includes('RECESO')) {
+                        data.cell.text = 'RECESO';
+                        data.cell.styles.fillColor = [253, 224, 71]; // Amarillo Advertencia
+                        data.cell.styles.textColor = [0, 0, 0];
+                        data.cell.styles.fontStyle = 'bold';
+                        data.cell.styles.fontSize = 9;
                     }
-                    if (data.section === 'head') {
-                         data.cell.styles.fillColor = [30, 41, 59];
-                         data.cell.styles.textColor = [255, 255, 255];
+                    if (data.column.index === 0 && !isNaN(parseInt(data.cell.text))) {
+                        data.cell.styles.fillColor = [241, 245, 249];
+                        data.cell.styles.fontStyle = 'bold';
+                        data.cell.styles.fontSize = 11;
                     }
                 }
-            });
-            startY = doc.lastAutoTable.finalY + 10;
+            }
+        };
+
+        // MATEMÁTICA EXACTA PARA CUADRAR LAS COLUMNAS A 269mm
+        let columnStylesClases = {};
+        if (tipo === 'cursos') {
+            columnStylesClases = {
+                0: { cellWidth: 12, halign: 'center', fontStyle: 'bold', fillColor: [241, 245, 249] }, // HORA
+                1: { cellWidth: 40, halign: 'left', fontStyle: 'bold' }, // CURSO
+                2: { cellWidth: 20, halign: 'center', textColor: [13, 110, 253] }, // TIEMPO
+                3: { cellWidth: 39.4 }, 4: { cellWidth: 39.4 }, 5: { cellWidth: 39.4 }, 6: { cellWidth: 39.4 }, 7: { cellWidth: 39.4 } // DIAS
+            };
+        } else {
+            columnStylesClases = {
+                0: { cellWidth: 15, halign: 'center', fontStyle: 'bold', fillColor: [241, 245, 249], fontSize: 11 }, // HORA
+                1: { cellWidth: 50.8 }, 2: { cellWidth: 50.8 }, 3: { cellWidth: 50.8 }, 4: { cellWidth: 50.8 }, 5: { cellWidth: 50.8 } // DIAS
+            };
         }
 
-        // Tabla Exámenes
+        const tablaClases = document.getElementById('tablaVisorClases');
         const tablaExamenes = document.getElementById('tablaVisorExamenes');
+
+        if (tablaClases) {
+            dibujarCabecera('Horario de Clases Regulares', false);
+            doc.autoTable({
+                html: '#tablaVisorClases',
+                startY: 55,
+                ...tableConfigBase,
+                headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 8, halign: 'center' },
+                columnStyles: columnStylesClases
+            });
+        }
+
         if (tablaExamenes) {
-            if (startY > 150) { doc.addPage(); dibujarCabecera(); startY = 46; }
-            doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(220,38,38);
-            doc.text('Horario de Exámenes', 14, startY);
-            startY += 3;
-            
+            if (tablaClases) doc.addPage();
+            dibujarCabecera('Horario de Evaluaciones / Exámenes', true);
             doc.autoTable({
                 html: '#tablaVisorExamenes',
-                startY: startY,
-                theme: 'grid',
-                styles: { fontSize: 6.5, cellPadding: 1.5, valign: 'middle', halign: 'center', lineColor: [100, 100, 100], lineWidth: 0.1 },
-                headStyles: { fillColor: [220, 38, 38], textColor: [255, 255, 255], fontStyle: 'bold' },
-                margin: { left: 14, right: 14, bottom: 20 },
-                useCss: false,
-                didParseCell: function(data) {
-                    if (data.cell.raw && typeof data.cell.raw.innerText !== 'undefined') {
-                         data.cell.text = data.cell.raw.innerText.replace(/\n\s+/g, '\n').trim();
-                    }
-                    if (data.section === 'head') {
-                         data.cell.styles.fillColor = [220, 38, 38];
-                         data.cell.styles.textColor = [255, 255, 255];
-                    }
-                }
+                startY: 55,
+                ...tableConfigBase,
+                headStyles: { fillColor: [220, 38, 38], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 8, halign: 'center' },
+                columnStyles: columnStylesClases
             });
         }
 
