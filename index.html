@@ -8159,10 +8159,11 @@ async function cargarVisorHorario() {
 
         const idsCursosJornada = cursosEnJornada.map(c => c.id);
         
-        // CORRECCIÓN: Ahora traemos docente_id, docente_id_2 y docente_id_3 para los filtros
+        // CORRECCIÓN 1: Se agrega .limit(15000) para evitar que Supabase corte la consulta en 1000 registros
         const { data: horariosData, error } = await supabaseClient.from('horarios')
             .select('*, curso_materia_docente(docente_id, docente_id_2, docente_id_3, materias(nombre))')
-            .in('curso_id', idsCursosJornada);
+            .in('curso_id', idsCursosJornada)
+            .limit(15000); 
         
         if (error) throw error;
         if (reqId !== currentViewRequestId) return;
@@ -8184,7 +8185,6 @@ async function cargarVisorHorario() {
 }
 
 function generarHTMLHorarioDocente(data, docenteId, jornada) {
-    // CORRECCIÓN: Validamos si el docente está en cualquiera de los 3 slots de la materia
     const esMio = (cmd) => cmd && (String(cmd.docente_id) === String(docenteId) || String(cmd.docente_id_2) === String(docenteId) || String(cmd.docente_id_3) === String(docenteId));
     
     let clases = data.filter(h => esMio(h.curso_materia_docente) && !h.es_examen);
@@ -8210,7 +8210,6 @@ function generarHTMLHorarioDocente(data, docenteId, jornada) {
     `;
 }
 
-    
 function construirTablaHorarioPersonal(registros, recesosMap, idTabla, esExamen = false) {
     let html = `
     <div class="table-responsive shadow-sm rounded border mb-4">
@@ -8288,7 +8287,6 @@ function generarHTMLHorarioCursos(data, cursoId, cursosEnJornada) {
     `;
 }
 
-    
 function construirTablaHorarioAgrupada(registros, todaLaData, cursosListado, idTabla, esExamen = false) {
     let html = `
     <div class="table-responsive shadow-sm rounded border mb-4">
@@ -8332,18 +8330,25 @@ function construirTablaHorarioAgrupada(registros, todaLaData, cursosListado, idT
                         const matNombre = cData.curso_materia_docente.materias?.nombre || 'Materia';
                         const detalleInfo = cData.detalle_materia ? ` (${cData.detalle_materia})` : '';
                         
-                        let docName = '';
-                        if (cData.curso_materia_docente.docente_id) {
-                            const docObj = docentesList.find(x => x.id == cData.curso_materia_docente.docente_id);
-                            docName = docObj ? `${docObj.nombres} ${docObj.apellidos || ''}`.trim() : '';
-                        }
+                        // CORRECCIÓN 2: Mostrar a TODOS los docentes asignados a esa clase
+                        let nombresDocentes = [];
+                        const cmd = cData.curso_materia_docente;
+                        [cmd.docente_id, cmd.docente_id_2, cmd.docente_id_3].forEach(dId => {
+                            if (dId) {
+                                const docObj = docentesList.find(x => String(x.id) === String(dId));
+                                if (docObj) nombresDocentes.push(`${docObj.nombres} ${docObj.apellidos || ''}`.trim());
+                            }
+                        });
+                        
+                        // Formateamos los nombres en pequeñas etiquetas que el PDF procesará bien
+                        const htmlDocentes = nombresDocentes.map(n => `<div class="text-muted text-truncate" style="font-size: 0.48rem; line-height: 1.1;">${n}</div>`).join('');
                         
                         const colorFondo = esExamen ? '#d1e7dd' : '#e0f2fe';
                         html += `
                             <td class="p-1 border-secondary align-middle" style="background-color: ${colorFondo};">
                                 <div class="d-flex flex-column h-100 justify-content-center">
                                     <span class="fw-bold text-dark text-wrap" style="font-size: 0.65rem; line-height: 1.1;">${matNombre}${detalleInfo}</span>
-                                    <span class="text-muted mt-1 text-truncate w-100" style="font-size: 0.5rem;">${docName}</span>
+                                    <div class="mt-1 w-100">${htmlDocentes}</div>
                                 </div>
                             </td>
                         `;
@@ -8414,11 +8419,9 @@ async function exportarVisorHorarioPDF() {
             
             doc.setFontSize(12);
             doc.setTextColor(isExamen ? 220 : 15, isExamen ? 38 : 23, isExamen ? 38 : 42);
-            doc.text(tituloTabla, 14, 47); // Subido ligeramente
+            doc.text(tituloTabla, 14, 47);
         };
         
-        // CONFIGURACIÓN DE TABLAS SIMÉTRICAS REDUCIDAS
-        // CORRECCIÓN: startY en 50, y minCellHeight en 16 para que entren las 7 horas [23]
         const tableConfigBase = {
             theme: 'grid',
             styles: { fontSize: 7, cellPadding: 2, valign: 'middle', halign: 'center', lineColor: [100, 100, 100], lineWidth: 0.1, minCellHeight: 16 },
@@ -8435,7 +8438,6 @@ async function exportarVisorHorarioPDF() {
                 if (data.section === 'body') {
                     let textoCelda = Array.isArray(data.cell.text) ? data.cell.text.join(' ') : String(data.cell.text);
 
-                    // Forzar el receso a color amarillo institucional
                     if (textoCelda.includes('RECESO')) {
                         data.cell.text = ['RECESO'];
                         data.cell.styles.fillColor = [253, 224, 71]; 
@@ -8452,7 +8454,6 @@ async function exportarVisorHorarioPDF() {
             }
         };
 
-        // MATEMÁTICA EXACTA PARA CUADRAR LAS COLUMNAS A 269mm
         let columnStylesClases = {};
         if (tipo === 'cursos') {
             columnStylesClases = {
@@ -8475,7 +8476,7 @@ async function exportarVisorHorarioPDF() {
             dibujarCabecera('Horario de Clases Regulares', false);
             doc.autoTable({
                 html: '#tablaVisorClases',
-                startY: 50, // Levantado a 50 para ganar espacio [23]
+                startY: 50,
                 ...tableConfigBase,
                 headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 8, halign: 'center' },
                 columnStyles: columnStylesClases
@@ -8483,7 +8484,6 @@ async function exportarVisorHorarioPDF() {
         }
 
         if (tablaExamenes) {
-            // CORRECCIÓN: Hacemos un salto forzado de página para que los exámenes salgan impecables en la 2da hoja [23]
             doc.addPage();
             dibujarCabecera('Horario de Evaluaciones / Exámenes', true);
             doc.autoTable({
