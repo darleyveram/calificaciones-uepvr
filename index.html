@@ -8158,7 +8158,11 @@ async function cargarVisorHorario() {
         }
 
         const idsCursosJornada = cursosEnJornada.map(c => c.id);
-        const { data: horariosData, error } = await supabaseClient.from('horarios').select('*, curso_materia_docente(docente_id, materias(nombre))').in('curso_id', idsCursosJornada);
+        
+        // CORRECCIÓN: Ahora traemos docente_id, docente_id_2 y docente_id_3 para los filtros
+        const { data: horariosData, error } = await supabaseClient.from('horarios')
+            .select('*, curso_materia_docente(docente_id, docente_id_2, docente_id_3, materias(nombre))')
+            .in('curso_id', idsCursosJornada);
         
         if (error) throw error;
         if (reqId !== currentViewRequestId) return;
@@ -8180,10 +8184,12 @@ async function cargarVisorHorario() {
 }
 
 function generarHTMLHorarioDocente(data, docenteId, jornada) {
-    let clases = data.filter(h => h.curso_materia_docente?.docente_id == docenteId && !h.es_examen);
-    let examenes = data.filter(h => h.curso_materia_docente?.docente_id == docenteId && h.es_examen);
+    // CORRECCIÓN: Validamos si el docente está en cualquiera de los 3 slots de la materia
+    const esMio = (cmd) => cmd && (String(cmd.docente_id) === String(docenteId) || String(cmd.docente_id_2) === String(docenteId) || String(cmd.docente_id_3) === String(docenteId));
     
-    // Inyectar Recesos Generales (si la jornada los tiene marcados en cualquier horario)
+    let clases = data.filter(h => esMio(h.curso_materia_docente) && !h.es_examen);
+    let examenes = data.filter(h => esMio(h.curso_materia_docente) && h.es_examen);
+    
     const recesosJornada = data.filter(h => h.es_receso);
     const recesosMap = new Set(recesosJornada.map(r => `${r.dia_semana}-${r.hora_bloque}`));
     
@@ -8282,6 +8288,7 @@ function generarHTMLHorarioCursos(data, cursoId, cursosEnJornada) {
     `;
 }
 
+    
 function construirTablaHorarioAgrupada(registros, todaLaData, cursosListado, idTabla, esExamen = false) {
     let html = `
     <div class="table-responsive shadow-sm rounded border mb-4">
@@ -8355,7 +8362,7 @@ function construirTablaHorarioAgrupada(registros, todaLaData, cursosListado, idT
     return html;
 }
 
-// FORMATO DE DESCARGA PDF DE HORARIOS SIMÉTRICO Y PROFESIONAL
+// FORMATO DE DESCARGA PDF DE HORARIOS SIMÉTRICO Y PROFESIONAL (CUADRADO PERFECTO)
 async function exportarVisorHorarioPDF() {
     const btn = document.querySelector('#accionesVisorHorarios button');
     const originalHtml = btn.innerHTML;
@@ -8401,39 +8408,37 @@ async function exportarVisorHorarioPDF() {
             doc.setDrawColor(200, 200, 200); doc.line(14, 31, 283, 31);
             
             doc.setFontSize(12); doc.setFont('helvetica', 'bold'); doc.setTextColor(15, 23, 42);
-            doc.text('HORARIO ACADÉMICO OFICIAL', 148.5, 37, { align: 'center' });
-            doc.setFontSize(10); doc.setTextColor(13, 110, 253);
-            doc.text(subtitulo, 148.5, 42, { align: 'center' });
+            doc.text('HORARIO ACADÉMICO OFICIAL', 148.5, 36, { align: 'center' });
+            doc.setFontSize(9); doc.setTextColor(13, 110, 253);
+            doc.text(subtitulo, 148.5, 41, { align: 'center' });
             
             doc.setFontSize(12);
             doc.setTextColor(isExamen ? 220 : 15, isExamen ? 38 : 23, isExamen ? 38 : 42);
-            doc.text(tituloTabla, 14, 52);
+            doc.text(tituloTabla, 14, 47); // Subido ligeramente
         };
         
-        // CONFIGURACIÓN DE TABLAS SIMÉTRICAS
+        // CONFIGURACIÓN DE TABLAS SIMÉTRICAS REDUCIDAS
+        // CORRECCIÓN: startY en 50, y minCellHeight en 16 para que entren las 7 horas [23]
         const tableConfigBase = {
             theme: 'grid',
-            styles: { fontSize: 7, cellPadding: 2, valign: 'middle', halign: 'center', lineColor: [100, 100, 100], lineWidth: 0.1, minCellHeight: 18 },
-            margin: { left: 14, right: 14, bottom: 15 },
-            useCss: false, // Desactivar CSS para poder controlar las posiciones manualmente
+            styles: { fontSize: 7, cellPadding: 2, valign: 'middle', halign: 'center', lineColor: [100, 100, 100], lineWidth: 0.1, minCellHeight: 16 },
+            margin: { left: 14, right: 14, bottom: 10 },
+            useCss: false, 
             rowPageBreak: 'avoid',
             didParseCell: function(data) {
-                // Parseo manual y limpio para evitar que el texto se superponga
                 if (data.cell.raw && typeof data.cell.raw.innerText !== 'undefined') {
                     let text = data.cell.raw.innerText.trim();
                     let lines = text.split('\n').map(l => l.trim()).filter(l => l !== '');
-                    // CORRECCIÓN: Ahora pasamos un Arreglo (Array) a data.cell.text, en lugar de un String
                     data.cell.text = lines;
                 }
                 
-                // Colorización en vivo de los Recesos y Encabezados de Columna "Hora"
                 if (data.section === 'body') {
-                    // Convertimos de forma segura a texto para realizar la búsqueda
                     let textoCelda = Array.isArray(data.cell.text) ? data.cell.text.join(' ') : String(data.cell.text);
 
+                    // Forzar el receso a color amarillo institucional
                     if (textoCelda.includes('RECESO')) {
-                        data.cell.text = ['RECESO']; // Forzamos a que sea un array
-                        data.cell.styles.fillColor = [253, 224, 71]; // Amarillo Advertencia
+                        data.cell.text = ['RECESO'];
+                        data.cell.styles.fillColor = [253, 224, 71]; 
                         data.cell.styles.textColor = [0, 0, 0];
                         data.cell.styles.fontStyle = 'bold';
                         data.cell.styles.fontSize = 9;
@@ -8451,15 +8456,15 @@ async function exportarVisorHorarioPDF() {
         let columnStylesClases = {};
         if (tipo === 'cursos') {
             columnStylesClases = {
-                0: { cellWidth: 12, halign: 'center', fontStyle: 'bold', fillColor: [241, 245, 249] }, // HORA
-                1: { cellWidth: 40, halign: 'left', fontStyle: 'bold' }, // CURSO
-                2: { cellWidth: 20, halign: 'center', textColor: [13, 110, 253] }, // TIEMPO
-                3: { cellWidth: 39.4 }, 4: { cellWidth: 39.4 }, 5: { cellWidth: 39.4 }, 6: { cellWidth: 39.4 }, 7: { cellWidth: 39.4 } // DIAS
+                0: { cellWidth: 12, halign: 'center', fontStyle: 'bold', fillColor: [241, 245, 249] }, 
+                1: { cellWidth: 40, halign: 'left', fontStyle: 'bold' }, 
+                2: { cellWidth: 20, halign: 'center', textColor: [13, 110, 253] }, 
+                3: { cellWidth: 39.4 }, 4: { cellWidth: 39.4 }, 5: { cellWidth: 39.4 }, 6: { cellWidth: 39.4 }, 7: { cellWidth: 39.4 }
             };
         } else {
             columnStylesClases = {
-                0: { cellWidth: 15, halign: 'center', fontStyle: 'bold', fillColor: [241, 245, 249], fontSize: 11 }, // HORA
-                1: { cellWidth: 50.8 }, 2: { cellWidth: 50.8 }, 3: { cellWidth: 50.8 }, 4: { cellWidth: 50.8 }, 5: { cellWidth: 50.8 } // DIAS
+                0: { cellWidth: 15, halign: 'center', fontStyle: 'bold', fillColor: [241, 245, 249], fontSize: 11 }, 
+                1: { cellWidth: 50.8 }, 2: { cellWidth: 50.8 }, 3: { cellWidth: 50.8 }, 4: { cellWidth: 50.8 }, 5: { cellWidth: 50.8 } 
             };
         }
 
@@ -8470,7 +8475,7 @@ async function exportarVisorHorarioPDF() {
             dibujarCabecera('Horario de Clases Regulares', false);
             doc.autoTable({
                 html: '#tablaVisorClases',
-                startY: 55,
+                startY: 50, // Levantado a 50 para ganar espacio [23]
                 ...tableConfigBase,
                 headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 8, halign: 'center' },
                 columnStyles: columnStylesClases
@@ -8478,11 +8483,12 @@ async function exportarVisorHorarioPDF() {
         }
 
         if (tablaExamenes) {
-            if (tablaClases) doc.addPage();
+            // CORRECCIÓN: Hacemos un salto forzado de página para que los exámenes salgan impecables en la 2da hoja [23]
+            doc.addPage();
             dibujarCabecera('Horario de Evaluaciones / Exámenes', true);
             doc.autoTable({
                 html: '#tablaVisorExamenes',
-                startY: 55,
+                startY: 50,
                 ...tableConfigBase,
                 headStyles: { fillColor: [220, 38, 38], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 8, halign: 'center' },
                 columnStyles: columnStylesClases
