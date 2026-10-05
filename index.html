@@ -215,6 +215,7 @@
               <option value="mejores_estudiantes" id="optModoMejores" class="text-warning fw-bold">🏆 Mejores Estudiantes</option>
               <!-- NUEVO MÓDULO: MONITOREO -->
               <option value="monitoreo" id="optModoMonitoreo" class="d-none text-success fw-bold">🟢 Monitoreo en Vivo</option>
+              <option value="visor_horarios" id="optModoVisorHorarios" class="text-primary fw-bold">📅 Visor de Horarios / Exámenes</option>
             </select>
           </div>
 
@@ -252,6 +253,41 @@
               <option value="resumen_trimestre">Examen y Resumen Trimestral</option>
             </select>
           </div>
+
+          <!-- NUEVOS FILTROS: VISOR DE HORARIOS -->
+          <div class="col-6 col-md-2 d-none" id="boxVisorTipo">
+            <label class="form-label mb-1 fw-bold small">Ver horario de:</label>
+            <select id="selectVisorTipo" class="form-select form-select-sm border-primary text-primary fw-bold shadow-sm" onchange="cambiarFiltrosVisorHorario()">
+              <option value="mi_horario">Mi Horario (Docente)</option>
+              <option value="profesores" class="auth-admin-insp d-none">Horario por Docente</option>
+              <option value="cursos" class="auth-admin-insp d-none">Horarios por Curso</option>
+            </select>
+          </div>
+          
+          <div class="col-6 col-md-2 d-none" id="boxVisorJornada">
+            <label class="form-label mb-1 fw-bold small">Jornada:</label>
+            <select id="selectVisorJornada" class="form-select form-select-sm border-primary shadow-sm" onchange="cambiarFiltrosVisorHorario()">
+              <option value="Matutina">Matutina</option>
+              <option value="Vespertina">Vespertina</option>
+            </select>
+          </div>
+
+          <div class="col-6 col-md-3 d-none" id="boxVisorDocente">
+            <label class="form-label mb-1 fw-bold small">Seleccione Docente:</label>
+            <select id="selectVisorDocente" class="form-select form-select-sm shadow-sm" onchange="cargarVisorHorario()"></select>
+          </div>
+          
+          <div class="col-6 col-md-3 d-none" id="boxVisorCurso">
+            <label class="form-label mb-1 fw-bold small">Seleccione Curso:</label>
+            <select id="selectVisorCurso" class="form-select form-select-sm shadow-sm" onchange="cargarVisorHorario()"></select>
+          </div>
+
+          <div class="col-12 col-md-3 text-end pt-2 pt-md-3 d-none" id="accionesVisorHorarios">
+            <button class="btn btn-danger btn-sm px-3 fw-bold shadow-sm" onclick="exportarVisorHorarioPDF()"><i class="bi bi-file-pdf me-1"></i> Descargar PDF</button>
+          </div>
+          <!-- FIN FILTROS VISOR DE HORARIOS -->
+
+          
 
           <!-- NUEVO: FILTRO DISTANCIA (SOLO ADMIN) -->
           <div class="col-6 col-md-2 d-none" id="boxFiltroDistancia">
@@ -1051,8 +1087,18 @@
       const esAdmin = usuarioActualPerfil?.rol === 'admin';
       const puedeVerAsistencia = (esAdmin || usuarioActualPerfil?.puede_gestionar_asistencia === true);
       const cursoSeleccionadoPrevio = selectCurso.value;
+      const boxVisorTipo = document.getElementById('boxVisorTipo');
+      const boxVisorJornada = document.getElementById('boxVisorJornada');
+      const boxVisorDocente = document.getElementById('boxVisorDocente');
+      const boxVisorCurso = document.getElementById('boxVisorCurso');
+      const accVisorHorarios = document.getElementById('accionesVisorHorarios');
 
       if (boxTipoAuditoria) boxTipoAuditoria.classList.add('d-none');
+      if(boxVisorTipo) boxVisorTipo.classList.add('d-none');
+      if(boxVisorJornada) boxVisorJornada.classList.add('d-none');
+      if(boxVisorDocente) boxVisorDocente.classList.add('d-none');
+      if(boxVisorCurso) boxVisorCurso.classList.add('d-none');
+      if(accVisorHorarios) accVisorHorarios.classList.add('d-none');
 
       if (modo === 'tutoria') {
         boxCurso.classList.remove('d-none'); boxMateria.classList.add('d-none'); boxVista.classList.add('d-none'); boxParcialAsist.classList.add('d-none'); boxParcialTut.classList.remove('d-none'); optAnual.classList.add('d-none');
@@ -1114,6 +1160,25 @@
         cursosDisponibles.sort((a,b) => a.nombre.localeCompare(b.nombre)); 
         selectCurso.innerHTML = '<option value="TODOS">👉 TODOS MIS CURSOS (Consolidado)</option>' + cursosDisponibles.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
       }
+
+        if (modo === 'visor_horarios') {
+        boxCurso.classList.add('d-none'); boxMateria.classList.add('d-none'); boxVista.classList.add('d-none'); boxParcialAsist.classList.add('d-none'); boxParcialTut.classList.add('d-none'); optAnual.classList.add('d-none'); boxTrimestre.classList.add('d-none');
+        
+        boxVisorTipo.classList.remove('d-none');
+        boxVisorJornada.classList.remove('d-none');
+        accVisorHorarios.classList.remove('d-none');
+        
+        if (esAdmin || puedeVerAsistencia) {
+            document.querySelectorAll('.auth-admin-insp').forEach(el => el.classList.remove('d-none'));
+        } else {
+            document.querySelectorAll('.auth-admin-insp').forEach(el => el.classList.add('d-none'));
+            document.getElementById('selectVisorTipo').value = 'mi_horario';
+        }
+        cambiarFiltrosVisorHorario();
+        return;
+      }
+
+        
       else if (modo === 'informe_parcial' || modo === 'revision_informes') {
         boxCurso.classList.remove('d-none'); 
         if (modo === 'informe_parcial') boxMateria.classList.remove('d-none');
@@ -8039,6 +8104,368 @@ async function exportarCitacionPDF(id) {
 
         doc.save(`Citacion_${cit.numero_citacion}_${nombreEst.replace(/\s+/g, '_')}.pdf`);
     } catch(err) { alert('Error: ' + err.message); }
+}
+
+    // =========================================================================
+// MÓDULO: VISOR DE HORARIOS Y EXÁMENES (PARA TODOS LOS USUARIOS)
+// =========================================================================
+function cambiarFiltrosVisorHorario() {
+    const tipo = document.getElementById('selectVisorTipo').value;
+    const boxDocente = document.getElementById('boxVisorDocente');
+    const boxCurso = document.getElementById('boxVisorCurso');
+    
+    if (tipo === 'mi_horario') {
+        boxDocente.classList.add('d-none');
+        boxCurso.classList.add('d-none');
+    } else if (tipo === 'profesores') {
+        boxDocente.classList.remove('d-none');
+        boxCurso.classList.add('d-none');
+        document.getElementById('selectVisorDocente').innerHTML = '<option value="">Seleccione Docente...</option>' + docentesList.map(d => `<option value="${d.id}">${d.nombres} ${d.apellidos || ''}</option>`).join('');
+    } else if (tipo === 'cursos') {
+        boxDocente.classList.add('d-none');
+        boxCurso.classList.remove('d-none');
+        document.getElementById('selectVisorCurso').innerHTML = '<option value="TODOS">🏫 TODOS LOS CURSOS (Vista General)</option>' + todosCursos.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
+    }
+    
+    cargarVisorHorario();
+}
+
+async function cargarVisorHorario() {
+    const reqId = ++currentViewRequestId;
+    const tipo = document.getElementById('selectVisorTipo').value;
+    const jornada = document.getElementById('selectVisorJornada').value;
+    const contenedor = document.getElementById('contenedorTabla');
+    
+    if ((tipo === 'profesores' && !document.getElementById('selectVisorDocente').value) || 
+        (tipo === 'cursos' && !document.getElementById('selectVisorCurso').value)) {
+        contenedor.innerHTML = '<div class="py-4 text-muted text-center fw-bold">Seleccione las opciones correspondientes en la parte superior.</div>';
+        return;
+    }
+    
+    contenedor.innerHTML = '<div class="py-5 text-center"><div class="spinner-border text-primary me-2"></div><div class="mt-2 fw-bold text-muted">Generando horario...</div></div>';
+    
+    try {
+        const { data: configJuntas } = await supabaseClient.from('juntas_config').select('curso_id, seccion');
+        let cursosEnJornada = todosCursos.filter(c => {
+            const conf = (configJuntas || []).find(j => String(j.curso_id) === String(c.id));
+            if (conf && conf.seccion) return conf.seccion.toLowerCase() === jornada.toLowerCase();
+            return jornada === 'Vespertina'; 
+        });
+        
+        if (cursosEnJornada.length === 0) {
+            contenedor.innerHTML = `<div class="py-4 text-warning text-center fw-bold">No hay cursos configurados en la jornada ${jornada}.</div>`;
+            return;
+        }
+
+        const idsCursosJornada = cursosEnJornada.map(c => c.id);
+        const { data: horariosData, error } = await supabaseClient.from('horarios').select('*, curso_materia_docente(docente_id, materias(nombre))').in('curso_id', idsCursosJornada);
+        
+        if (error) throw error;
+        if (reqId !== currentViewRequestId) return;
+        
+        let html = '';
+        if (tipo === 'mi_horario' || tipo === 'profesores') {
+            const targetDocenteId = tipo === 'mi_horario' ? usuarioActualPerfil.id : document.getElementById('selectVisorDocente').value;
+            html = generarHTMLHorarioDocente(horariosData || [], targetDocenteId, jornada);
+        } else if (tipo === 'cursos') {
+            const targetCursoId = document.getElementById('selectVisorCurso').value;
+            html = generarHTMLHorarioCursos(horariosData || [], targetCursoId, cursosEnJornada);
+        }
+        
+        contenedor.innerHTML = `<div class="p-3 bg-white mx-auto" style="max-width: 1200px;" id="pdfHorarioContainer">${html}</div>`;
+        
+    } catch (err) {
+        if (reqId === currentViewRequestId) contenedor.innerHTML = `<div class="py-4 text-danger text-center fw-bold">Error: ${err.message}</div>`;
+    }
+}
+
+function generarHTMLHorarioDocente(data, docenteId, jornada) {
+    let clases = data.filter(h => h.curso_materia_docente?.docente_id == docenteId && !h.es_examen);
+    let examenes = data.filter(h => h.curso_materia_docente?.docente_id == docenteId && h.es_examen);
+    
+    const docObj = docentesList.find(d => String(d.id) === String(docenteId));
+    const nombreProf = docObj ? `${docObj.nombres} ${docObj.apellidos || ''}`.trim() : 'Docente';
+
+    if (clases.length === 0 && examenes.length === 0) {
+        return `<div class="alert alert-info text-center fw-bold shadow-sm"><i class="bi bi-info-circle-fill me-2"></i>El docente ${nombreProf} no tiene carga horaria asignada en la jornada ${jornada}.</div>`;
+    }
+
+    return `
+        <div class="text-center mb-4">
+            <h5 class="fw-bold text-primary mb-1">HORARIO DE CLASES Y EXÁMENES</h5>
+            <h6 class="fw-bold text-dark">DOCENTE: ${nombreProf.toUpperCase()} | JORNADA: ${jornada.toUpperCase()}</h6>
+        </div>
+        
+        <h6 class="fw-bold border-bottom pb-2 mt-4 text-primary"><i class="bi bi-calendar-week me-2"></i>Horario de Clases Regulares</h6>
+        ${construirTablaHorarioPersonal(clases, 'tablaVisorClases')}
+        
+        <h6 class="fw-bold border-bottom pb-2 mt-4 text-danger"><i class="bi bi-calendar-check me-2"></i>Horario de Exámenes</h6>
+        ${construirTablaHorarioPersonal(examenes, 'tablaVisorExamenes', true)}
+    `;
+}
+
+function construirTablaHorarioPersonal(registros, idTabla, esExamen = false) {
+    let html = `
+    <div class="table-responsive shadow-sm rounded border mb-4">
+        <table id="${idTabla}" class="table table-bordered table-sm text-center align-middle mb-0 bg-white" style="font-size: 0.75rem;">
+            <thead class="${esExamen ? 'table-danger' : 'table-dark'}">
+                <tr>
+                    <th style="width: 80px;">BLOQUE</th>
+                    <th style="width: 18%;">LUNES</th>
+                    <th style="width: 18%;">MARTES</th>
+                    <th style="width: 18%;">MIÉRCOLES</th>
+                    <th style="width: 18%;">JUEVES</th>
+                    <th style="width: 18%;">VIERNES</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+    
+    for (let i = 1; i <= 7; i++) {
+        html += `<tr><td class="bg-light text-dark fw-bold border-secondary">Bloque ${i}</td>`;
+        for (let d = 1; d <= 5; d++) {
+            const clasesBloque = registros.filter(r => r.dia_semana == d && r.hora_bloque == i);
+            if (clasesBloque.length > 0) {
+                let cellHtml = clasesBloque.map(c => {
+                    const cursoObj = todosCursos.find(x => x.id == c.curso_id);
+                    const nomCurso = cursoObj ? cursoObj.nombre : '';
+                    const nomMateria = c.curso_materia_docente?.materias?.nombre || '';
+                    const detalle = c.detalle_materia ? ` (${c.detalle_materia})` : '';
+                    const tiempo = `${c.hora_inicio || '--:--'} - ${c.hora_fin || '--:--'}`;
+                    const bgCol = esExamen ? '#f8d7da' : '#e0f2fe';
+                    const textCol = esExamen ? '#842029' : '#084298';
+                    return `
+                        <div class="p-1 mb-1 border rounded shadow-sm" style="background-color: ${bgCol};">
+                            <div class="fw-bold" style="font-size: 0.70rem; color: ${textCol};">${nomMateria}${detalle}</div>
+                            <div class="text-dark fw-bold" style="font-size: 0.65rem;">${nomCurso}</div>
+                            <div class="text-muted" style="font-size: 0.6rem;"><i class="bi bi-clock"></i> ${tiempo}</div>
+                        </div>
+                    `;
+                }).join('');
+                html += `<td class="border-secondary p-1 align-middle">${cellHtml}</td>`;
+            } else {
+                html += `<td class="bg-white border-secondary"></td>`;
+            }
+        }
+        html += `</tr>`;
+    }
+    
+    html += `</tbody></table></div>`;
+    return html;
+}
+
+function generarHTMLHorarioCursos(data, cursoId, cursosEnJornada) {
+    let cursosMostrar = cursoId === 'TODOS' ? cursosEnJornada : cursosEnJornada.filter(c => String(c.id) === String(cursoId));
+    if (cursosMostrar.length === 0) return '<div class="alert alert-warning text-center fw-bold">No se encontraron cursos.</div>';
+    
+    const titulo = cursoId === 'TODOS' ? 'VISTA GENERAL DE TODOS LOS CURSOS' : `CURSO: ${cursosMostrar[0].nombre}`;
+
+    let clases = data.filter(h => !h.es_examen);
+    let examenes = data.filter(h => h.es_examen);
+
+    return `
+        <div class="text-center mb-4">
+            <h5 class="fw-bold text-primary mb-1">HORARIO DE CLASES Y EXÁMENES</h5>
+            <h6 class="fw-bold text-dark">${titulo.toUpperCase()} | JORNADA: ${document.getElementById('selectVisorJornada').value.toUpperCase()}</h6>
+        </div>
+        
+        <h6 class="fw-bold border-bottom pb-2 mt-4 text-primary"><i class="bi bi-calendar-week me-2"></i>Horario de Clases Regulares</h6>
+        ${construirTablaHorarioAgrupada(clases, cursosMostrar, 'tablaVisorClases')}
+        
+        <h6 class="fw-bold border-bottom pb-2 mt-4 text-danger"><i class="bi bi-calendar-check me-2"></i>Horario de Exámenes</h6>
+        ${construirTablaHorarioAgrupada(examenes, cursosMostrar, 'tablaVisorExamenes', true)}
+    `;
+}
+
+function construirTablaHorarioAgrupada(registros, cursosListado, idTabla, esExamen = false) {
+    let html = `
+    <div class="table-responsive shadow-sm rounded border mb-4">
+        <table id="${idTabla}" class="table table-bordered table-sm text-center align-middle mb-0 bg-white" style="font-size: 0.70rem;">
+            <thead class="${esExamen ? 'table-danger' : 'table-dark'}">
+                <tr>
+                    <th style="width: 40px;">H.</th>
+                    <th style="width: 140px;">CURSO</th>
+                    <th style="width: 90px;">TIEMPO</th>
+                    <th style="width: 14%;">LUNES</th>
+                    <th style="width: 14%;">MARTES</th>
+                    <th style="width: 14%;">MIÉRCOLES</th>
+                    <th style="width: 14%;">JUEVES</th>
+                    <th style="width: 14%;">VIERNES</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+    
+    for (let i = 1; i <= 7; i++) {
+        cursosListado.forEach((c, idx) => {
+            html += `<tr>`;
+            if (idx === 0) html += `<td rowspan="${cursosListado.length}" class="bg-secondary text-white fw-bold align-middle fs-6 border-secondary">${i}</td>`;
+            html += `<td class="fw-bold bg-light text-start ps-2 border-secondary" style="font-size:0.65rem; white-space:nowrap;">${c.nombre}</td>`;
+            
+            let regTiempo = registros.find(r => r.curso_id == c.id && r.hora_bloque == i && r.hora_inicio);
+            const tIni = regTiempo?.hora_inicio || '--:--';
+            const tFin = regTiempo?.hora_fin || '--:--';
+            
+            html += `<td class="bg-light align-middle px-1 border-secondary fw-bold text-primary" style="font-size:0.65rem;">${tIni}<br>${tFin}</td>`;
+            
+            for (let d = 1; d <= 5; d++) {
+                const regsCelda = registros.filter(r => r.curso_id == c.id && r.dia_semana == d && r.hora_bloque == i);
+                
+                if (regsCelda.length > 0) {
+                    const cData = regsCelda[0]; 
+                    if (cData.es_receso && !esExamen) {
+                        html += `<td class="p-1 border-secondary" style="background-color: ${cData.color_fondo || '#fde047'}; font-size:0.65rem;"><b>RECESO</b></td>`;
+                    } else if (cData.es_receso && esExamen) {
+                        html += `<td class="bg-warning bg-opacity-25 text-dark border-secondary align-middle" style="font-size:0.65rem;"><b>RECESO</b></td>`;
+                    } else if (cData.curso_materia_docente) {
+                        const matNombre = cData.curso_materia_docente.materias?.nombre || 'Materia';
+                        const detalleInfo = cData.detalle_materia ? ` (${cData.detalle_materia})` : '';
+                        
+                        let docName = '';
+                        if (cData.curso_materia_docente.docente_id) {
+                            const docObj = docentesList.find(x => x.id == cData.curso_materia_docente.docente_id);
+                            docName = docObj ? `${docObj.nombres} ${docObj.apellidos || ''}`.trim() : '';
+                        }
+                        
+                        const colorFondo = esExamen ? '#d1e7dd' : '#e0f2fe';
+                        html += `
+                            <td class="p-1 border-secondary align-middle" style="background-color: ${colorFondo};">
+                                <div class="d-flex flex-column h-100 justify-content-center">
+                                    <span class="fw-bold text-dark text-wrap" style="font-size: 0.65rem; line-height: 1.1;">${matNombre}${detalleInfo}</span>
+                                    <span class="text-muted mt-1 text-truncate w-100" style="font-size: 0.5rem;">${docName}</span>
+                                </div>
+                            </td>
+                        `;
+                    } else {
+                        html += `<td class="bg-white border-secondary"></td>`;
+                    }
+                } else {
+                    html += `<td class="bg-white border-secondary"></td>`;
+                }
+            }
+            html += `</tr>`;
+        });
+    }
+    
+    html += `</tbody></table></div>`;
+    return html;
+}
+
+async function exportarVisorHorarioPDF() {
+    const btn = document.querySelector('#accionesVisorHorarios button');
+    const originalHtml = btn.innerHTML;
+    btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Generando PDF...';
+
+    try {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ compress: true, orientation: 'landscape', unit: 'mm', format: 'a4' });
+        
+        const nomArriba = (infoInstitucion?.nombre_arriba || 'Unidad Educativa Particular').toUpperCase();
+        const nomAbajo = (infoInstitucion?.nombre_abajo || '"Vicente Rocafuerte"').toUpperCase();
+        const periodo = infoInstitucion?.periodo_lectivo || '2026-2027';
+        
+        const imgLogoIzq = await obtenerBase64DesdeUrl(infoInstitucion?.logo_izquierdo || infoInstitucion?.logo_institucion);
+        const imgLogoDer = await obtenerBase64DesdeUrl(infoInstitucion?.logo_derecho || infoInstitucion?.escudo_nacional);
+
+        const tipo = document.getElementById('selectVisorTipo').value;
+        const jornada = document.getElementById('selectVisorJornada').value.toUpperCase();
+        
+        let subtitulo = '';
+        if (tipo === 'mi_horario' || tipo === 'profesores') {
+            const idDoc = tipo === 'mi_horario' ? usuarioActualPerfil.id : document.getElementById('selectVisorDocente').value;
+            const docObj = docentesList.find(d => d.id == idDoc);
+            subtitulo = `DOCENTE: ${docObj ? docObj.nombres + ' ' + (docObj.apellidos||'') : ''} | JORNADA: ${jornada}`;
+        } else {
+            const curId = document.getElementById('selectVisorCurso').value;
+            if (curId === 'TODOS') subtitulo = `VISTA GENERAL DE TODOS LOS CURSOS | JORNADA: ${jornada}`;
+            else {
+                const cObj = todosCursos.find(c => c.id == curId);
+                subtitulo = `CURSO: ${cObj ? cObj.nombre : ''} | JORNADA: ${jornada}`;
+            }
+        }
+
+        const dibujarCabecera = () => {
+            if (imgLogoIzq) { try { doc.addImage(imgLogoIzq, 'PNG', 14, 10, 20, 20); } catch(e){} }
+            if (imgLogoDer) { try { doc.addImage(imgLogoDer, 'PNG', 263, 10, 20, 20); } catch(e){} }
+            doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.setTextColor(30, 41, 59);
+            doc.text(nomArriba, 148.5, 14, { align: 'center' });
+            doc.setFontSize(15); doc.setTextColor(220, 38, 38); 
+            doc.text(nomAbajo, 148.5, 21, { align: 'center' });
+            doc.setFontSize(10); doc.setTextColor(71, 85, 105); doc.setFont('helvetica', 'normal');
+            doc.text(`AÑO LECTIVO: ${periodo}`, 148.5, 26, { align: 'center' });
+            doc.setDrawColor(200, 200, 200); doc.line(14, 30, 283, 30);
+            
+            doc.setFontSize(11); doc.setFont('helvetica', 'bold'); doc.setTextColor(15, 23, 42);
+            doc.text('HORARIO ACADÉMICO', 148.5, 36, { align: 'center' });
+            doc.setFontSize(9); doc.setTextColor(13, 110, 253);
+            doc.text(subtitulo, 148.5, 41, { align: 'center' });
+        };
+        
+        dibujarCabecera();
+        let startY = 46;
+        
+        // Tabla Clases
+        const tablaClases = document.getElementById('tablaVisorClases');
+        if (tablaClases) {
+            doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(0,0,0);
+            doc.text('Horario de Clases Regulares', 14, startY);
+            startY += 3;
+            
+            doc.autoTable({
+                html: '#tablaVisorClases',
+                startY: startY,
+                theme: 'grid',
+                styles: { fontSize: 6.5, cellPadding: 1.5, valign: 'middle', halign: 'center', lineColor: [100, 100, 100], lineWidth: 0.1 },
+                headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255], fontStyle: 'bold' },
+                margin: { left: 14, right: 14, bottom: 20 },
+                useCss: false, // Desactivar CSS para evitar errores de parseo con jsPDF
+                didParseCell: function(data) {
+                    if (data.cell.raw && typeof data.cell.raw.innerText !== 'undefined') {
+                         data.cell.text = data.cell.raw.innerText.replace(/\n\s+/g, '\n').trim();
+                    }
+                    if (data.section === 'head') {
+                         data.cell.styles.fillColor = [30, 41, 59];
+                         data.cell.styles.textColor = [255, 255, 255];
+                    }
+                }
+            });
+            startY = doc.lastAutoTable.finalY + 10;
+        }
+
+        // Tabla Exámenes
+        const tablaExamenes = document.getElementById('tablaVisorExamenes');
+        if (tablaExamenes) {
+            if (startY > 150) { doc.addPage(); dibujarCabecera(); startY = 46; }
+            doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(220,38,38);
+            doc.text('Horario de Exámenes', 14, startY);
+            startY += 3;
+            
+            doc.autoTable({
+                html: '#tablaVisorExamenes',
+                startY: startY,
+                theme: 'grid',
+                styles: { fontSize: 6.5, cellPadding: 1.5, valign: 'middle', halign: 'center', lineColor: [100, 100, 100], lineWidth: 0.1 },
+                headStyles: { fillColor: [220, 38, 38], textColor: [255, 255, 255], fontStyle: 'bold' },
+                margin: { left: 14, right: 14, bottom: 20 },
+                useCss: false,
+                didParseCell: function(data) {
+                    if (data.cell.raw && typeof data.cell.raw.innerText !== 'undefined') {
+                         data.cell.text = data.cell.raw.innerText.replace(/\n\s+/g, '\n').trim();
+                    }
+                    if (data.section === 'head') {
+                         data.cell.styles.fillColor = [220, 38, 38];
+                         data.cell.styles.textColor = [255, 255, 255];
+                    }
+                }
+            });
+        }
+
+        doc.save(`Horarios_${jornada}_${new Date().getTime()}.pdf`);
+    } catch(err) {
+        alert('Error al exportar PDF: ' + err.message);
+    } finally {
+        btn.disabled = false; btn.innerHTML = '<i class="bi bi-file-pdf me-1"></i> Descargar PDF';
+    }
 }
     
   </script>
