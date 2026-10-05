@@ -1073,41 +1073,68 @@
     }
 
     function alCambiarModo() {
-      const modo = document.getElementById('selectModo').value;
-      const boxCurso = document.getElementById('boxCurso');
-      const boxMateria = document.getElementById('boxMateria');
-      const boxVista = document.getElementById('boxVista');
-      const boxParcialAsist = document.getElementById('boxParcialAsistencia');
-      const boxParcialTut = document.getElementById('boxParcialTutoria');
-      const boxTrimestre = document.getElementById('boxTrimestre');
-      const optAnual = document.getElementById('optTrimAnual');
-      const selectCurso = document.getElementById('selectCurso');
-      const boxTipoAuditoria = document.getElementById('boxTipoAuditoria');
+    const modo = document.getElementById('selectModo').value;
+    const esAdmin = usuarioActualPerfil?.rol === 'admin';
+    const puedeVerAsistencia = (esAdmin || usuarioActualPerfil?.puede_gestionar_asistencia === true);
+    const esTutor = cursosTutor && cursosTutor.length > 0;
 
-      const esAdmin = usuarioActualPerfil?.rol === 'admin';
-      const puedeVerAsistencia = (esAdmin || usuarioActualPerfil?.puede_gestionar_asistencia === true);
-      const cursoSeleccionadoPrevio = selectCurso.value;
-      const boxVisorTipo = document.getElementById('boxVisorTipo');
-      const boxVisorJornada = document.getElementById('boxVisorJornada');
-      const boxVisorDocente = document.getElementById('boxVisorDocente');
-      const boxVisorCurso = document.getElementById('boxVisorCurso');
-      const accVisorHorarios = document.getElementById('accionesVisorHorarios');
+    // ====================================================================
+    // 🛡️ BARRERA DE SEGURIDAD ESTRICTA (ANTI-INSPECCIÓN DE ELEMENTOS)
+    // Evita que usuarios modifiquen el HTML para acceder a módulos prohibidos
+    // ====================================================================
+    const modulosAdmin = ['revision_informes', 'reporte_estudiante', 'certificados', 'auditoria', 'intercambio', 'monitoreo'];
+    if (!esAdmin && modulosAdmin.includes(modo)) {
+        alert('⚠️ ALERTA DE SEGURIDAD: Su usuario no tiene privilegios de Administrador para acceder a este módulo. El intento ha sido bloqueado.');
+        document.getElementById('selectModo').value = 'calificaciones'; 
+        return alCambiarModo(); // Reinicia la vista a una zona segura y detiene la ejecución
+    }
 
-      if (boxTipoAuditoria) boxTipoAuditoria.classList.add('d-none');
-      if(boxVisorTipo) boxVisorTipo.classList.add('d-none');
-      if(boxVisorJornada) boxVisorJornada.classList.add('d-none');
-      if(boxVisorDocente) boxVisorDocente.classList.add('d-none');
-      if(boxVisorCurso) boxVisorCurso.classList.add('d-none');
-      if(accVisorHorarios) accVisorHorarios.classList.add('d-none');
+    const modulosAsistencia = ['asistencia', 'comportamiento', 'citaciones'];
+    if (!puedeVerAsistencia && modulosAsistencia.includes(modo)) {
+        alert('⚠️ ALERTA DE SEGURIDAD: Este módulo requiere permisos especiales de Inspección o Rectorado.');
+        document.getElementById('selectModo').value = 'calificaciones';
+        return alCambiarModo();
+    }
 
-      if (modo === 'tutoria') {
+    if (modo === 'tutoria' && !esAdmin && !esTutor) {
+        alert('⚠️ ALERTA DE SEGURIDAD: Solo los Tutores asignados pueden acceder al consolidado de Tutoría.');
+        document.getElementById('selectModo').value = 'calificaciones';
+        return alCambiarModo();
+    }
+    // ====================================================================
+
+    const boxCurso = document.getElementById('boxCurso');
+    const boxMateria = document.getElementById('boxMateria');
+    const boxVista = document.getElementById('boxVista');
+    const boxParcialAsist = document.getElementById('boxParcialAsistencia');
+    const boxParcialTut = document.getElementById('boxParcialTutoria');
+    const boxTrimestre = document.getElementById('boxTrimestre');
+    const optAnual = document.getElementById('optTrimAnual');
+    const selectCurso = document.getElementById('selectCurso');
+    const boxTipoAuditoria = document.getElementById('boxTipoAuditoria');
+
+    const cursoSeleccionadoPrevio = selectCurso.value;
+    const boxVisorTipo = document.getElementById('boxVisorTipo');
+    const boxVisorJornada = document.getElementById('boxVisorJornada');
+    const boxVisorDocente = document.getElementById('boxVisorDocente');
+    const boxVisorCurso = document.getElementById('boxVisorCurso');
+    const accVisorHorarios = document.getElementById('accionesVisorHorarios');
+
+    if (boxTipoAuditoria) boxTipoAuditoria.classList.add('d-none');
+    if(boxVisorTipo) boxVisorTipo.classList.add('d-none');
+    if(boxVisorJornada) boxVisorJornada.classList.add('d-none');
+    if(boxVisorDocente) boxVisorDocente.classList.add('d-none');
+    if(boxVisorCurso) boxVisorCurso.classList.add('d-none');
+    if(accVisorHorarios) accVisorHorarios.classList.add('d-none');
+
+    if (modo === 'tutoria') {
         boxCurso.classList.remove('d-none'); boxMateria.classList.add('d-none'); boxVista.classList.add('d-none'); boxParcialAsist.classList.add('d-none'); boxParcialTut.classList.remove('d-none'); optAnual.classList.add('d-none');
         boxTrimestre.classList.remove('d-none'); 
         if (document.getElementById('selectTrimestre').value === 'anual') document.getElementById('selectTrimestre').value = '1';
         const cursosDisponibles = esAdmin ? todosCursos : cursosTutor;
         selectCurso.innerHTML = '<option value="">Seleccione curso...</option>' + cursosDisponibles.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
-      } 
-      else if (modo === 'asistencia' || modo === 'comportamiento' || modo === 'incidencias' || modo === 'citaciones') {
+    } 
+    else if (modo === 'asistencia' || modo === 'comportamiento' || modo === 'incidencias' || modo === 'citaciones') {
         boxCurso.classList.remove('d-none'); boxMateria.classList.add('d-none'); 
         boxVista.classList.add('d-none'); 
         boxParcialAsist.classList.remove('d-none'); 
@@ -1117,25 +1144,24 @@
         let cursosDisponibles = puedeVerAsistencia ? todosCursos : Array.from(new Map([...cursosTutor.map(c => [c.id, c]), ...todasAsignaciones.map(a => [a.cursos.id, a.cursos])]).values());
         selectCurso.innerHTML = '<option value="">Seleccione curso...</option>' + cursosDisponibles.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
         
-        // Habilitar la opción "Resumen Trimestral" al seleccionar el módulo de Citaciones
         if (modo === 'citaciones') {
             document.getElementById('selectParcialAsistencia').innerHTML = '<option value="" selected>Seleccione...</option><option value="1">1er Parcial</option><option value="2">2do Parcial</option><option value="3">Resumen Trimestral</option>';
         } else {
             document.getElementById('selectParcialAsistencia').innerHTML = '<option value="" selected>Seleccione...</option><option value="1">1er Parcial</option><option value="2">2do Parcial</option>';
         }
-      }
-      else if (modo === 'reporte_estudiante' || modo === 'monitoreo') {
+    }
+    else if (modo === 'reporte_estudiante' || modo === 'monitoreo') {
         boxCurso.classList.add('d-none'); boxMateria.classList.add('d-none'); boxVista.classList.add('d-none'); boxParcialAsist.classList.add('d-none'); boxParcialTut.classList.add('d-none'); optAnual.classList.add('d-none');
         boxTrimestre.classList.add('d-none'); 
         cambiarFiltro();
         return; 
-      }
-      else if (modo === 'certificados') {
+    }
+    else if (modo === 'certificados') {
         boxCurso.classList.remove('d-none'); boxMateria.classList.add('d-none'); boxVista.classList.add('d-none'); boxParcialAsist.classList.add('d-none'); boxParcialTut.classList.add('d-none'); optAnual.classList.add('d-none');
         boxTrimestre.classList.add('d-none');
         selectCurso.innerHTML = '<option value="">Seleccione curso...</option>' + todosCursos.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
-      }
-      else if (modo === 'auditoria') {
+    }
+    else if (modo === 'auditoria') {
         boxCurso.classList.add('d-none'); boxMateria.classList.add('d-none'); boxParcialAsist.classList.add('d-none'); boxParcialTut.classList.add('d-none'); optAnual.classList.add('d-none');
         boxTrimestre.classList.remove('d-none'); 
         boxVista.classList.remove('d-none'); 
@@ -1145,23 +1171,22 @@
         if (v === 'comp1' || v === 'comp2' || v === 'anual') document.getElementById('selectVista').value = 'p1';
         cambiarFiltro();
         return; 
-      }
-      else if (modo === 'intercambio') {
+    }
+    else if (modo === 'intercambio') {
         boxCurso.classList.remove('d-none'); boxMateria.classList.add('d-none'); boxVista.classList.add('d-none'); boxParcialAsist.classList.add('d-none'); boxParcialTut.classList.add('d-none'); optAnual.classList.add('d-none');
         boxTrimestre.classList.remove('d-none'); 
         if (document.getElementById('selectTrimestre').value === 'anual') document.getElementById('selectTrimestre').value = '1';
         let cursosDisponibles = esAdmin ? todosCursos : []; 
         selectCurso.innerHTML = '<option value="">Seleccione curso...</option>' + cursosDisponibles.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
-      }
-      else if (modo === 'nomina') {
+    }
+    else if (modo === 'nomina') {
         boxCurso.classList.remove('d-none'); boxMateria.classList.add('d-none'); boxVista.classList.add('d-none'); boxParcialAsist.classList.add('d-none'); boxParcialTut.classList.add('d-none'); optAnual.classList.add('d-none');
         boxTrimestre.classList.add('d-none'); 
         let cursosDisponibles = esAdmin ? todosCursos : Array.from(new Map([...cursosTutor.map(c => [c.id, c]), ...todasAsignaciones.map(a => [a.cursos.id, a.cursos])]).values());
         cursosDisponibles.sort((a,b) => a.nombre.localeCompare(b.nombre)); 
         selectCurso.innerHTML = '<option value="TODOS">👉 TODOS MIS CURSOS (Consolidado)</option>' + cursosDisponibles.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
-      }
-
-        if (modo === 'visor_horarios') {
+    }
+    else if (modo === 'visor_horarios') {
         boxCurso.classList.add('d-none'); boxMateria.classList.add('d-none'); boxVista.classList.add('d-none'); boxParcialAsist.classList.add('d-none'); boxParcialTut.classList.add('d-none'); optAnual.classList.add('d-none'); boxTrimestre.classList.add('d-none');
         
         boxVisorTipo.classList.remove('d-none');
@@ -1176,10 +1201,8 @@
         }
         cambiarFiltrosVisorHorario();
         return;
-      }
-
-        
-      else if (modo === 'informe_parcial' || modo === 'revision_informes') {
+    }
+    else if (modo === 'informe_parcial' || modo === 'revision_informes') {
         boxCurso.classList.remove('d-none'); 
         if (modo === 'informe_parcial') boxMateria.classList.remove('d-none');
         else boxMateria.classList.add('d-none'); 
@@ -1202,11 +1225,10 @@
         }
         alCambiarCurso();
         return;
-      }
-      else if (modo === 'mejores_estudiantes') {
+    }
+    else if (modo === 'mejores_estudiantes') {
         boxCurso.classList.remove('d-none'); boxMateria.classList.remove('d-none'); boxVista.classList.remove('d-none'); boxParcialAsist.classList.add('d-none'); boxParcialTut.classList.add('d-none'); optAnual.classList.remove('d-none'); boxTrimestre.classList.remove('d-none'); 
         
-        // Filtro inteligente de cursos según rol
         let cursosUnicos = new Map();
         if (esAdmin || puedeVerAsistencia) {
             todosCursos.forEach(c => cursosUnicos.set(c.id, c));
@@ -1220,21 +1242,21 @@
         selectCurso.innerHTML = '<option value="">Seleccione curso...</option>' + cursosArr.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
         alCambiarCurso();
         return;
-      }
-      else {
+    }
+    else {
         boxCurso.classList.remove('d-none'); boxMateria.classList.remove('d-none'); boxVista.classList.remove('d-none'); boxParcialAsist.classList.add('d-none'); boxParcialTut.classList.add('d-none'); optAnual.classList.remove('d-none');
         boxTrimestre.classList.remove('d-none'); 
         const cursosMap = new Map();
         todasAsignaciones.forEach(a => { if (a.cursos) cursosMap.set(String(a.cursos.id), a.cursos.nombre); });
         selectCurso.innerHTML = '<option value="">Seleccione curso...</option>' + Array.from(cursosMap).map(([id, nombre]) => `<option value="${id}">${nombre}</option>`).join('');
-      }
-
-      const opcionesActuales = Array.from(selectCurso.options).map(opt => opt.value);
-      if (cursoSeleccionadoPrevio && opcionesActuales.includes(cursoSeleccionadoPrevio)) selectCurso.value = cursoSeleccionadoPrevio;
-      else if (selectCurso.options.length > 1) selectCurso.value = selectCurso.options[1].value;
-
-      alCambiarCurso();
     }
+
+    const opcionesActuales = Array.from(selectCurso.options).map(opt => opt.value);
+    if (cursoSeleccionadoPrevio && opcionesActuales.includes(cursoSeleccionadoPrevio)) selectCurso.value = cursoSeleccionadoPrevio;
+    else if (selectCurso.options.length > 1) selectCurso.value = selectCurso.options[1].value;
+
+    alCambiarCurso();
+}
 
     function alCambiarCurso() {
       const modo = document.getElementById('selectModo').value;
