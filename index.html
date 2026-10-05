@@ -8211,8 +8211,8 @@ async function cargarVisorHorario() {
 function generarHTMLHorarioDocente(data, docenteId, jornada) {
     const esMio = (cmd) => cmd && (String(cmd.docente_id) === String(docenteId) || String(cmd.docente_id_2) === String(docenteId) || String(cmd.docente_id_3) === String(docenteId));
     
-    let clases = data.filter(h => esMio(h.curso_materia_docente) && !h.es_examen);
-    let examenes = data.filter(h => esMio(h.curso_materia_docente) && h.es_examen);
+    let clases = data.filter(h => esMio(h.curso_materia_docente));   // todas las clases
+let examenes = data.filter(h => esMio(h.curso_materia_docente) && h.es_examen);
     
     const recesosJornada = data.filter(h => h.es_receso);
     const recesosMap = new Set(recesosJornada.map(r => `${r.dia_semana}-${r.hora_bloque}`));
@@ -8296,8 +8296,8 @@ function generarHTMLHorarioCursos(data, cursoId, cursosEnJornada) {
     
     const titulo = cursoId === 'TODOS' ? 'VISTA GENERAL DE TODOS LOS CURSOS' : `CURSO: ${cursosMostrar[0].nombre}`;
 
-    let clases = data.filter(h => !h.es_examen);
-    let examenes = data.filter(h => h.es_examen);
+    let clases = data;                                   // todas las clases
+let examenes = data.filter(h => h.es_examen);
 
     return `
         <div class="text-center mb-4">
