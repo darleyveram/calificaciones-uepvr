@@ -1290,6 +1290,8 @@
     let cursosList = [];
     let materiasList = [];
     let periodosList = [];
+    let configJuntasGlobal = [];
+    
     let modalAsignarInst, modalCursoInst, modalPersonalInst, modalTituloInst, modalEstudianteInst, modalConfigInst, modalResetPasswordInst;
     let usuarioActualSesionId = null;
 
@@ -1490,15 +1492,19 @@
     }
 
     async function cargarDatosIniciales() {
-      const { data: t } = await supabaseClient.from('catalogo_titulos').select('*').order('abreviatura');
-      titulosList = t || [];
-      const { data: d } = await supabaseClient.from('perfiles').select('*').order('nombres');
-      docentesList = d || [];
-      const { data: c } = await supabaseClient.from('cursos').select('*').order('id');
-      cursosList = c || [];
-      const { data: m } = await supabaseClient.from('materias').select('*').order('nombre');
-      materiasList = m || [];
-    }
+    const { data: t } = await supabaseClient.from('catalogo_titulos').select('*').order('abreviatura');
+    titulosList = t || [];
+    const { data: d } = await supabaseClient.from('perfiles').select('*').order('nombres');
+    docentesList = d || [];
+    const { data: c } = await supabaseClient.from('cursos').select('*').order('id');
+    cursosList = c || [];
+    const { data: m } = await supabaseClient.from('materias').select('*').order('nombre');
+    materiasList = m || [];
+    
+    // NUEVO: CARGAR LA CONFIGURACIÓN DE JORNADAS A LA MEMORIA
+    const { data: j } = await supabaseClient.from('juntas_config').select('curso_id, seccion');
+    configJuntasGlobal = j || [];
+}
 
     // 1. Institución
     async function cargarDatosInstitucion() {
@@ -2962,19 +2968,21 @@ async function abrirModalCeldaMaster(celda) {
     modalCeldaInst.show();
 }
 
-// 4. NUEVO: Validador con respuesta detallada (Qué curso y qué materia)
+// 4. NUEVO: Validador con respuesta detallada y FILTRO POR JORNADA
 function validarChoqueMaster(docenteId, dia, bloque, cursoIgnoradoId, nombreMateriaNueva) {
     const materiaNuevaStr = String(nombreMateriaNueva || '').toUpperCase();
     const esFisicaNueva = materiaNuevaStr.includes('EDUCACIÓN FÍSICA') || materiaNuevaStr.includes('EDUCACION FISICA');
+    
+    // OBTENER LA JORNADA QUE SE ESTÁ EDITANDO ACTUALMENTE
+    const jornadaActual = document.getElementById('horarioJornada').value.toLowerCase();
 
-    // Revisar la tabla visual
+    // 1. Revisar la tabla visual (La tabla ya está filtrada por jornada en la UI)
     const celdasDOM = document.querySelectorAll(`.celda-horario[data-dia="${dia}"][data-bloque="${bloque}"][data-tipo="materia"]`);
     for (let c of celdasDOM) {
         if (c.getAttribute('data-docente-id') == docenteId && c.getAttribute('data-curso-id') != cursoIgnoradoId) {
             const mNombreGuar = c.getAttribute('data-materia-nombre') || c.querySelector('span.fw-bold')?.innerText || '';
             const esFisicaGuar = mNombreGuar.toUpperCase().includes('FÍSICA') || mNombreGuar.toUpperCase().includes('FISICA');
             
-            // EXCEPCIÓN: Si en ambos cursos está dando Educación Física, IGNORA EL CHOQUE.
             if (esFisicaNueva && esFisicaGuar) continue; 
 
             const cid = c.getAttribute('data-curso-id');
@@ -2983,19 +2991,27 @@ function validarChoqueMaster(docenteId, dia, bloque, cursoIgnoradoId, nombreMate
         }
     }
     
-    // Revisar en la Base de Datos
-    const choqueBD = horarioGlobalMemoria.find(h => 
-        String(h.dia_semana) === String(dia) && 
-        String(h.hora_bloque) === String(bloque) && 
-        h.curso_materia_docente?.docente_id == docenteId &&
-        String(h.curso_id) !== String(cursoIgnoradoId)
-    );
+    // 2. Revisar en la Base de Datos (Memoria Global)
+    const choqueBD = horarioGlobalMemoria.find(h => {
+        if (String(h.dia_semana) !== String(dia)) return false;
+        if (String(h.hora_bloque) !== String(bloque)) return false;
+        if (h.curso_materia_docente?.docente_id != docenteId) return false;
+        if (String(h.curso_id) === String(cursoIgnoradoId)) return false;
+
+        // ==============================================================
+        // AISLAMIENTO DE JORNADA: Solo buscar choques dentro de la misma
+        // ==============================================================
+        const conf = configJuntasGlobal.find(j => String(j.curso_id) === String(h.curso_id));
+        const jornadaChoque = conf && conf.seccion ? conf.seccion.toLowerCase() : 'vespertina';
+        
+        return jornadaChoque === jornadaActual;
+    });
     
     if (choqueBD) {
         const mNombreGuarBD = choqueBD.curso_materia_docente?.materias?.nombre || '';
         const esFisicaGuarBD = mNombreGuarBD.toUpperCase().includes('FÍSICA') || mNombreGuarBD.toUpperCase().includes('FISICA');
         
-        if (esFisicaNueva && esFisicaGuarBD) return { choque: false }; // Excepción
+        if (esFisicaNueva && esFisicaGuarBD) return { choque: false }; 
 
         const cObj = cursosList.find(x => x.id == choqueBD.curso_id);
         return { choque: true, curso: cObj ? cObj.nombre : 'Otro curso', materia: mNombreGuarBD };
