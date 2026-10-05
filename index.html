@@ -152,7 +152,7 @@
       </div>
       <div class="card-footer bg-light text-center py-3 border-0">
         <small class="text-muted fw-semibold header-dir-inst d-block">Pichincha - Manabí - Ecuador</small>
-        <small class="text-muted" style="font-size: 0.65rem; opacity: 0.6;">v1.1.5 (Actualizado el 04/10/2026 22:47:00)</small>
+        <small class="text-muted" style="font-size: 0.65rem; opacity: 0.6;">v1.1.5 (Actualizado el 04/10/2026 23:04:00)</small>
       </div>
     </div>
   </div>
@@ -8160,25 +8160,36 @@ async function cargarVisorHorario() {
         const idsCursosJornada = cursosEnJornada.map(c => c.id);
         
         // =========================================================
-        // SOLUCIÓN DEFINITIVA: EXTRACCIÓN AGRUPADA POR CURSOS
-        // Pedimos los datos de 5 en 5 cursos para evitar los límites 
-        // de Supabase y la pérdida de datos en la paginación.
+        // SOLUCIÓN DEFINITIVA: EXTRACCIÓN PAGINADA ORDENADA
+        // Obtenemos TODA la tabla de forma segura usando .range() 
+        // y .order() para que Supabase no recorte relaciones anidadas.
         // =========================================================
-        let horariosData = [];
-        const tamañoLote = 5; 
+        let horariosDataBruto = [];
+        let fetchMore = true;
+        let start = 0;
+        const limit = 1000;
         
-        for (let i = 0; i < idsCursosJornada.length; i += tamañoLote) {
-            const loteIds = idsCursosJornada.slice(i, i + tamañoLote);
-            
+        while (fetchMore) {
             const { data: chunk, error } = await supabaseClient.from('horarios')
                 .select('*, curso_materia_docente(docente_id, docente_id_2, docente_id_3, materias(nombre))')
-                .in('curso_id', loteIds); // Extrae solo los horarios de estos 5 cursos
+                .order('id', { ascending: true }) // CRÍTICO: Ordenar evita que Postgres se salte datos físicos
+                .range(start, start + limit - 1);
                 
             if (error) throw error;
             if (reqId !== currentViewRequestId) return;
             
-            if (chunk) horariosData.push(...chunk);
+            if (chunk && chunk.length > 0) {
+                horariosDataBruto.push(...chunk);
+                start += limit;
+                // Si trajo menos del límite, significa que ya no hay más páginas
+                if (chunk.length < limit) fetchMore = false;
+            } else {
+                fetchMore = false;
+            }
         }
+
+        // Una vez que tenemos la tabla impecable en memoria, filtramos solo los de la jornada seleccionada
+        let horariosData = horariosDataBruto.filter(h => idsCursosJornada.includes(h.curso_id));
         // =========================================================
         
         let html = '';
