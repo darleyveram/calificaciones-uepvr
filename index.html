@@ -8390,6 +8390,7 @@ function construirTablaHorarioAgrupada(registros, todaLaData, cursosListado, idT
 }
 
 // FORMATO DE DESCARGA PDF DE HORARIOS SIMÉTRICO Y PROFESIONAL (CUADRADO PERFECTO)
+// FORMATO DE DESCARGA PDF DE HORARIOS SIMÉTRICO Y COMPACTO EN UNA SOLA HOJA
 async function exportarVisorHorarioPDF() {
     const btn = document.querySelector('#accionesVisorHorarios button');
     const originalHtml = btn.innerHTML;
@@ -8397,6 +8398,7 @@ async function exportarVisorHorarioPDF() {
 
     try {
         const { jsPDF } = window.jspdf;
+        // Creamos el documento en formato apaisado (landscape)
         const doc = new jsPDF({ compress: true, orientation: 'landscape', unit: 'mm', format: 'a4' });
         
         const nomArriba = (infoInstitucion?.nombre_arriba || 'UNIDAD EDUCATIVA PARTICULAR').toUpperCase();
@@ -8424,32 +8426,42 @@ async function exportarVisorHorarioPDF() {
         }
 
         const dibujarCabecera = (tituloTabla, isExamen) => {
-            if (imgLogoIzq) { try { doc.addImage(imgLogoIzq, 'PNG', 14, 10, 22, 22); } catch(e){} }
-            if (imgLogoDer) { try { doc.addImage(imgLogoDer, 'PNG', 261, 10, 22, 22); } catch(e){} }
+            if (imgLogoIzq) { try { doc.addImage(imgLogoIzq, 'PNG', 14, 8, 22, 22); } catch(e){} }
+            if (imgLogoDer) { try { doc.addImage(imgLogoDer, 'PNG', 261, 8, 22, 22); } catch(e){} }
             doc.setFont('helvetica', 'bold'); doc.setFontSize(14); doc.setTextColor(30, 41, 59);
-            doc.text(nomArriba, 148.5, 15, { align: 'center' });
-            doc.setFontSize(18); doc.setTextColor(220, 38, 38); 
-            doc.text(nomAbajo, 148.5, 22, { align: 'center' });
-            doc.setFontSize(10); doc.setTextColor(71, 85, 105); doc.setFont('helvetica', 'normal');
-            doc.text(`AÑO LECTIVO: ${periodo}`, 148.5, 27, { align: 'center' });
-            doc.setDrawColor(200, 200, 200); doc.line(14, 31, 283, 31);
+            doc.text(nomArriba, 148.5, 13, { align: 'center' });
+            doc.setFontSize(16); doc.setTextColor(220, 38, 38); 
+            doc.text(nomAbajo, 148.5, 19, { align: 'center' });
+            doc.setFontSize(9); doc.setTextColor(71, 85, 105); doc.setFont('helvetica', 'normal');
+            doc.text(`AÑO LECTIVO: ${periodo}`, 148.5, 23, { align: 'center' });
+            doc.setDrawColor(200, 200, 200); doc.line(14, 26, 283, 26);
             
-            doc.setFontSize(12); doc.setFont('helvetica', 'bold'); doc.setTextColor(15, 23, 42);
-            doc.text('HORARIO ACADÉMICO OFICIAL', 148.5, 36, { align: 'center' });
-            doc.setFontSize(9); doc.setTextColor(13, 110, 253);
-            doc.text(subtitulo, 148.5, 41, { align: 'center' });
+            doc.setFontSize(11); doc.setFont('helvetica', 'bold'); doc.setTextColor(15, 23, 42);
+            doc.text('HORARIO ACADÉMICO OFICIAL', 148.5, 31, { align: 'center' });
+            doc.setFontSize(8.5); doc.setTextColor(13, 110, 253);
+            doc.text(subtitulo, 148.5, 35, { align: 'center' });
             
-            doc.setFontSize(12);
+            doc.setFontSize(11);
             doc.setTextColor(isExamen ? 220 : 15, isExamen ? 38 : 23, isExamen ? 38 : 42);
-            doc.text(tituloTabla, 14, 47);
+            doc.text(tituloTabla, 14, 40);
         };
         
+        // Ajustamos la configuración base para forzar TODO en una hoja
         const tableConfigBase = {
             theme: 'grid',
-            styles: { fontSize: 7, cellPadding: 2, valign: 'middle', halign: 'center', lineColor: [100, 100, 100], lineWidth: 0.1, minCellHeight: 16 },
-            margin: { left: 14, right: 14, bottom: 10 },
+            // Ajustamos dinámicamente el tamaño de letra según el tipo de horario para asegurar que entre
+            styles: { 
+                fontSize: tipo === 'cursos' ? 6 : 7, 
+                cellPadding: 1, 
+                valign: 'middle', 
+                halign: 'center', 
+                lineColor: [100, 100, 100], 
+                lineWidth: 0.1, 
+                minCellHeight: tipo === 'cursos' ? 12 : 16 
+            },
+            margin: { left: 10, right: 10, top: 42, bottom: 5 },
             useCss: false, 
-            rowPageBreak: 'avoid',
+            rowPageBreak: 'avoid', // Evita que una celda se parta a la mitad
             didParseCell: function(data) {
                 if (data.cell.raw && typeof data.cell.raw.innerText !== 'undefined') {
                     let text = data.cell.raw.innerText.trim();
@@ -8465,12 +8477,12 @@ async function exportarVisorHorarioPDF() {
                         data.cell.styles.fillColor = [253, 224, 71]; 
                         data.cell.styles.textColor = [0, 0, 0];
                         data.cell.styles.fontStyle = 'bold';
-                        data.cell.styles.fontSize = 9;
+                        data.cell.styles.fontSize = 8;
                     }
                     if (data.column.index === 0 && !isNaN(parseInt(textoCelda))) {
                         data.cell.styles.fillColor = [241, 245, 249];
                         data.cell.styles.fontStyle = 'bold';
-                        data.cell.styles.fontSize = 11;
+                        data.cell.styles.fontSize = 10;
                     }
                 }
             }
@@ -8479,15 +8491,15 @@ async function exportarVisorHorarioPDF() {
         let columnStylesClases = {};
         if (tipo === 'cursos') {
             columnStylesClases = {
-                0: { cellWidth: 12, halign: 'center', fontStyle: 'bold', fillColor: [241, 245, 249] }, 
-                1: { cellWidth: 40, halign: 'left', fontStyle: 'bold' }, 
-                2: { cellWidth: 20, halign: 'center', textColor: [13, 110, 253] }, 
-                3: { cellWidth: 39.4 }, 4: { cellWidth: 39.4 }, 5: { cellWidth: 39.4 }, 6: { cellWidth: 39.4 }, 7: { cellWidth: 39.4 }
+                0: { cellWidth: 10, halign: 'center', fontStyle: 'bold', fillColor: [241, 245, 249] }, 
+                1: { cellWidth: 35, halign: 'left', fontStyle: 'bold' }, 
+                2: { cellWidth: 18, halign: 'center', textColor: [13, 110, 253] }, 
+                3: { cellWidth: 42.8 }, 4: { cellWidth: 42.8 }, 5: { cellWidth: 42.8 }, 6: { cellWidth: 42.8 }, 7: { cellWidth: 42.8 }
             };
         } else {
             columnStylesClases = {
                 0: { cellWidth: 15, halign: 'center', fontStyle: 'bold', fillColor: [241, 245, 249], fontSize: 11 }, 
-                1: { cellWidth: 50.8 }, 2: { cellWidth: 50.8 }, 3: { cellWidth: 50.8 }, 4: { cellWidth: 50.8 }, 5: { cellWidth: 50.8 } 
+                1: { cellWidth: 52.4 }, 2: { cellWidth: 52.4 }, 3: { cellWidth: 52.4 }, 4: { cellWidth: 52.4 }, 5: { cellWidth: 52.4 } 
             };
         }
 
@@ -8498,22 +8510,34 @@ async function exportarVisorHorarioPDF() {
             dibujarCabecera('Horario de Clases Regulares', false);
             doc.autoTable({
                 html: '#tablaVisorClases',
-                startY: 50,
+                startY: 42,
                 ...tableConfigBase,
-                headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 8, halign: 'center' },
-                columnStyles: columnStylesClases
+                headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 7, halign: 'center', minCellHeight: 6 },
+                columnStyles: columnStylesClases,
+                // Función mágica que fuerza que el AutoTable calcule la altura exacta sin sobrepasar la hoja
+                didDrawPage: function (data) {
+                    if (data.pageNumber > 1) {
+                        data.settings.margin.top = 10; // Si por extrema necesidad crea una hoja nueva, no superponer
+                    }
+                }
             });
         }
 
         if (tablaExamenes) {
+            // Siempre agregamos una nueva hoja para los exámenes (Garantiza Exámenes en página 2)
             doc.addPage();
             dibujarCabecera('Horario de Evaluaciones / Exámenes', true);
             doc.autoTable({
                 html: '#tablaVisorExamenes',
-                startY: 50,
+                startY: 42,
                 ...tableConfigBase,
-                headStyles: { fillColor: [220, 38, 38], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 8, halign: 'center' },
-                columnStyles: columnStylesClases
+                headStyles: { fillColor: [220, 38, 38], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 7, halign: 'center', minCellHeight: 6 },
+                columnStyles: columnStylesClases,
+                didDrawPage: function (data) {
+                    if (data.pageNumber > 2) {
+                        data.settings.margin.top = 10;
+                    }
+                }
             });
         }
 
