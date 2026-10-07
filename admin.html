@@ -3514,7 +3514,7 @@ function aplicarBloqueosEspejo() {
             let backupData = {
                 metadata: {
                     fecha_respaldo: new Date().toISOString(),
-                    generado_por: usuarioActualPerfil?.email || 'admin',
+                    generado_por: 'Administrador (Panel Admin)', // <-- ESTA ES LA LÍNEA CORREGIDA
                     total_tablas_respaldadas: tablasRespaldo.length
                 },
                 tablas: {}
