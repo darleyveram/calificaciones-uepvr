@@ -113,6 +113,7 @@
             <li class="nav-item"><a href="#" class="nav-link" id="nav-actividades" onclick="mostrarModulo('actividades', this)"><i class="bi bi-list-check me-2"></i> Actividades</a></li>
             <li class="nav-item"><a href="#" class="nav-link" id="nav-control" onclick="mostrarModulo('control', this)"><i class="bi bi-lock-fill me-2"></i> Control de Notas</a></li>
             <li class="nav-item"><a href="#" class="nav-link" id="nav-juntas" onclick="mostrarModulo('juntas', this)"><i class="bi bi-calendar2-week me-2"></i> Datos de Juntas</a></li>
+            <li class="nav-item mt-3 border-top pt-2"><a href="#" class="nav-link text-warning" id="nav-backup" onclick="mostrarModulo('backup', this)"><i class="bi bi-database-down me-2"></i> Respaldo (Backup)</a></li>
           </ul>
           
           <div class="mt-auto pt-4 border-top border-secondary w-100">
@@ -630,6 +631,28 @@
           </div>
 
           
+        </div>
+
+        <!-- MODULO: RESPALDO DE BASE DE DATOS -->
+        <div class="modulo d-none" id="mod-backup">
+          <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+              <h4 class="fw-bold mb-0 text-dark"><i class="bi bi-database-down me-2"></i>Copia de Seguridad del Sistema</h4>
+              <small class="text-muted">Descarga una copia completa de tu base de datos en formato JSON.</small>
+            </div>
+          </div>
+          
+          <div class="card p-4 text-center shadow-sm border-warning" style="max-width: 600px; margin: 0 auto;">
+            <i class="bi bi-cloud-arrow-down-fill text-warning" style="font-size: 4rem;"></i>
+            <h5 class="fw-bold mt-3">Generar Respaldo Local (Manual)</h5>
+            <p class="text-muted small mb-4">Esta acción recorrerá todas las tablas principales de Supabase (Estudiantes, Docentes, Notas, Asistencias, Comportamiento, etc.) y las empaquetará en un archivo de texto seguro. <br><b>Esta acción es de solo lectura y NO borra ni altera ningún dato.</b></p>
+            
+            <button class="btn btn-warning btn-lg fw-bold w-100 text-dark shadow-sm" id="btnGenerarBackup" onclick="generarBackupJSON()">
+              <i class="bi bi-download me-2"></i> Iniciar Descarga del Backup
+            </button>
+            
+            <div id="progresoBackup" class="mt-3 fw-bold text-success d-none" style="font-size: 0.9rem;"></div>
+          </div>
         </div>
         
           <!-- SECCIÓN: DATOS DE JUNTAS -->
@@ -3436,6 +3459,99 @@ function aplicarBloqueosEspejo() {
         }
     });
 }
+
+    // =========================================================================
+    // MÓDULO: RESPALDO DE BASE DE DATOS (BACKUP JSON)
+    // =========================================================================
+    
+    // Función auxiliar para saltar el límite de 1000 filas de Supabase
+    async function fetchAllFromTable(tableName) {
+        let allData = [];
+        let fetchMore = true;
+        let start = 0;
+        const limit = 1000;
+        
+        while(fetchMore) {
+            const { data, error } = await supabaseClient.from(tableName).select('*').range(start, start + limit - 1);
+            if (error) { 
+                console.error(`Error leyendo la tabla ${tableName}:`, error); 
+                break; 
+            }
+            if (data && data.length > 0) {
+                allData.push(...data);
+                start += limit;
+                if (data.length < limit) fetchMore = false; // Ya no hay más páginas
+            } else {
+                fetchMore = false;
+            }
+        }
+        return allData;
+    }
+
+    async function generarBackupJSON() {
+        const btn = document.getElementById('btnGenerarBackup');
+        const progreso = document.getElementById('progresoBackup');
+        
+        if(!confirm('¿Iniciar la descarga de la base de datos?\nEste proceso puede tardar unos segundos dependiendo de tu conexión a internet.')) return;
+        
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Extrayendo datos, no cierre la pestaña...';
+        progreso.classList.remove('d-none', 'text-danger');
+        progreso.classList.add('text-success');
+        progreso.innerText = 'Conectando con Supabase...';
+        
+        try {
+            // Lista exacta de todas las tablas importantes de tu sistema
+            const tablasRespaldo = [
+                'institucion', 'catalogo_titulos', 'catalogo_actividades', 
+                'perfiles', 'cursos', 'materias', 'curso_materia_docente', 
+                'estudiantes', 'asistencia_periodos', 'periodos_calificaciones',
+                'notas_parcial_actividades', 'notas_trimestre', 'comportamiento_parcial',
+                'asistencia_estudiantes', 'excepciones_notas', 'juntas_config',
+                'horarios', 'incidencias', 'citaciones', 'historial_accesos'
+            ];
+            
+            let backupData = {
+                metadata: {
+                    fecha_respaldo: new Date().toISOString(),
+                    generado_por: usuarioActualPerfil?.email || 'admin',
+                    total_tablas_respaldadas: tablasRespaldo.length
+                },
+                tablas: {}
+            };
+
+            // Extraemos los datos tabla por tabla
+            for(let i = 0; i < tablasRespaldo.length; i++) {
+                const tabla = tablasRespaldo[i];
+                progreso.innerText = `Descargando tabla: ${tabla} (${i+1}/${tablasRespaldo.length})...`;
+                backupData.tablas[tabla] = await fetchAllFromTable(tabla);
+            }
+            
+            progreso.innerText = 'Empaquetando archivo JSON...';
+            
+            // Convertimos el objeto gigante a formato JSON legible
+            const jsonString = JSON.stringify(backupData, null, 2);
+            
+            // Creamos un Blob (archivo binario virtual) con formato JSON
+            const blob = new Blob([jsonString], { type: "application/json;charset=utf-8" });
+            
+            // Guardamos usando FileSaver.js
+            const fechaFormat = new Date().toISOString().slice(0,10);
+            const horaFormat = new Date().toTimeString().slice(0,5).replace(':', '');
+            saveAs(blob, `Respaldo_UEPVR_${fechaFormat}_${horaFormat}.json`);
+            
+            progreso.innerText = '¡Copia de seguridad descargada con éxito!';
+            setTimeout(() => { progreso.classList.add('d-none'); }, 6000);
+            
+        } catch (err) {
+            alert('Error crítico al generar el backup: ' + err.message);
+            progreso.innerText = 'Fallo en la descarga. Revise la consola.';
+            progreso.classList.replace('text-success', 'text-danger');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-download me-2"></i> Iniciar Descarga del Backup';
+        }
+    }
 
     
     
