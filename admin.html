@@ -2864,136 +2864,144 @@ async function cargarHorarioGlobalMemoria() {
 }
 
     async function cargarComboCursosHorario() {
-    const jornada = document.getElementById('horarioJornada').value;
-    const selectCurso = document.getElementById('horarioFiltroCurso');
-    const contenedor = document.getElementById('contenedorHorario');
-    
-    if (!jornada) { 
-        selectCurso.innerHTML = '<option value="">Primero seleccione jornada...</option>';
-        selectCurso.disabled = true;
-        contenedor.classList.add('d-none'); document.getElementById('leyendasHorario').classList.add('d-none');
-        return; 
+        const jornada = document.getElementById('horarioJornada').value;
+        const selectCurso = document.getElementById('horarioFiltroCurso');
+        const contenedor = document.getElementById('contenedorHorario');
+        
+        if (!jornada) { 
+            selectCurso.innerHTML = '<option value="">Primero seleccione jornada...</option>';
+            selectCurso.disabled = true;
+            contenedor.classList.add('d-none'); document.getElementById('leyendasHorario').classList.add('d-none');
+            return; 
+        }
+
+        // 1. ESPERAMOS A QUE LOS CURSOS CARGUEN COMPLETAMENTE
+        await cargarDatosIniciales(); 
+
+        const { data: configJuntas } = await supabaseClient.from('juntas_config').select('curso_id, seccion');
+        const cursosSeccion = cursosList.filter(c => {
+            const conf = (configJuntas || []).find(j => j.curso_id === c.id);
+            if (conf && conf.seccion) return conf.seccion.toLowerCase() === jornada.toLowerCase();
+            // 2. FORZAMOS A MOSTRAR EL CURSO AUNQUE NO TENGA JORNADA CONFIGURADA
+            return true; 
+        });
+
+        let html = '<option value="TODOS">🏫 TODOS LOS CURSOS (Vista General)</option>';
+        cursosSeccion.forEach(c => { html += `<option value="${c.id}">${c.nombre}</option>`; });
+        
+        selectCurso.innerHTML = html;
+        selectCurso.disabled = false;
+        cargarCuadriculaMaster(); 
     }
-
-    const { data: configJuntas } = await supabaseClient.from('juntas_config').select('curso_id, seccion');
-    const cursosSeccion = cursosList.filter(c => {
-        const conf = (configJuntas || []).find(j => j.curso_id === c.id);
-        if (conf && conf.seccion) return conf.seccion.toLowerCase() === jornada.toLowerCase();
-        return jornada === 'Vespertina'; 
-    });
-
-    let html = '<option value="TODOS">🏫 TODOS LOS CURSOS (Vista General)</option>';
-    cursosSeccion.forEach(c => { html += `<option value="${c.id}">${c.nombre}</option>`; });
-    
-    selectCurso.innerHTML = html;
-    selectCurso.disabled = false;
-    cargarCuadriculaMaster(); 
-}
 
 async function cargarCuadriculaMaster() {
-    const jornada = document.getElementById('horarioJornada').value;
-    const filtroCursoId = document.getElementById('horarioFiltroCurso').value;
-    const contenedor = document.getElementById('contenedorHorario');
-    
-    if (!jornada || !filtroCursoId) { contenedor.classList.add('d-none'); document.getElementById('seccionEspejoExamenes').classList.add('d-none'); return; }
-    contenedor.classList.remove('d-none');
+        const jornada = document.getElementById('horarioJornada').value;
+        const filtroCursoId = document.getElementById('horarioFiltroCurso').value;
+        const contenedor = document.getElementById('contenedorHorario');
+        
+        if (!jornada || !filtroCursoId) { contenedor.classList.add('d-none'); document.getElementById('seccionEspejoExamenes').classList.add('d-none'); return; }
+        contenedor.classList.remove('d-none');
 
-    const esVistaGeneral = (filtroCursoId === 'TODOS');
-    document.getElementById('btnGenerarAuto').classList.toggle('d-none', esVistaGeneral);
-    document.getElementById('btnBorrarHorario').classList.toggle('d-none', esVistaGeneral);
-    
-    const { data: configJuntas } = await supabaseClient.from('juntas_config').select('curso_id, seccion');
-    let cursosFiltrados = cursosList.filter(c => {
-        const conf = (configJuntas || []).find(j => j.curso_id === c.id);
-        if (conf && conf.seccion) return conf.seccion.toLowerCase() === jornada.toLowerCase();
-        return jornada === 'Vespertina'; 
-    });
+        const esVistaGeneral = (filtroCursoId === 'TODOS');
+        document.getElementById('btnGenerarAuto').classList.toggle('d-none', esVistaGeneral);
+        document.getElementById('btnBorrarHorario').classList.toggle('d-none', esVistaGeneral);
+        
+        // 1. ESPERAMOS A QUE LOS CURSOS CARGUEN COMPLETAMENTE
+        await cargarDatosIniciales(); 
 
-    if (!esVistaGeneral) cursosFiltrados = cursosFiltrados.filter(c => String(c.id) === String(filtroCursoId));
-
-    if (cursosFiltrados.length === 0) {
-        document.getElementById('bodyCuadriculaHorario').innerHTML = '<tr><td colspan="8" class="text-danger fw-bold py-4">No hay cursos configurados.</td></tr>';
-        document.getElementById('seccionEspejoExamenes').classList.add('d-none');
-        return;
-    }
-
-    await cargarHorarioGlobalMemoria();
-    const tbody = document.getElementById('bodyCuadriculaHorario');
-    let html = '';
-    
-    for (let i = 1; i <= 7; i++) {
-        cursosFiltrados.forEach((c, idx) => {
-            html += `<tr>`;
-            if (idx === 0) html += `<td rowspan="${cursosFiltrados.length}" class="bg-secondary text-white fw-bold align-middle fs-5 border-secondary">${i}</td>`;
-            html += `<td class="fw-bold bg-light text-start ps-2 border-secondary" style="font-size:0.68rem; white-space:nowrap;">${c.nombre}</td>`;
-            
-            html += `<td class="bg-light align-middle px-1 border-secondary">
-                <input type="time" class="form-control form-control-sm text-center border-secondary bg-white p-0 fw-bold mb-1 text-primary in-hora-ini" data-curso-id="${c.id}" data-bloque="${i}" value="13:30" style="font-size:0.68rem;">
-                <input type="time" class="form-control form-control-sm text-center border-secondary bg-white p-0 fw-bold text-primary in-hora-fin" data-curso-id="${c.id}" data-bloque="${i}" value="14:10" style="font-size:0.68rem;">
-            </td>`;
-            
-            for (let d = 1; d <= 5; d++) {
-                html += `<td class="celda-horario p-1 border-secondary" style="background-color: #ffffff;" data-curso-id="${c.id}" data-dia="${d}" data-bloque="${i}" onclick="abrirModalCeldaMaster(this)"></td>`;
-            }
-            html += `</tr>`;
+        const { data: configJuntas } = await supabaseClient.from('juntas_config').select('curso_id, seccion');
+        let cursosFiltrados = cursosList.filter(c => {
+            const conf = (configJuntas || []).find(j => j.curso_id === c.id);
+            if (conf && conf.seccion) return conf.seccion.toLowerCase() === jornada.toLowerCase();
+            // 2. FORZAMOS A MOSTRAR EL CURSO AUNQUE NO TENGA JORNADA CONFIGURADA
+            return true; 
         });
-    }
-    tbody.innerHTML = html;
 
-    horarioGlobalMemoria.forEach(h => {
-        if (h.hora_inicio) {
-            const inIni = document.querySelector(`.in-hora-ini[data-curso-id="${h.curso_id}"][data-bloque="${h.hora_bloque}"]`);
-            if (inIni) { try { inIni.value = h.hora_inicio.substring(0, 5); } catch(e){} }
-        }
-        if (h.hora_fin) {
-            const inFin = document.querySelector(`.in-hora-fin[data-curso-id="${h.curso_id}"][data-bloque="${h.hora_bloque}"]`);
-            if (inFin) { try { inFin.value = h.hora_fin.substring(0, 5); } catch(e){} }
+        if (!esVistaGeneral) cursosFiltrados = cursosFiltrados.filter(c => String(c.id) === String(filtroCursoId));
+
+        if (cursosFiltrados.length === 0) {
+            document.getElementById('bodyCuadriculaHorario').innerHTML = '<tr><td colspan="8" class="text-danger fw-bold py-4">No hay cursos configurados.</td></tr>';
+            document.getElementById('seccionEspejoExamenes').classList.add('d-none');
+            return;
         }
 
-        const celda = document.querySelector(`.celda-horario[data-curso-id="${h.curso_id}"][data-dia="${h.dia_semana}"][data-bloque="${h.hora_bloque}"]`);
-        if (celda) {
-            if (h.es_receso) {
-                celda.innerHTML = `<div class="fw-bold d-flex align-items-center justify-content-center h-100 text-dark" style="font-size: 0.70rem; letter-spacing: 1px;">RECESO</div>`;
-                celda.style.backgroundColor = h.color_fondo || '#fde047';
-                celda.setAttribute('data-tipo', 'receso');
-            } else if (h.curso_materia_docente) {
-                const matNombre = h.curso_materia_docente.materias?.nombre || 'Materia';
-                const detalleInfo = h.detalle_materia ? `<br><span class="text-primary fw-bolder">(${h.detalle_materia})</span>` : '';
-                const docObj = docentesList.find(d => d.id === h.curso_materia_docente.docente_id);
-                const docName = docObj ? docObj.apellidos || docObj.nombres : 'S/N';
+        await cargarHorarioGlobalMemoria();
+        const tbody = document.getElementById('bodyCuadriculaHorario');
+        let html = '';
+        
+        for (let i = 1; i <= 7; i++) {
+            cursosFiltrados.forEach((c, idx) => {
+                html += `<tr>`;
+                if (idx === 0) html += `<td rowspan="${cursosFiltrados.length}" class="bg-secondary text-white fw-bold align-middle fs-5 border-secondary">${i}</td>`;
+                html += `<td class="fw-bold bg-light text-start ps-2 border-secondary" style="font-size:0.68rem; white-space:nowrap;">${c.nombre}</td>`;
                 
-                celda.innerHTML = `
-                    <div class="d-flex flex-column h-100 justify-content-center">
-                        <span class="fw-bold text-dark text-wrap" style="font-size: 0.65rem; line-height: 1.1;">${matNombre}${detalleInfo}</span>
-                        <span class="text-muted mt-1 text-truncate w-100" style="font-size: 0.55rem;">${docName}</span>
-                    </div>
-                `;
-                celda.style.backgroundColor = obtenerColorDocente(h.curso_materia_docente.docente_id); 
-                celda.setAttribute('data-tipo', 'materia');
-                celda.setAttribute('data-asig-id', h.asignacion_id);
-                celda.setAttribute('data-docente-id', h.curso_materia_docente.docente_id);
-                celda.setAttribute('data-materia-nombre', matNombre);
-                if (h.detalle_materia) celda.setAttribute('data-detalle', h.detalle_materia);
-                celda.setAttribute('data-es-examen', h.es_examen ? 'true' : 'false');
+                html += `<td class="bg-light align-middle px-1 border-secondary">
+                    <input type="time" class="form-control form-control-sm text-center border-secondary bg-white p-0 fw-bold mb-1 text-primary in-hora-ini" data-curso-id="${c.id}" data-bloque="${i}" value="13:30" style="font-size:0.68rem;">
+                    <input type="time" class="form-control form-control-sm text-center border-secondary bg-white p-0 fw-bold text-primary in-hora-fin" data-curso-id="${c.id}" data-bloque="${i}" value="14:10" style="font-size:0.68rem;">
+                </td>`;
                 
-            } else {
-                // ATRAE CUALQUIER OTRA COSA: Si la ID no cuadra, o es null, o se borró el docente, se pinta de rojo.
-                celda.innerHTML = `
-                    <div class="d-flex flex-column h-100 justify-content-center">
-                        <span class="fw-bold text-danger text-wrap" style="font-size: 0.65rem; line-height: 1.1;"><i class="bi bi-exclamation-triangle-fill"></i> ERROR</span>
-                        <span class="text-danger mt-1 text-truncate w-100" style="font-size: 0.55rem;">Clic para reasignar</span>
-                    </div>
-                `;
-                celda.style.backgroundColor = '#ffe2e5'; 
-                celda.setAttribute('data-tipo', 'materia'); 
-                celda.setAttribute('data-asig-id', h.asignacion_id || ''); 
+                for (let d = 1; d <= 5; d++) {
+                    html += `<td class="celda-horario p-1 border-secondary" style="background-color: #ffffff;" data-curso-id="${c.id}" data-dia="${d}" data-bloque="${i}" onclick="abrirModalCeldaMaster(this)"></td>`;
+                }
+                html += `</tr>`;
+            });
+        }
+        tbody.innerHTML = html;
+
+        horarioGlobalMemoria.forEach(h => {
+            if (h.hora_inicio) {
+                const inIni = document.querySelector(`.in-hora-ini[data-curso-id="${h.curso_id}"][data-bloque="${h.hora_bloque}"]`);
+                if (inIni) { try { inIni.value = h.hora_inicio.substring(0, 5); } catch(e){} }
             }
-        }
-    });
-    
-    actualizarLeyendas(filtroCursoId); 
-    dibujarEspejoExamenes(cursosFiltrados); 
-}
+            if (h.hora_fin) {
+                const inFin = document.querySelector(`.in-hora-fin[data-curso-id="${h.curso_id}"][data-bloque="${h.hora_bloque}"]`);
+                if (inFin) { try { inFin.value = h.hora_fin.substring(0, 5); } catch(e){} }
+            }
+
+            const celda = document.querySelector(`.celda-horario[data-curso-id="${h.curso_id}"][data-dia="${h.dia_semana}"][data-bloque="${h.hora_bloque}"]`);
+            if (celda) {
+                if (h.es_receso) {
+                    celda.innerHTML = `<div class="fw-bold d-flex align-items-center justify-content-center h-100 text-dark" style="font-size: 0.70rem; letter-spacing: 1px;">RECESO</div>`;
+                    celda.style.backgroundColor = h.color_fondo || '#fde047';
+                    celda.setAttribute('data-tipo', 'receso');
+                } else if (h.curso_materia_docente) {
+                    const matNombre = h.curso_materia_docente.materias?.nombre || 'Materia';
+                    const detalleInfo = h.detalle_materia ? `<br><span class="text-primary fw-bolder">(${h.detalle_materia})</span>` : '';
+                    const docObj = docentesList.find(d => d.id === h.curso_materia_docente.docente_id);
+                    const docName = docObj ? docObj.apellidos || docObj.nombres : 'S/N';
+                    
+                    celda.innerHTML = `
+                        <div class="d-flex flex-column h-100 justify-content-center">
+                            <span class="fw-bold text-dark text-wrap" style="font-size: 0.65rem; line-height: 1.1;">${matNombre}${detalleInfo}</span>
+                            <span class="text-muted mt-1 text-truncate w-100" style="font-size: 0.55rem;">${docName}</span>
+                        </div>
+                    `;
+                    celda.style.backgroundColor = obtenerColorDocente(h.curso_materia_docente.docente_id); 
+                    celda.setAttribute('data-tipo', 'materia');
+                    celda.setAttribute('data-asig-id', h.asignacion_id);
+                    celda.setAttribute('data-docente-id', h.curso_materia_docente.docente_id);
+                    celda.setAttribute('data-materia-nombre', matNombre);
+                    if (h.detalle_materia) celda.setAttribute('data-detalle', h.detalle_materia);
+                    celda.setAttribute('data-es-examen', h.es_examen ? 'true' : 'false');
+                    
+                } else {
+                    // ATRAE CUALQUIER OTRA COSA: Si la ID no cuadra, o es null, o se borró el docente, se pinta de rojo.
+                    celda.innerHTML = `
+                        <div class="d-flex flex-column h-100 justify-content-center">
+                            <span class="fw-bold text-danger text-wrap" style="font-size: 0.65rem; line-height: 1.1;"><i class="bi bi-exclamation-triangle-fill"></i> REASIGNAR</span>
+                            <span class="text-danger mt-1 text-truncate w-100" style="font-size: 0.55rem;">Clic para corregir</span>
+                        </div>
+                    `;
+                    celda.style.backgroundColor = '#ffe2e5'; 
+                    celda.setAttribute('data-tipo', 'materia'); 
+                    celda.setAttribute('data-asig-id', h.asignacion_id || ''); 
+                }
+            }
+        });
+        
+        actualizarLeyendas(filtroCursoId); 
+        dibujarEspejoExamenes(cursosFiltrados); 
+    }
     
 // 3. Modal al hacer clic en una celda
 async function abrirModalCeldaMaster(celda) {
