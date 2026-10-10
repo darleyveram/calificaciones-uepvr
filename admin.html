@@ -2946,7 +2946,6 @@ async function cargarCuadriculaMaster() {
     tbody.innerHTML = html;
 
     horarioGlobalMemoria.forEach(h => {
-        // 1. Protección de Formato de Hora (Corta los segundos "07:30:00" -> "07:30" para evitar el colapso)
         if (h.hora_inicio) {
             const inIni = document.querySelector(`.in-hora-ini[data-curso-id="${h.curso_id}"][data-bloque="${h.hora_bloque}"]`);
             if (inIni) { try { inIni.value = h.hora_inicio.substring(0, 5); } catch(e){} }
