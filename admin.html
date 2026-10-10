@@ -2845,8 +2845,26 @@ async function actualizarLimiteDirecto(asignacionId, nuevoLimite, cursoId) {
 
 async function cargarHorarioGlobalMemoria() {
     try {
-        const { data } = await supabaseClient.from('horarios').select(`*, curso_materia_docente(docente_id, materias(nombre))`);
-        horarioGlobalMemoria = data || [];
+        let allData = [];
+        let fetchMore = true;
+        let start = 0;
+        const limit = 1000;
+        
+        while (fetchMore) {
+            const { data, error } = await supabaseClient.from('horarios')
+                .select(`*, curso_materia_docente(docente_id, materias(nombre))`)
+                .range(start, start + limit - 1);
+                
+            if (error) { console.error(error); break; }
+            if (data && data.length > 0) {
+                allData.push(...data);
+                start += limit;
+                if (data.length < limit) fetchMore = false;
+            } else {
+                fetchMore = false;
+            }
+        }
+        horarioGlobalMemoria = allData;
     } catch (err) { console.error(err); }
 }
 
@@ -2961,9 +2979,17 @@ async function cargarCuadriculaMaster() {
                 celda.setAttribute('data-docente-id', h.curso_materia_docente.docente_id);
                 celda.setAttribute('data-materia-nombre', matNombre);
                 if (h.detalle_materia) celda.setAttribute('data-detalle', h.detalle_materia);
-                
-                // NUEVO: Marcamos si es examen en el DOM de la tabla principal
                 celda.setAttribute('data-es-examen', h.es_examen ? 'true' : 'false');
+                
+            } else if (!h.curso_materia_docente && h.asignacion_id) {
+                // ESTO ES LO QUE FALTA: Atrapa el error si el ID se desvinculó
+                celda.innerHTML = `
+                    <div class="d-flex flex-column h-100 justify-content-center">
+                        <span class="fw-bold text-danger text-wrap" style="font-size: 0.65rem; line-height: 1.1;"><i class="bi bi-exclamation-triangle-fill"></i> REASIGNAR</span>
+                    </div>
+                `;
+                celda.style.backgroundColor = '#ffe2e5'; 
+                celda.setAttribute('data-tipo', 'error'); 
             }
         }
     });
