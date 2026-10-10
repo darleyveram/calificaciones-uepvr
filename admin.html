@@ -2982,14 +2982,16 @@ async function cargarCuadriculaMaster() {
                 celda.setAttribute('data-es-examen', h.es_examen ? 'true' : 'false');
                 
             } else if (!h.curso_materia_docente && h.asignacion_id) {
-                // ESTO ES LO QUE FALTA: Atrapa el error si el ID se desvinculó
+                // Muestra un error visual explícito si la relación se rompió por edición
                 celda.innerHTML = `
                     <div class="d-flex flex-column h-100 justify-content-center">
                         <span class="fw-bold text-danger text-wrap" style="font-size: 0.65rem; line-height: 1.1;"><i class="bi bi-exclamation-triangle-fill"></i> REASIGNAR</span>
+                        <span class="text-danger mt-1 text-truncate w-100" style="font-size: 0.55rem;">Clic para corregir</span>
                     </div>
                 `;
                 celda.style.backgroundColor = '#ffe2e5'; 
-                celda.setAttribute('data-tipo', 'error'); 
+                celda.setAttribute('data-tipo', 'materia'); // DEBE ser "materia" para que el modal abra y permita sobreescribir
+                celda.setAttribute('data-asig-id', h.asignacion_id); 
             }
         }
     });
