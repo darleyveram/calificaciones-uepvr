@@ -51,7 +51,7 @@
   <div class="container" id="seccionLogin" style="max-width: 420px; margin-top: 80px;">
     <div class="card shadow">
       <div class="card-header bg-dark text-white text-center py-3">
-        <h5 class="mb-0 fw-bold"><i class="bi bi-shield-lock me-2"></i>Acceso Administrativo V2.11</h5>
+        <h5 class="mb-0 fw-bold"><i class="bi bi-shield-lock me-2"></i>Acceso Administrativo V2.12</h5>
         <small class="text-secondary header-nombre-inst">UEP Vicente Rocafuerte</small>
       </div>
       <div class="card-body p-4">
@@ -101,7 +101,7 @@
             <i id="sidebarIconDef" class="bi bi-mortarboard-fill text-primary fs-3"></i>
             <div>
               <h6 class="mb-0 fw-bold header-siglas-inst">UEPVR</h6>
-              <small class="text-secondary">Administración V2.11</small>
+              <small class="text-secondary">Administración V2.12</small>
             </div>
           </div>
           
@@ -2845,27 +2845,22 @@ async function actualizarLimiteDirecto(asignacionId, nuevoLimite, cursoId) {
 
 async function cargarHorarioGlobalMemoria() {
     try {
-        let allData = [];
-        let fetchMore = true;
-        let start = 0;
-        const limit = 1000;
-        
-        while (fetchMore) {
-            const { data, error } = await supabaseClient.from('horarios')
-                .select(`*, curso_materia_docente(docente_id, materias(nombre))`)
-                .range(start, start + limit - 1);
-                
-            if (error) { console.error(error); break; }
-            if (data && data.length > 0) {
-                allData.push(...data);
-                start += limit;
-                if (data.length < limit) fetchMore = false;
-            } else {
-                fetchMore = false;
-            }
+        // Hacemos una consulta directa y simple a Supabase (soporta hasta 1000 filas por defecto)
+        const { data, error } = await supabaseClient.from('horarios')
+            .select(`*, curso_materia_docente(docente_id, materias(nombre))`);
+            
+        if (error) { 
+            alert("Error de Supabase al descargar horarios: " + error.message); 
+            console.error(error);
+            horarioGlobalMemoria = [];
+            return; 
         }
-        horarioGlobalMemoria = allData;
-    } catch (err) { console.error(err); }
+        
+        horarioGlobalMemoria = data || [];
+    } catch (err) { 
+        console.error("Error crítico de red:", err); 
+        horarioGlobalMemoria = [];
+    }
 }
 
     async function cargarComboCursosHorario() {
@@ -2981,17 +2976,17 @@ async function cargarCuadriculaMaster() {
                 if (h.detalle_materia) celda.setAttribute('data-detalle', h.detalle_materia);
                 celda.setAttribute('data-es-examen', h.es_examen ? 'true' : 'false');
                 
-            } else if (!h.curso_materia_docente && h.asignacion_id) {
-                // 2. Rescate de Celdas Desvinculadas (Muestra en rojo las materias que perdieron su ID al editar)
+            } else {
+                // ATRAE CUALQUIER OTRA COSA: Si la ID no cuadra, o es null, o se borró el docente, se pinta de rojo.
                 celda.innerHTML = `
                     <div class="d-flex flex-column h-100 justify-content-center">
-                        <span class="fw-bold text-danger text-wrap" style="font-size: 0.65rem; line-height: 1.1;"><i class="bi bi-exclamation-triangle-fill"></i> DESVINCULADA</span>
+                        <span class="fw-bold text-danger text-wrap" style="font-size: 0.65rem; line-height: 1.1;"><i class="bi bi-exclamation-triangle-fill"></i> ERROR</span>
                         <span class="text-danger mt-1 text-truncate w-100" style="font-size: 0.55rem;">Clic para reasignar</span>
                     </div>
                 `;
                 celda.style.backgroundColor = '#ffe2e5'; 
                 celda.setAttribute('data-tipo', 'materia'); 
-                celda.setAttribute('data-asig-id', h.asignacion_id); 
+                celda.setAttribute('data-asig-id', h.asignacion_id || ''); 
             }
         }
     });
