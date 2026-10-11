@@ -10,7 +10,7 @@
   <meta http-equiv="Expires" content="0">
   
   
-  <meta name="version" content="v1.1.7_oct2026">
+  <meta name="version" content="v1.1.8_oct2026">
   
 
   <link id="favicon" rel="icon" href="https://lh3.googleusercontent.com/d/12mcQpcThT13MooXBNCm-ABhH5uGFfkpq" type="image/png">
@@ -1304,6 +1304,14 @@
         alCambiarCurso();
         return;
     }
+      else if (modo === 'indor') {
+          boxCurso.classList.add('d-none'); boxMateria.classList.add('d-none'); boxVista.classList.add('d-none'); boxParcialAsist.classList.add('d-none'); boxParcialTut.classList.add('d-none'); optAnual.classList.add('d-none'); boxTrimestre.classList.add('d-none');
+          const accIndor = document.getElementById('accionesIndor');
+          if (accIndor) accIndor.classList.remove('d-none');
+          if (esAdmin) document.querySelectorAll('#accionesIndor .auth-admin-insp').forEach(el => el.classList.remove('d-none'));
+          cargarVistaIndor();
+          return;
+      }
     else {
         boxCurso.classList.remove('d-none'); boxMateria.classList.remove('d-none'); boxVista.classList.remove('d-none'); boxParcialAsist.classList.add('d-none'); boxParcialTut.classList.add('d-none'); optAnual.classList.remove('d-none');
         boxTrimestre.classList.remove('d-none'); 
@@ -1387,9 +1395,9 @@
       if (accMejores) accMejores.classList.add('d-none');
       
       accParcial.classList.add('d-none'); accComp.classList.add('d-none'); accResumen.classList.add('d-none'); accAnual.classList.add('d-none'); accAsist.classList.add('d-none'); accTutoria.classList.add('d-none');
-      if (accIndor) accIndor.classList.add('d-none');
       if (accCertificados) accCertificados.classList.add('d-none');
       if (accIncidencias) accIncidencias.classList.add('d-none');
+      if (accIndor) accIndor.classList.add('d-none');
 
       // Ocultar vista de parciales si es anual o si el módulo no lo requiere
       if (trimestreVal === 'anual') {
@@ -1449,7 +1457,7 @@
       if (modo === 'indor') {
         boxCurso.classList.add('d-none'); boxMateria.classList.add('d-none'); boxVista.classList.add('d-none'); boxParcialAsist.classList.add('d-none'); boxParcialTut.classList.add('d-none'); optAnual.classList.add('d-none'); boxTrimestre.classList.add('d-none');
         if (accIndor) accIndor.classList.remove('d-none');
-        if (esAdmin) document.querySelectorAll('#accionesIndor .auth-admin-insp').forEach(el => el.classList.remove('d-none'));
+        if (usuarioActualPerfil?.rol === 'admin') document.querySelectorAll('#accionesIndor .auth-admin-insp').forEach(el => el.classList.remove('d-none'));
         cargarVistaIndor();
         return;
       }
