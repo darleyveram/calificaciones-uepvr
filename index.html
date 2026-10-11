@@ -10,7 +10,7 @@
   <meta http-equiv="Expires" content="0">
   
   
-  <meta name="version" content="v1.1.6_oct2026">
+  <meta name="version" content="v1.1.7_oct2026">
   
 
   <link id="favicon" rel="icon" href="https://lh3.googleusercontent.com/d/12mcQpcThT13MooXBNCm-ABhH5uGFfkpq" type="image/png">
@@ -160,7 +160,7 @@
       </div>
       <div class="card-footer bg-light text-center py-3 border-0">
         <small class="text-muted fw-semibold header-dir-inst d-block">Pichincha - Manabí - Ecuador</small>
-        <small class="text-muted" style="font-size: 0.65rem; opacity: 0.6;">v1.1.5 (Actualizado el 04/10/2026 23:20:00)</small>
+        <small class="text-muted" style="font-size: 0.65rem; opacity: 0.6;">v1.1.6 (Actualizado el 11/10/2026 16:29:00)</small>
       </div>
     </div>
   </div>
@@ -224,6 +224,8 @@
               <!-- NUEVO MÓDULO: MONITOREO -->
               <option value="monitoreo" id="optModoMonitoreo" class="d-none text-success fw-bold">🟢 Monitoreo en Vivo</option>
               <option value="visor_horarios" id="optModoVisorHorarios" class="text-primary fw-bold">📅 Visor de Horarios / Exámenes</option>
+              <!-- MÓDULO INDOR -->
+              <option value="indor" id="optModoIndor" class="text-success fw-bold">⚽ Olimpiadas Indor 2026</option>
             </select>
           </div>
 
@@ -419,6 +421,16 @@
             <!-- Botón exclusivo Sábana (Admin y Tutor) -->
             <button class="btn btn-danger btn-sm px-2 fw-bold d-none" id="btnDescargarSabanaTutoria" onclick="exportarSabanaTutoriaPDF()">
               <i class="bi bi-file-earmark-spreadsheet-fill me-1"></i>Sábana PDF
+            </button>
+          </div>
+
+          <!-- BOTONES OLIMPIADAS INDOR -->
+          <div class="col-12 col-md-4 text-end pt-2 pt-md-3 d-none" id="accionesIndor">
+            <button class="btn btn-success btn-sm fw-bold auth-admin-insp d-none" onclick="abrirModalNuevoPartido()">
+              <i class="bi bi-calendar-plus me-1"></i> Programar Partido
+            </button>
+            <button class="btn btn-warning btn-sm fw-bold text-dark ms-1" onclick="cargarVistaIndor()">
+              <i class="bi bi-arrow-clockwise"></i> Actualizar
             </button>
           </div>
 
@@ -639,6 +651,47 @@
         </div>
         <div class="modal-footer bg-light py-2">
             <button type="button" class="btn btn-secondary btn-sm fw-bold px-4" data-bs-dismiss="modal">Cerrar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Nuevo Partido Indor -->
+  <div class="modal fade" id="modalNuevoPartido" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 shadow">
+        <div class="modal-header bg-success text-white py-2">
+          <h6 class="modal-title fw-bold"><i class="bi bi-calendar-event me-2"></i>Programar Partido</h6>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body bg-light">
+          <form onsubmit="guardarPartidoIndor(event)">
+            <div class="row g-2 mb-3">
+              <div class="col-6"><label class="form-label small fw-bold">Curso Local</label><select id="indorLocal" class="form-select form-select-sm" required></select></div>
+              <div class="col-6"><label class="form-label small fw-bold">Curso Visitante</label><select id="indorVisitante" class="form-select form-select-sm" required></select></div>
+              <div class="col-6"><label class="form-label small fw-bold">Categoría</label><select id="indorCat" class="form-select form-select-sm"><option value="Masculino">Masculino</option><option value="Femenino">Femenino</option></select></div>
+              <div class="col-6"><label class="form-label small fw-bold">Fase</label><select id="indorFase" class="form-select form-select-sm"><option value="Fase de Grupos">Fase de Grupos</option><option value="Octavos">Octavos</option><option value="Cuartos">Cuartos</option><option value="Semifinal">Semifinal</option><option value="Final">Final</option></select></div>
+              <div class="col-6"><label class="form-label small fw-bold">Fecha</label><input type="date" id="indorFecha" class="form-control form-control-sm" required></div>
+              <div class="col-6"><label class="form-label small fw-bold">Hora</label><input type="time" id="indorHora" class="form-control form-control-sm" required></div>
+              <div class="col-12"><label class="form-label small fw-bold">Docente Árbitro/Veedor</label><select id="indorDocente" class="form-select form-select-sm" required></select></div>
+            </div>
+            <button type="submit" class="btn btn-success w-100 fw-bold" id="btnGuardarPartido">Guardar Partido</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Gestionar Partido -->
+  <div class="modal fade" id="modalGestionarPartido" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content border-0 shadow">
+        <div class="modal-header bg-dark text-white py-2">
+          <h6 class="modal-title fw-bold" id="tituloGestionPartido">Panel de Control del Partido</h6>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-3 bg-light" id="bodyGestionPartido">
+          <!-- Dinámico -->
         </div>
       </div>
     </div>
@@ -1323,6 +1376,7 @@
       const accCertificados = document.getElementById('accionesCertificados');
       const accIncidencias = document.getElementById('accionesIncidencias');
       const accNomina = document.getElementById('accionesNomina');
+      const accIndor = document.getElementById('accionesIndor');
 
       const accInfParcial = document.getElementById('accionesInformeParcial');
       if (accInfParcial) accInfParcial.classList.add('d-none'); 
@@ -1333,6 +1387,7 @@
       if (accMejores) accMejores.classList.add('d-none');
       
       accParcial.classList.add('d-none'); accComp.classList.add('d-none'); accResumen.classList.add('d-none'); accAnual.classList.add('d-none'); accAsist.classList.add('d-none'); accTutoria.classList.add('d-none');
+      if (accIndor) accIndor.classList.add('d-none');
       if (accCertificados) accCertificados.classList.add('d-none');
       if (accIncidencias) accIncidencias.classList.add('d-none');
 
@@ -1386,9 +1441,18 @@
 
       if (modo === 'auditoria') { cargarVistaAuditoria(); return; }
       if (modo === 'nomina') { if (accNomina) accNomina.classList.remove('d-none'); cargarVistaNomina(); return; }
+      
       if (modo === 'intercambio') { if (!cursoId) { document.getElementById('contenedorTabla').innerHTML = '<div class="py-4 text-muted text-center">Seleccione un Curso para realizar el intercambio.</div>'; return; } cargarVistaIntercambio(); return; }
       if (modo === 'monitoreo') { cargarVistaMonitoreo(); return; }
       if (modo === 'reporte_estudiante') { cargarVistaListaEstudiantesReporte(); return; }
+
+      if (modo === 'indor') {
+        boxCurso.classList.add('d-none'); boxMateria.classList.add('d-none'); boxVista.classList.add('d-none'); boxParcialAsist.classList.add('d-none'); boxParcialTut.classList.add('d-none'); optAnual.classList.add('d-none'); boxTrimestre.classList.add('d-none');
+        if (accIndor) accIndor.classList.remove('d-none');
+        if (esAdmin) document.querySelectorAll('#accionesIndor .auth-admin-insp').forEach(el => el.classList.remove('d-none'));
+        cargarVistaIndor();
+        return;
+      }
       
       if (modo === 'tutoria') {
         accTutoria.classList.remove('d-none');
@@ -8578,6 +8642,234 @@ async function exportarVisorHorarioPDF() {
         btn.disabled = false; btn.innerHTML = '<i class="bi bi-file-pdf me-1"></i> Descargar PDF';
     }
 }
+
+    // =========================================================================
+// MÓDULO: OLIMPIADAS INDOR 2026
+// =========================================================================
+let partidosGlobalIndor = [];
+let modalNuevoPartidoInst = null;
+let modalGestionarPartidoInst = null;
+
+async function cargarVistaIndor() {
+    const contenedor = document.getElementById('contenedorTabla');
+    contenedor.innerHTML = '<div class="py-5 text-center"><div class="spinner-border text-success"></div><div class="mt-2 fw-bold text-muted">Cargando datos del campeonato...</div></div>';
+
+    try {
+        const [resPartidos, resTarjetas] = await Promise.all([
+            supabaseClient.from('indor_partidos').select(`*, local:curso_local_id(nombre), visitante:curso_visitante_id(nombre), docente:docente_asignado_id(nombres, apellidos)`).order('fecha').order('hora'),
+            supabaseClient.from('indor_tarjetas').select('id, tipo_tarjeta, valor_multa, estado_pago, partido_id, estudiante_id, estudiantes(nombres, cursos(nombre))').eq('estado_pago', 'PENDIENTE')
+        ]);
+        
+        if (resPartidos.error) throw resPartidos.error;
+        partidosGlobalIndor = resPartidos.data || [];
+        const multas = resTarjetas.data || [];
+
+        const esAdmin = usuarioActualPerfil?.rol === 'admin';
+
+        let alertasHtml = '';
+        if (multas.length > 0 && esAdmin) {
+            alertasHtml = `
+            <div class="alert alert-danger shadow-sm mb-4">
+                <h6 class="fw-bold mb-2"><i class="bi bi-exclamation-triangle-fill me-2"></i>Alertas de Multas Pendientes</h6>
+                <div class="table-responsive" style="max-height: 150px;">
+                    <table class="table table-sm table-borderless mb-0" style="font-size: 0.8rem;">
+                        ${multas.map(m => `
+                            <tr class="border-bottom">
+                                <td><b>\${m.estudiantes.nombres}</b> <span class="text-muted">(\${m.estudiantes.cursos.nombre})</span></td>
+                                <td>Tarjeta <span class="badge \${m.tipo_tarjeta === 'AMARILLA' ? 'bg-warning text-dark' : 'bg-danger'}">${m.tipo_tarjeta}</span></td>                                 <td class="fw-bold text-danger">Deuda: $\${m.valor_multa.toFixed(2)}</td>
+                                <td class="text-end"><button class="btn btn-xs btn-success py-0" onclick="pagarMultaIndor(\${m.id})">Marcar Pagado</button></td>
+                            </tr>
+                        `).join('')}
+                    </table>
+                </div>
+            </div>`;
+        }
+
+        let partidosHtml = partidosGlobalIndor.map(p => {
+            const fechaStr = new Date(p.fecha + 'T00:00:00').toLocaleDateString('es-EC', {weekday: 'short', day: 'numeric', month: 'short'});
+            const horaStr = p.hora.substring(0, 5);
+            const badgeEstado = p.estado === 'Finalizado' ? 'bg-secondary' : (p.estado === 'En Juego' ? 'bg-success blink' : 'bg-primary');
+            const miPartido = p.docente_asignado_id === usuarioActualPerfil.id || esAdmin;
+            
+            return `
+            <div class="col-md-6 col-lg-4 mb-3">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-2" style="font-size: 0.8rem;">
+                        <span>${p.fase} - ${p.categoria}</span>
+                        <span class="badge ${badgeEstado}">${p.estado}</span>
+                    </div>
+                    <div class="card-body text-center p-3">
+                        <div class="text-muted small mb-2"><i class="bi bi-calendar-event me-1"></i> ${fechaStr} | <i class="bi bi-clock me-1"></i> ${horaStr}</div>
+                        <div class="d-flex justify-content-center align-items-center gap-2 mb-2">
+                            <div class="fw-bold text-truncate w-50" style="font-size: 0.85rem;">${p.local?.nombre || 'N/A'}</div>
+                            <div class="bg-light px-3 py-1 rounded fw-bold fs-5 border">${p.goles_local} - ${p.goles_visitante}</div>
+                            <div class="fw-bold text-truncate w-50" style="font-size: 0.85rem;">${p.visitante?.nombre || 'N/A'}</div>
+                        </div>
+                        <div class="small text-muted fst-italic mt-2">Veedor: ${p.docente?.nombres || 'N/A'}</div>
+                    </div>
+                    ${miPartido ? `
+                    <div class="card-footer bg-white border-0 text-center pb-3">
+                        <button class="btn btn-outline-success btn-sm fw-bold w-100" onclick="abrirGestionPartido(\${p.id})"><i class="bi bi-controller me-1"></i> Panel del Partido</button>
+                    </div>` : ''}
+                </div>
+            </div>`;
+        }).join('');
+
+        contenedor.innerHTML = `
+            <div class="p-3">
+                ${alertasHtml}
+                <div class="row">${partidosHtml || '<div class="col-12 text-center text-muted fw-bold py-4">No hay partidos programados.</div>'}</div>
+            </div>
+        `;
+    } catch(err) {
+        contenedor.innerHTML = `<div class="alert alert-danger fw-bold m-3">Error: ${err.message}</div>`;
+    }
+}
+
+function abrirModalNuevoPartido() {
+    if(!modalNuevoPartidoInst) modalNuevoPartidoInst = new bootstrap.Modal(document.getElementById('modalNuevoPartido'));
+    document.getElementById('indorLocal').innerHTML = '<option value="">Seleccione...</option>' + todosCursos.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
+    document.getElementById('indorVisitante').innerHTML = '<option value="">Seleccione...</option>' + todosCursos.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
+    document.getElementById('indorDocente').innerHTML = '<option value="">Seleccione...</option>' + docentesList.map(d => `<option value="${d.id}">${d.nombres} ${d.apellidos || ''}</option>`).join('');
+    modalNuevoPartidoInst.show();
+}
+
+async function guardarPartidoIndor(e) {
+    e.preventDefault();
+    const btn = document.getElementById('btnGuardarPartido');
+    btn.disabled = true; btn.innerText = 'Guardando...';
+
+    const payload = {
+        curso_local_id: document.getElementById('indorLocal').value,
+        curso_visitante_id: document.getElementById('indorVisitante').value,
+        categoria: document.getElementById('indorCat').value,
+        fase: document.getElementById('indorFase').value,
+        fecha: document.getElementById('indorFecha').value,
+        hora: document.getElementById('indorHora').value,
+        docente_asignado_id: document.getElementById('indorDocente').value
+    };
+
+    try {
+        const { error } = await supabaseClient.from('indor_partidos').insert([payload]);
+        if(error) throw error;
+        alert('Partido programado con éxito.');
+        modalNuevoPartidoInst.hide();
+        cargarVistaIndor();
+    } catch(err) {
+        alert(err.message);
+    } finally {
+        btn.disabled = false; btn.innerText = 'Guardar Partido';
+    }
+}
+
+async function abrirGestionPartido(id) {
+    if(!modalGestionarPartidoInst) modalGestionarPartidoInst = new bootstrap.Modal(document.getElementById('modalGestionarPartido'));
+    const p = partidosGlobalIndor.find(x => x.id === id);
+    if(!p) return;
+
+    document.getElementById('bodyGestionPartido').innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary"></div></div>';
+    modalGestionarPartidoInst.show();
+
+    try {
+        const { data: estData } = await supabaseClient.from('estudiantes').select('id, nombres, curso_id').in('curso_id', [p.curso_local_id, p.curso_visitante_id]);
+        
+        let estLocal = estData.filter(e => e.curso_id === p.curso_local_id);
+        let estVis = estData.filter(e => e.curso_id === p.curso_visitante_id);
+
+        document.getElementById('bodyGestionPartido').innerHTML = `
+            <div class="row text-center mb-3">
+                <div class="col-5"><h6 class="fw-bold text-primary">${p.local.nombre}</h6></div>
+                <div class="col-2"><h4 class="fw-bold">${p.goles_local} - ${p.goles_visitante}</h4></div>
+                <div class="col-5"><h6 class="fw-bold text-danger">${p.visitante.nombre}</h6></div>
+            </div>
+            
+            <div class="mb-3">
+                <label class="fw-bold small">Actualizar Estado</label>
+                <select class="form-select form-select-sm border-dark fw-bold" onchange="actualizarEstadoPartido(${p.id}, this.value)">
+                    <option value="Programado" ${p.estado === 'Programado' ? 'selected' : ''}>Programado</option>
+                    <option value="En Juego" ${p.estado === 'En Juego' ? 'selected' : ''}>En Juego</option>
+                    <option value="Finalizado" ${p.estado === 'Finalizado' ? 'selected' : ''}>Finalizado</option>
+                </select>
+            </div>
+
+            <div class="row g-2">
+                <div class="col-md-6 border-end">
+                    <h6 class="bg-light p-2 text-center fw-bold border rounded small">Acciones LOCAL</h6>
+                    <select id="estLocalGol" class="form-select form-select-sm mb-2"><option value="">Seleccionar Estudiante...</option>${estLocal.map(e => `<option value="${e.id}">${e.nombres}</option>`).join('')}</select>
+                    <button class="btn btn-sm btn-dark w-100 mb-3 fw-bold" onclick="registrarGolIndor(${p.id}, 'local')">⚽ Registrar Gol Local (+1)</button>
+                    
+                    <select id="estLocalTar" class="form-select form-select-sm mb-2"><option value="">Sancionar Estudiante...</option>${estLocal.map(e => `<option value="${e.id}">${e.nombres}</option>`).join('')}</select>
+                    <div class="d-flex gap-1">
+                        <button class="btn btn-sm btn-warning w-50 fw-bold text-dark" onclick="registrarTarjetaIndor(${p.id}, 'local', 'AMARILLA')">Amarilla</button>
+                        <button class="btn btn-sm btn-danger w-50 fw-bold" onclick="registrarTarjetaIndor(${p.id}, 'local', 'ROJA')">Roja</button>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <h6 class="bg-light p-2 text-center fw-bold border rounded small">Acciones VISITANTE</h6>
+                    <select id="estVisGol" class="form-select form-select-sm mb-2"><option value="">Seleccionar Estudiante...</option>${estVis.map(e => `<option value="${e.id}">${e.nombres}</option>`).join('')}</select>
+                    <button class="btn btn-sm btn-dark w-100 mb-3 fw-bold" onclick="registrarGolIndor(${p.id}, 'visitante')">⚽ Registrar Gol Visit. (+1)</button>
+                    
+                    <select id="estVisTar" class="form-select form-select-sm mb-2"><option value="">Sancionar Estudiante...</option>${estVis.map(e => `<option value="${e.id}">${e.nombres}</option>`).join('')}</select>
+                    <div class="d-flex gap-1">
+                        <button class="btn btn-sm btn-warning w-50 fw-bold text-dark" onclick="registrarTarjetaIndor(${p.id}, 'visitante', 'AMARILLA')">Amarilla</button>
+                        <button class="btn btn-sm btn-danger w-50 fw-bold" onclick="registrarTarjetaIndor(${p.id}, 'visitante', 'ROJA')">Roja</button>
+                    </div>
+                </div>
+            </div>
+        `;
+    } catch(err) {
+        document.getElementById('bodyGestionPartido').innerHTML = `<div class="alert alert-danger">Error: ${err.message}</div>`;
+    }
+}
+
+async function actualizarEstadoPartido(partidoId, estado) {
+    try {
+        await supabaseClient.from('indor_partidos').update({ estado: estado }).eq('id', partidoId);
+        cargarVistaIndor();
+    } catch(e) { alert(e.message); }
+}
+
+async function registrarGolIndor(partidoId, equipo) {
+    const estId = document.getElementById(equipo === 'local' ? 'estLocalGol' : 'estVisGol').value;
+    if(!estId) return alert('Seleccione un estudiante.');
+
+    try {
+        await supabaseClient.from('indor_goles').insert([{ partido_id: partidoId, estudiante_id: estId }]);
+        const p = partidosGlobalIndor.find(x => x.id === partidoId);
+        const golesAct = equipo === 'local' ? (p.goles_local + 1) : (p.goles_visitante + 1);
+        
+        await supabaseClient.from('indor_partidos').update(equipo === 'local' ? { goles_local: golesAct } : { goles_visitante: golesAct }).eq('id', partidoId);
+        p[equipo === 'local' ? 'goles_local' : 'goles_visitante'] = golesAct;
+        
+        abrirGestionPartido(partidoId); // Refrescar modal
+        cargarVistaIndor(); // Refrescar fondo
+    } catch(e) { alert(e.message); }
+}
+
+async function registrarTarjetaIndor(partidoId, equipo, tipo) {
+    const estId = document.getElementById(equipo === 'local' ? 'estLocalTar' : 'estVisTar').value;
+    if(!estId) return alert('Seleccione al infractor.');
+    
+    // Aquí puedes configurar el valor por defecto de las multas (Ej: \$1 amarilla, \$2 roja)
+    let valorMulta = prompt(`Ingrese el valor de la multa para la tarjeta ${tipo} (Ej: 1.00):`, tipo === 'AMARILLA' ? '1.00' : '2.00');
+    if(valorMulta === null) return;
+
+    try {
+        await supabaseClient.from('indor_tarjetas').insert([{ partido_id: partidoId, estudiante_id: estId, tipo_tarjeta: tipo, valor_multa: parseFloat(valorMulta) || 0 }]);
+        alert(`Tarjeta ${tipo} registrada. El estudiante queda con deuda pendiente.`);
+        cargarVistaIndor();
+    } catch(e) { alert(e.message); }
+}
+
+async function pagarMultaIndor(multaId) {
+    if(!confirm('¿Confirmar que el estudiante ya pagó esta multa?')) return;
+    try {
+        await supabaseClient.from('indor_tarjetas').update({ estado_pago: 'PAGADO' }).eq('id', multaId);
+        cargarVistaIndor();
+    } catch(e) { alert(e.message); }
+}
+
+    
     
   </script>
 </body>
