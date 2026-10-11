@@ -8657,6 +8657,7 @@ async function exportarVisorHorarioPDF() {
 let partidosGlobalIndor = [];
 let modalNuevoPartidoInst = null;
 let modalGestionarPartidoInst = null;
+let editandoPartidoId = null; // Variable para saber si estamos creando o editando
 
 async function cargarVistaIndor() {
     const contenedor = document.getElementById('contenedorTabla');
@@ -8701,23 +8702,29 @@ async function cargarVistaIndor() {
             
             return `
             <div class="col-md-6 col-lg-4 mb-3">
-                <div class="card border-0 shadow-sm h-100">
-                    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-2" style="font-size: 0.8rem;">
-                        <span>${p.fase} - ${p.categoria}</span>
+                <div class="card border-0 shadow-sm h-100 border-top border-4 border-success">
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center py-2 border-bottom-0">
+                        <span class="fw-bold text-dark" style="font-size: 0.8rem;">${p.fase} - ${p.categoria}</span>
                         <span class="badge ${badgeEstado}">${p.estado}</span>
                     </div>
-                    <div class="card-body text-center p-3">
-                        <div class="text-muted small mb-2"><i class="bi bi-calendar-event me-1"></i> ${fechaStr} | <i class="bi bi-clock me-1"></i> ${horaStr}</div>
-                        <div class="d-flex justify-content-center align-items-center gap-2 mb-2">
-                            <div class="fw-bold text-truncate w-50" style="font-size: 0.85rem;">${p.local?.nombre || 'N/A'}</div>
-                            <div class="bg-light px-3 py-1 rounded fw-bold fs-5 border">${p.goles_local} - ${p.goles_visitante}</div>
-                            <div class="fw-bold text-truncate w-50" style="font-size: 0.85rem;">${p.visitante?.nombre || 'N/A'}</div>
+                    <div class="card-body text-center p-3 pt-0">
+                        <div class="text-muted small mb-3 bg-light rounded py-1"><i class="bi bi-calendar-event me-1 text-primary"></i> ${fechaStr} &nbsp;|&nbsp; <i class="bi bi-clock me-1 text-danger"></i> ${horaStr}</div>
+                        <div class="d-flex justify-content-between align-items-center gap-2 mb-3">
+                            <div class="fw-bold text-truncate w-100 text-end" style="font-size: 0.85rem;" title="${p.local?.nombre || 'N/A'}">${p.local?.nombre || 'N/A'}</div>
+                            <div class="bg-dark text-white px-3 py-1 rounded fw-bold fs-5 shadow-sm mx-1" style="min-width: 70px;">${p.goles_local} - ${p.goles_visitante}</div>
+                            <div class="fw-bold text-truncate w-100 text-start" style="font-size: 0.85rem;" title="${p.visitante?.nombre || 'N/A'}">${p.visitante?.nombre || 'N/A'}</div>
                         </div>
-                        <div class="small text-muted fst-italic mt-2">Veedor: ${p.docente?.nombres || 'N/A'}</div>
+                        <div class="small text-muted border-top pt-2"><i class="bi bi-person-badge text-info me-1"></i> Árbitro/Veedor: <b>${p.docente?.nombres || 'N/A'}</b></div>
                     </div>
                     ${miPartido ? `
-                    <div class="card-footer bg-white border-0 text-center pb-3">
-                        <button class="btn btn-outline-success btn-sm fw-bold w-100" onclick="abrirGestionPartido(\${p.id})"><i class="bi bi-controller me-1"></i> Panel del Partido</button>
+                    <div class="card-footer bg-white border-0 text-center pb-3 pt-0">
+                        <div class="d-flex gap-2">
+                            \${esAdmin ? `
+                            <button class="btn btn-outline-secondary btn-sm" onclick="editarPartidoIndor(${p.id})" title="Editar Detalles"><i class="bi bi-pencil-square"></i></button>
+                            <button class="btn btn-outline-danger btn-sm" onclick="eliminarPartidoIndor(${p.id})" title="Eliminar Partido"><i class="bi bi-trash-fill"></i></button>
+                            ` : ''}
+                            <button class="btn btn-success btn-sm fw-bold flex-grow-1 shadow-sm" onclick="abrirGestionPartido(\${p.id})"><i class="bi bi-controller me-1"></i> Panel del Partido</button>
+                        </div>
                     </div>` : ''}
                 </div>
             </div>`;
@@ -8736,20 +8743,77 @@ async function cargarVistaIndor() {
 
 function abrirModalNuevoPartido() {
     if(!modalNuevoPartidoInst) modalNuevoPartidoInst = new bootstrap.Modal(document.getElementById('modalNuevoPartido'));
-    document.getElementById('indorLocal').innerHTML = '<option value="">Seleccione...</option>' + todosCursos.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
-    document.getElementById('indorVisitante').innerHTML = '<option value="">Seleccione...</option>' + todosCursos.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
-    document.getElementById('indorDocente').innerHTML = '<option value="">Seleccione...</option>' + docentesList.map(d => `<option value="${d.id}">${d.nombres} ${d.apellidos || ''}</option>`).join('');
+    
+    editandoPartidoId = null; // Reiniciar estado a "Nuevo"
+    document.getElementById('modalNuevoPartido').querySelector('.modal-title').innerHTML = '<i class="bi bi-calendar-event me-2"></i>Programar Partido';
+    document.getElementById('btnGuardarPartido').innerText = 'Guardar Partido';
+    
+    // Rellenar selects
+    document.getElementById('indorLocal').innerHTML = '<option value="">Seleccione Local...</option>' + todosCursos.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
+    document.getElementById('indorVisitante').innerHTML = '<option value="">Seleccione Visitante...</option>' + todosCursos.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
+    document.getElementById('indorDocente').innerHTML = '<option value="">Seleccione Veedor...</option>' + docentesList.map(d => `<option value="${d.id}">${d.nombres} ${d.apellidos || ''}</option>`).join('');
+    
+    // Limpiar formulario
+    document.getElementById('indorLocal').value = '';
+    document.getElementById('indorVisitante').value = '';
+    document.getElementById('indorCat').value = 'Masculino';
+    document.getElementById('indorFase').value = 'Fase de Grupos';
+    document.getElementById('indorFecha').value = '';
+    document.getElementById('indorHora').value = '';
+    document.getElementById('indorDocente').value = '';
+
     modalNuevoPartidoInst.show();
+}
+
+function editarPartidoIndor(id) {
+    const p = partidosGlobalIndor.find(x => x.id === id);
+    if(!p) return;
+
+    if(!modalNuevoPartidoInst) modalNuevoPartidoInst = new bootstrap.Modal(document.getElementById('modalNuevoPartido'));
+    
+    editandoPartidoId = id; // Cambiar estado a "Editando"
+    document.getElementById('modalNuevoPartido').querySelector('.modal-title').innerHTML = '<i class="bi bi-pencil-square me-2"></i>Editar Partido';
+    document.getElementById('btnGuardarPartido').innerText = 'Actualizar Partido';
+
+    // Rellenar selects
+    document.getElementById('indorLocal').innerHTML = '<option value="">Seleccione Local...</option>' + todosCursos.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
+    document.getElementById('indorVisitante').innerHTML = '<option value="">Seleccione Visitante...</option>' + todosCursos.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
+    document.getElementById('indorDocente').innerHTML = '<option value="">Seleccione Veedor...</option>' + docentesList.map(d => `<option value="${d.id}">${d.nombres} ${d.apellidos || ''}</option>`).join('');
+
+    // Cargar datos actuales
+    document.getElementById('indorLocal').value = p.curso_local_id;
+    document.getElementById('indorVisitante').value = p.curso_visitante_id;
+    document.getElementById('indorCat').value = p.categoria;
+    document.getElementById('indorFase').value = p.fase;
+    document.getElementById('indorFecha').value = p.fecha;
+    document.getElementById('indorHora').value = p.hora;
+    document.getElementById('indorDocente').value = p.docente_asignado_id;
+
+    modalNuevoPartidoInst.show();
+}
+
+async function eliminarPartidoIndor(id) {
+    if (!confirm('¿Está seguro de eliminar este partido? También se borrarán sus goles y tarjetas.')) return;
+    try {
+        const { error } = await supabaseClient.from('indor_partidos').delete().eq('id', id);
+        if (error) throw error;
+        cargarVistaIndor();
+    } catch(e) { alert(e.message); }
 }
 
 async function guardarPartidoIndor(e) {
     e.preventDefault();
+    const localId = document.getElementById('indorLocal').value;
+    const visitanteId = document.getElementById('indorVisitante').value;
+
+    if(localId === visitanteId) return alert('El curso local y visitante no pueden ser el mismo.');
+
     const btn = document.getElementById('btnGuardarPartido');
     btn.disabled = true; btn.innerText = 'Guardando...';
 
     const payload = {
-        curso_local_id: document.getElementById('indorLocal').value,
-        curso_visitante_id: document.getElementById('indorVisitante').value,
+        curso_local_id: localId,
+        curso_visitante_id: visitanteId,
         categoria: document.getElementById('indorCat').value,
         fase: document.getElementById('indorFase').value,
         fecha: document.getElementById('indorFecha').value,
@@ -8758,9 +8822,16 @@ async function guardarPartidoIndor(e) {
     };
 
     try {
-        const { error } = await supabaseClient.from('indor_partidos').insert([payload]);
-        if(error) throw error;
-        alert('Partido programado con éxito.');
+        if(editandoPartidoId) {
+            const { error } = await supabaseClient.from('indor_partidos').update(payload).eq('id', editandoPartidoId);
+            if(error) throw error;
+            alert('Partido actualizado con éxito.');
+        } else {
+            const { error } = await supabaseClient.from('indor_partidos').insert([payload]);
+            if(error) throw error;
+            alert('Partido programado con éxito.');
+        }
+        
         modalNuevoPartidoInst.hide();
         cargarVistaIndor();
     } catch(err) {
@@ -8779,50 +8850,108 @@ async function abrirGestionPartido(id) {
     modalGestionarPartidoInst.show();
 
     try {
-        const { data: estData } = await supabaseClient.from('estudiantes').select('id, nombres, curso_id').in('curso_id', [p.curso_local_id, p.curso_visitante_id]);
+        // Consultar estudiantes, goles y tarjetas al mismo tiempo
+        const [resEst, resGoles, resTarjetas] = await Promise.all([
+            supabaseClient.from('estudiantes').select('id, nombres, curso_id').in('curso_id', [p.curso_local_id, p.curso_visitante_id]).order('nombres'),
+            supabaseClient.from('indor_goles').select('id, estudiante_id, cantidad, estudiantes(nombres)').eq('partido_id', p.id),
+            supabaseClient.from('indor_tarjetas').select('id, estudiante_id, tipo_tarjeta, estudiantes(nombres)').eq('partido_id', p.id)
+        ]);
         
-        let estLocal = estData.filter(e => e.curso_id === p.curso_local_id);
-        let estVis = estData.filter(e => e.curso_id === p.curso_visitante_id);
+        let estLocal = resEst.data.filter(e => e.curso_id === p.curso_local_id);
+        let estVis = resEst.data.filter(e => e.curso_id === p.curso_visitante_id);
+
+        const goles = resGoles.data || [];
+        const tarjetas = resTarjetas.data || [];
+
+        // Generar lista visual de Goles
+        let historialGolesHtml = '';
+        if(goles.length === 0) historialGolesHtml = '<div class="small text-muted fst-italic">Sin goles registrados</div>';
+        else {
+            historialGolesHtml = '<ul class="list-group list-group-flush mb-0 border rounded small">';
+            goles.forEach(g => {
+                historialGolesHtml += `<li class="list-group-item d-flex justify-content-between align-items-center py-1 ps-2 pe-1">
+                    <span>⚽ ${g.estudiantes?.nombres || 'Desconocido'}</span>
+                    <button class="btn btn-link text-danger p-0" onclick="eliminarGolIndor(${g.id}, ${p.id})"><i class="bi bi-x-circle-fill"></i></button>
+                </li>`;
+            });
+            historialGolesHtml += '</ul>';
+        }
+
+        // Generar lista visual de Tarjetas
+        let historialTarjetasHtml = '';
+        if(tarjetas.length === 0) historialTarjetasHtml = '<div class="small text-muted fst-italic mt-2">Sin tarjetas registradas</div>';
+        else {
+            historialTarjetasHtml = '<ul class="list-group list-group-flush mb-0 border rounded small mt-2">';
+            tarjetas.forEach(t => {
+                const colorT = t.tipo_tarjeta === 'AMARILLA' ? 'text-warning' : 'text-danger';
+                historialTarjetasHtml += `<li class="list-group-item d-flex justify-content-between align-items-center py-1 ps-2 pe-1">
+                    <span><i class="bi bi-file-fill ${colorT}"></i> ${t.estudiantes?.nombres || 'Desconocido'}</span>
+                    <button class="btn btn-link text-danger p-0" onclick="eliminarTarjetaIndor(${t.id}, ${p.id})"><i class="bi bi-x-circle-fill"></i></button>
+                </li>`;
+            });
+            historialTarjetasHtml += '</ul>';
+        }
+
 
         document.getElementById('bodyGestionPartido').innerHTML = `
             <div class="row text-center mb-3">
-                <div class="col-5"><h6 class="fw-bold text-primary">${p.local.nombre}</h6></div>
-                <div class="col-2"><h4 class="fw-bold">${p.goles_local} - ${p.goles_visitante}</h4></div>
-                <div class="col-5"><h6 class="fw-bold text-danger">${p.visitante.nombre}</h6></div>
+                <div class="col-4"><h6 class="fw-bold text-primary mb-0">${p.local.nombre}</h6></div>
+                <div class="col-4">
+                    <h3 class="fw-bold bg-dark text-white rounded py-2 shadow-sm d-inline-block px-4 mb-0">${p.goles_local} - ${p.goles_visitante}</h3>
+                </div>
+                <div class="col-4"><h6 class="fw-bold text-danger mb-0">${p.visitante.nombre}</h6></div>
             </div>
             
-            <div class="mb-3">
-                <label class="fw-bold small">Actualizar Estado</label>
-                <select class="form-select form-select-sm border-dark fw-bold" onchange="actualizarEstadoPartido(${p.id}, this.value)">
-                    <option value="Programado" ${p.estado === 'Programado' ? 'selected' : ''}>Programado</option>
-                    <option value="En Juego" ${p.estado === 'En Juego' ? 'selected' : ''}>En Juego</option>
-                    <option value="Finalizado" ${p.estado === 'Finalizado' ? 'selected' : ''}>Finalizado</option>
+            <div class="bg-white p-2 rounded border shadow-sm mb-3">
+                <label class="fw-bold small text-muted">Estado Actual del Encuentro</label>
+                <select class="form-select form-select-sm border-secondary fw-bold" onchange="actualizarEstadoPartido(${p.id}, this.value)">
+                    <option value="Programado" ${p.estado === 'Programado' ? 'selected' : ''}>⏳ Programado</option>
+                    <option value="En Juego" ${p.estado === 'En Juego' ? 'selected' : ''}>🔥 En Juego</option>
+                    <option value="Finalizado" ${p.estado === 'Finalizado' ? 'selected' : ''}>🏁 Finalizado</option>
                 </select>
             </div>
 
             <div class="row g-2">
+                <!-- PANEL LOCAL -->
                 <div class="col-md-6 border-end">
-                    <h6 class="bg-light p-2 text-center fw-bold border rounded small">Acciones LOCAL</h6>
-                    <select id="estLocalGol" class="form-select form-select-sm mb-2"><option value="">Seleccionar Estudiante...</option>${estLocal.map(e => `<option value="${e.id}">${e.nombres}</option>`).join('')}</select>
-                    <button class="btn btn-sm btn-dark w-100 mb-3 fw-bold" onclick="registrarGolIndor(${p.id}, 'local')">⚽ Registrar Gol Local (+1)</button>
+                    <h6 class="bg-primary text-white p-2 text-center fw-bold border rounded small shadow-sm">Acciones LOCAL</h6>
+                    <div class="bg-white p-2 rounded border mb-2">
+                        <select id="estLocalGol" class="form-select form-select-sm mb-2"><option value="">Anotador Local...</option>${estLocal.map(e => `<option value="${e.id}">${e.nombres}</option>`).join('')}</select>
+                        <button class="btn btn-sm btn-dark w-100 fw-bold shadow-sm" onclick="registrarGolIndor(${p.id}, 'local')">⚽ Registrar Gol Local (+1)</button>
+                    </div>
                     
-                    <select id="estLocalTar" class="form-select form-select-sm mb-2"><option value="">Sancionar Estudiante...</option>${estLocal.map(e => `<option value="${e.id}">${e.nombres}</option>`).join('')}</select>
-                    <div class="d-flex gap-1">
-                        <button class="btn btn-sm btn-warning w-50 fw-bold text-dark" onclick="registrarTarjetaIndor(${p.id}, 'local', 'AMARILLA')">Amarilla</button>
-                        <button class="btn btn-sm btn-danger w-50 fw-bold" onclick="registrarTarjetaIndor(${p.id}, 'local', 'ROJA')">Roja</button>
+                    <div class="bg-white p-2 rounded border">
+                        <select id="estLocalTar" class="form-select form-select-sm mb-2"><option value="">Sancionar Estudiante...</option>${estLocal.map(e => `<option value="${e.id}">${e.nombres}</option>`).join('')}</select>
+                        <div class="d-flex gap-1">
+                            <button class="btn btn-sm btn-warning w-50 fw-bold text-dark shadow-sm" onclick="registrarTarjetaIndor(${p.id}, 'local', 'AMARILLA')">Amarilla</button>
+                            <button class="btn btn-sm btn-danger w-50 fw-bold shadow-sm" onclick="registrarTarjetaIndor(${p.id}, 'local', 'ROJA')">Roja</button>
+                        </div>
                     </div>
                 </div>
+                
+                <!-- PANEL VISITANTE -->
                 <div class="col-md-6">
-                    <h6 class="bg-light p-2 text-center fw-bold border rounded small">Acciones VISITANTE</h6>
-                    <select id="estVisGol" class="form-select form-select-sm mb-2"><option value="">Seleccionar Estudiante...</option>${estVis.map(e => `<option value="${e.id}">${e.nombres}</option>`).join('')}</select>
-                    <button class="btn btn-sm btn-dark w-100 mb-3 fw-bold" onclick="registrarGolIndor(${p.id}, 'visitante')">⚽ Registrar Gol Visit. (+1)</button>
+                    <h6 class="bg-danger text-white p-2 text-center fw-bold border rounded small shadow-sm">Acciones VISITANTE</h6>
+                    <div class="bg-white p-2 rounded border mb-2">
+                        <select id="estVisGol" class="form-select form-select-sm mb-2"><option value="">Anotador Visitante...</option>${estVis.map(e => `<option value="${e.id}">${e.nombres}</option>`).join('')}</select>
+                        <button class="btn btn-sm btn-dark w-100 fw-bold shadow-sm" onclick="registrarGolIndor(${p.id}, 'visitante')">⚽ Registrar Gol Visit. (+1)</button>
+                    </div>
                     
-                    <select id="estVisTar" class="form-select form-select-sm mb-2"><option value="">Sancionar Estudiante...</option>${estVis.map(e => `<option value="${e.id}">${e.nombres}</option>`).join('')}</select>
-                    <div class="d-flex gap-1">
-                        <button class="btn btn-sm btn-warning w-50 fw-bold text-dark" onclick="registrarTarjetaIndor(${p.id}, 'visitante', 'AMARILLA')">Amarilla</button>
-                        <button class="btn btn-sm btn-danger w-50 fw-bold" onclick="registrarTarjetaIndor(${p.id}, 'visitante', 'ROJA')">Roja</button>
+                    <div class="bg-white p-2 rounded border">
+                        <select id="estVisTar" class="form-select form-select-sm mb-2"><option value="">Sancionar Estudiante...</option>${estVis.map(e => `<option value="${e.id}">${e.nombres}</option>`).join('')}</select>
+                        <div class="d-flex gap-1">
+                            <button class="btn btn-sm btn-warning w-50 fw-bold text-dark shadow-sm" onclick="registrarTarjetaIndor(${p.id}, 'visitante', 'AMARILLA')">Amarilla</button>
+                            <button class="btn btn-sm btn-danger w-50 fw-bold shadow-sm" onclick="registrarTarjetaIndor(${p.id}, 'visitante', 'ROJA')">Roja</button>
+                        </div>
                     </div>
                 </div>
+            </div>
+
+            <!-- TABLA DE HISTORIAL DE ACCIONES -->
+            <div class="mt-3 p-2 bg-white rounded border">
+                <h6 class="fw-bold small mb-2 text-secondary border-bottom pb-1"><i class="bi bi-clock-history me-1"></i>Registro en vivo del partido:</h6>
+                ${historialGolesHtml}
+                ${historialTarjetasHtml}
             </div>
         `;
     } catch(err) {
@@ -8833,23 +8962,26 @@ async function abrirGestionPartido(id) {
 async function actualizarEstadoPartido(partidoId, estado) {
     try {
         await supabaseClient.from('indor_partidos').update({ estado: estado }).eq('id', partidoId);
-        cargarVistaIndor();
+        cargarVistaIndor(); // Actualizamos fondo silenciósamente
     } catch(e) { alert(e.message); }
 }
 
 async function registrarGolIndor(partidoId, equipo) {
     const estId = document.getElementById(equipo === 'local' ? 'estLocalGol' : 'estVisGol').value;
-    if(!estId) return alert('Seleccione un estudiante.');
+    if(!estId) return alert('Seleccione un estudiante anotador.');
 
     try {
+        // 1. Guardar Gol
         await supabaseClient.from('indor_goles').insert([{ partido_id: partidoId, estudiante_id: estId }]);
+        
+        // 2. Sumar en marcador global
         const p = partidosGlobalIndor.find(x => x.id === partidoId);
         const golesAct = equipo === 'local' ? (p.goles_local + 1) : (p.goles_visitante + 1);
         
         await supabaseClient.from('indor_partidos').update(equipo === 'local' ? { goles_local: golesAct } : { goles_visitante: golesAct }).eq('id', partidoId);
         p[equipo === 'local' ? 'goles_local' : 'goles_visitante'] = golesAct;
         
-        abrirGestionPartido(partidoId); // Refrescar modal
+        abrirGestionPartido(partidoId); // Refrescar modal para ver el gol
         cargarVistaIndor(); // Refrescar fondo
     } catch(e) { alert(e.message); }
 }
@@ -8858,13 +8990,44 @@ async function registrarTarjetaIndor(partidoId, equipo, tipo) {
     const estId = document.getElementById(equipo === 'local' ? 'estLocalTar' : 'estVisTar').value;
     if(!estId) return alert('Seleccione al infractor.');
     
-    // Aquí puedes configurar el valor por defecto de las multas (Ej: \$1 amarilla, \$2 roja)
+    // Valor por defecto de multas (Fácilmente modificable)
     let valorMulta = prompt(`Ingrese el valor de la multa para la tarjeta ${tipo} (Ej: 1.00):`, tipo === 'AMARILLA' ? '1.00' : '2.00');
-    if(valorMulta === null) return;
+    if(valorMulta === null) return; // Cancelado
 
     try {
         await supabaseClient.from('indor_tarjetas').insert([{ partido_id: partidoId, estudiante_id: estId, tipo_tarjeta: tipo, valor_multa: parseFloat(valorMulta) || 0 }]);
-        alert(`Tarjeta ${tipo} registrada. El estudiante queda con deuda pendiente.`);
+        alert(`Tarjeta ${tipo} registrada.`);
+        abrirGestionPartido(partidoId);
+        cargarVistaIndor();
+    } catch(e) { alert(e.message); }
+}
+
+async function eliminarGolIndor(idGol, partidoId) {
+    if(!confirm('¿Eliminar este gol? Esto restará 1 al marcador.')) return;
+    try {
+        // Restar el gol del marcador
+        const { data: golObj } = await supabaseClient.from('indor_goles').select('estudiantes(curso_id)').eq('id', idGol).single();
+        if(golObj) {
+            const p = partidosGlobalIndor.find(x => x.id === partidoId);
+            const equipo = golObj.estudiantes.curso_id === p.curso_local_id ? 'local' : 'visitante';
+            const golesAct = Math.max(0, (equipo === 'local' ? p.goles_local : p.goles_visitante) - 1);
+            
+            await supabaseClient.from('indor_partidos').update(equipo === 'local' ? { goles_local: golesAct } : { goles_visitante: golesAct }).eq('id', partidoId);
+            p[equipo === 'local' ? 'goles_local' : 'goles_visitante'] = golesAct;
+        }
+        
+        // Borrar registro de gol
+        await supabaseClient.from('indor_goles').delete().eq('id', idGol);
+        abrirGestionPartido(partidoId);
+        cargarVistaIndor();
+    } catch(e) { alert(e.message); }
+}
+
+async function eliminarTarjetaIndor(idTar, partidoId) {
+    if(!confirm('¿Eliminar esta tarjeta y su respectiva deuda?')) return;
+    try {
+        await supabaseClient.from('indor_tarjetas').delete().eq('id', idTar);
+        abrirGestionPartido(partidoId);
         cargarVistaIndor();
     } catch(e) { alert(e.message); }
 }
@@ -8876,9 +9039,6 @@ async function pagarMultaIndor(multaId) {
         cargarVistaIndor();
     } catch(e) { alert(e.message); }
 }
-
-    
-    
-  </script>
+</script>
 </body>
 </html>
