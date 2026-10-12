@@ -10,7 +10,7 @@
   <meta http-equiv="Expires" content="0">
   
   
-  <meta name="version" content="v1.1.10_oct2026">
+  <meta name="version" content="v1.1.11_oct2026">
   
 
   <link id="favicon" rel="icon" href="https://lh3.googleusercontent.com/d/12mcQpcThT13MooXBNCm-ABhH5uGFfkpq" type="image/png">
@@ -8672,7 +8672,7 @@ async function exportarVisorHorarioPDF() {
                     <div class="row g-3 justify-content-center">
                         ${esAdmin ? `
                         <div class="col-md-6 col-lg-3">
-                            <div class="card h-100 border-0 shadow-sm border-bottom border-4 border-primary cursor-pointer btn-hover-scale" onclick="indorVistaConfigLigas()">
+                            <div id="cardIndorLigas" class="card h-100 border-0 shadow-sm border-bottom border-4 border-primary cursor-pointer indor-menu-card" onclick="indorVistaConfigLigas()">
                                 <div class="card-body text-center p-4">
                                     <i class="bi bi-diagram-3-fill text-primary mb-2" style="font-size: 2.5rem;"></i>
                                     <h6 class="fw-bold mb-1">Configurar Ligas</h6>
@@ -8681,7 +8681,7 @@ async function exportarVisorHorarioPDF() {
                             </div>
                         </div>
                         <div class="col-md-6 col-lg-3">
-                            <div class="card h-100 border-0 shadow-sm border-bottom border-4 border-warning cursor-pointer btn-hover-scale" onclick="indorVistaConfigPartidos()">
+                            <div id="cardIndorPartidos" class="card h-100 border-0 shadow-sm border-bottom border-4 border-warning cursor-pointer indor-menu-card" onclick="indorVistaConfigPartidos()">
                                 <div class="card-body text-center p-4">
                                     <i class="bi bi-calendar-check-fill text-warning mb-2" style="font-size: 2.5rem;"></i>
                                     <h6 class="fw-bold mb-1">Configurar Partidos</h6>
@@ -8691,7 +8691,7 @@ async function exportarVisorHorarioPDF() {
                         </div>` : ''}
                         
                         <div class="col-md-6 col-lg-3">
-                            <div class="card h-100 border-0 shadow-sm border-bottom border-4 border-danger cursor-pointer btn-hover-scale" onclick="indorVistaArbitraje()">
+                            <div id="cardIndorArbitrar" class="card h-100 border-0 shadow-sm border-bottom border-4 border-danger cursor-pointer indor-menu-card" onclick="indorVistaArbitraje()">
                                 <div class="card-body text-center p-4">
                                     <i class="bi bi-whistle text-danger mb-2" style="font-size: 2.5rem;"></i>
                                     <h6 class="fw-bold mb-1">Arbitrar Partidos</h6>
@@ -8701,7 +8701,7 @@ async function exportarVisorHorarioPDF() {
                         </div>
                         
                         <div class="col-md-6 col-lg-3">
-                            <div class="card h-100 border-0 shadow-sm border-bottom border-4 border-success cursor-pointer btn-hover-scale" onclick="indorVistaEstadisticas()">
+                            <div id="cardIndorEstadisticas" class="card h-100 border-0 shadow-sm border-bottom border-4 border-success cursor-pointer indor-menu-card" onclick="indorVistaEstadisticas()">
                                 <div class="card-body text-center p-4">
                                     <i class="bi bi-bar-chart-line-fill text-success mb-2" style="font-size: 2.5rem;"></i>
                                     <h6 class="fw-bold mb-1">Ver Estadísticas</h6>
@@ -8719,6 +8719,28 @@ async function exportarVisorHorarioPDF() {
             
             // Precargar datos básicos
             await indorCargarDatosBase();
+        }
+
+        // ==========================================
+        // FUNCION PARA MARCAR LA TARJETA SELECCIONADA
+        // ==========================================
+        function indorMarcarMenuActivo(idActivo) {
+            const tarjetas = ['cardIndorLigas', 'cardIndorPartidos', 'cardIndorArbitrar', 'cardIndorEstadisticas'];
+            tarjetas.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    if (id === idActivo) {
+                        el.classList.add('bg-light', 'shadow');
+                        el.classList.remove('shadow-sm');
+                        el.style.transform = 'scale(1.05)';
+                        el.style.transition = 'all 0.2s ease-in-out';
+                    } else {
+                        el.classList.remove('bg-light', 'shadow');
+                        el.classList.add('shadow-sm');
+                        el.style.transform = 'scale(1)';
+                    }
+                }
+            });
         }
 
         async function indorCargarDatosBase() {
@@ -8740,6 +8762,7 @@ async function exportarVisorHorarioPDF() {
         // 1. CONFIGURAR LIGAS Y EQUIPOS (ADMINS)
         // ==========================================
         function indorVistaConfigLigas() {
+            indorMarcarMenuActivo('cardIndorLigas'); // Llama al iluminador
             const area = document.getElementById('indorAreaTrabajo');
             
             let htmlLigas = indorLigasGlobal.map(l => `
@@ -8783,7 +8806,6 @@ async function exportarVisorHorarioPDF() {
                     <div class="col-6"><label class="small fw-bold text-danger">Precio Roja ($)</label><input type="number" step="0.5" id="pRo" class="form-control form-control-sm" value="2.00"></div>
                 </div>`;
             
-            // Usamos SweetAlert o un prompt avanzado simulado. Aquí usamos HTML inyectado en el modal universal.
             const modalBody = `
                 <div class="mb-3"><label class="fw-bold small">Nombre de la Liga (Ej: Liga Junior Masculino)</label><input type="text" id="ligaNombre" class="form-control form-control-sm" required></div>
                 ${cobroHtml}
@@ -8835,6 +8857,7 @@ async function exportarVisorHorarioPDF() {
         // 2. CONFIGURAR PARTIDOS (ADMINS)
         // ==========================================
         function indorVistaConfigPartidos() {
+            indorMarcarMenuActivo('cardIndorPartidos'); // Llama al iluminador
             const area = document.getElementById('indorAreaTrabajo');
             
             let htmlPartidos = indorPartidosGlobal.map(p => `
@@ -8921,10 +8944,10 @@ async function exportarVisorHorarioPDF() {
         // 3. ARBITRAR PARTIDOS (ÁRBITROS / ADMINS)
         // ==========================================
         function indorVistaArbitraje() {
+            indorMarcarMenuActivo('cardIndorArbitrar'); // Llama al iluminador
             const area = document.getElementById('indorAreaTrabajo');
             const esAdmin = usuarioActualPerfil?.rol === 'admin';
             
-            // Mostrar solo partidos del usuario o todos si es admin
             const misPartidos = indorPartidosGlobal.filter(p => esAdmin || p.docente_asignado_id === usuarioActualPerfil.id);
 
             let htmlPartidos = misPartidos.map(p => `
@@ -8951,21 +8974,17 @@ async function exportarVisorHorarioPDF() {
             `;
         }
 
-        // FUNCIÓN CLAVE: VERIFICAR MULTAS ANTES DE ARBITRAR
         async function indorVerificarYAbrirPanelPartido(partidoId) {
             const p = indorPartidosGlobal.find(x => x.id === partidoId);
             if(!p) return;
 
-            // Bloquear la pantalla mientras consulta
             document.body.style.cursor = 'wait';
 
             try {
-                // Obtener los IDs de los CURSOS que pertenecen a estos equipos
                 const eqLocal = indorEquiposGlobal.find(e => e.id === p.equipo_local_id);
                 const eqVis = indorEquiposGlobal.find(e => e.id === p.equipo_visitante_id);
                 const cursosInvolucrados = [eqLocal.curso_id, eqVis.curso_id];
 
-                // Buscar tarjetas pendientes de estos cursos
                 const { data: multas } = await supabaseClient.from('indor_tarjetas')
                     .select('id, tipo_tarjeta, valor_multa, estudiantes!inner(nombres, curso_id)')
                     .eq('estado_pago', 'PENDIENTE')
@@ -8974,7 +8993,6 @@ async function exportarVisorHorarioPDF() {
                 document.body.style.cursor = 'default';
 
                 if (multas && multas.length > 0) {
-                    // Hay multas pendientes: Mostrar alerta roja bloqueante
                     let detalles = multas.map(m => `<li>${m.estudiantes.nombres} (${m.tipo_tarjeta}) - Deuda: $${m.valor_multa}</li>`).join('');
                     
                     const modalBody = `
@@ -8987,13 +9005,10 @@ async function exportarVisorHorarioPDF() {
                         <p class="text-center mt-3"><small>Solicite el pago a tesorería/admin para desbloquear el partido.</small></p>
                     `;
                     abrirModalGenerico('Bloqueo Administrativo', modalBody);
-                    return; // Detiene la ejecución, no abre el panel
+                    return; 
                 }
 
-                // Si no hay multas, abrir el panel normalmente (Lógica similar a tu código anterior)
                 alert("¡Equipos al día! Abriendo panel del partido..."); 
-                // Aquí llamarías a tu función existente "abrirGestionPartido(partidoId)" 
-                // ajustada para leer de los equipos en vez de los cursos.
                 
             } catch (err) {
                 document.body.style.cursor = 'default';
@@ -9005,9 +9020,9 @@ async function exportarVisorHorarioPDF() {
         // 4. VER ESTADÍSTICAS (DOCENTES / ADMINS)
         // ==========================================
         function indorVistaEstadisticas() {
+            indorMarcarMenuActivo('cardIndorEstadisticas'); // Llama al iluminador
             const area = document.getElementById('indorAreaTrabajo');
             
-            // Renderizado base para estadísticas (Aquí puedes expandir la lógica para agrupar goles)
             area.innerHTML = `
                 <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
                     <h5 class="fw-bold text-dark"><i class="bi bi-bar-chart-line-fill me-2 text-success"></i>Estadísticas Oficiales</h5>
