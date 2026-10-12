@@ -10,7 +10,7 @@
   <meta http-equiv="Expires" content="0">
   
   
-  <meta name="version" content="v1.1.12_oct2026">
+  <meta name="version" content="v1.1.13_oct2026">
   
 
   <link id="favicon" rel="icon" href="https://lh3.googleusercontent.com/d/12mcQpcThT13MooXBNCm-ABhH5uGFfkpq" type="image/png">
@@ -8652,7 +8652,7 @@ async function exportarVisorHorarioPDF() {
 }
 
     // =========================================================================
-        // MÓDULO: OLIMPIADAS INDOR 2026 (ACTUALIZADO CON LIGAS, EQUIPOS Y EDICIÓN)
+        // MÓDULO: OLIMPIADAS INDOR 2026 (ACTUALIZADO COMPLETO)
         // =========================================================================
         let indorLigasGlobal = [];
         let indorEquiposGlobal = [];
@@ -8663,7 +8663,6 @@ async function exportarVisorHorarioPDF() {
             const contenedor = document.getElementById('contenedorTabla');
             const esAdmin = usuarioActualPerfil?.rol === 'admin';
             
-            // Menú Principal del Módulo Indor
             contenedor.innerHTML = `
                 <div class="container py-3">
                     <div class="text-center mb-4">
@@ -8677,7 +8676,7 @@ async function exportarVisorHorarioPDF() {
                                 <div class="card-body text-center p-4">
                                     <i class="bi bi-diagram-3-fill text-primary mb-2" style="font-size: 2.5rem;"></i>
                                     <h6 class="fw-bold mb-1">Configurar Ligas</h6>
-                                    <small class="text-muted" style="font-size: 0.7rem;">Crear ligas, precios de tarjetas y equipos por curso.</small>
+                                    <small class="text-muted" style="font-size: 0.7rem;">Crear ligas y equipos por curso.</small>
                                 </div>
                             </div>
                         </div>
@@ -8686,7 +8685,7 @@ async function exportarVisorHorarioPDF() {
                                 <div class="card-body text-center p-4">
                                     <i class="bi bi-calendar-check-fill text-warning mb-2" style="font-size: 2.5rem;"></i>
                                     <h6 class="fw-bold mb-1">Configurar Partidos</h6>
-                                    <small class="text-muted" style="font-size: 0.7rem;">Programar fechas y asignar árbitros a los encuentros.</small>
+                                    <small class="text-muted" style="font-size: 0.7rem;">Programar fechas y árbitros.</small>
                                 </div>
                             </div>
                         </div>` : ''}
@@ -8696,7 +8695,7 @@ async function exportarVisorHorarioPDF() {
                                 <div class="card-body text-center p-4">
                                     <i class="bi bi-stopwatch-fill text-danger mb-2" style="font-size: 2.5rem;"></i>
                                     <h6 class="fw-bold mb-1">Arbitrar Partidos</h6>
-                                    <small class="text-muted" style="font-size: 0.7rem;">Registrar goles, tarjetas y controlar el estado del partido.</small>
+                                    <small class="text-muted" style="font-size: 0.7rem;">Registrar goles y tarjetas.</small>
                                 </div>
                             </div>
                         </div>
@@ -8706,7 +8705,7 @@ async function exportarVisorHorarioPDF() {
                                 <div class="card-body text-center p-4">
                                     <i class="bi bi-bar-chart-line-fill text-success mb-2" style="font-size: 2.5rem;"></i>
                                     <h6 class="fw-bold mb-1">Ver Estadísticas</h6>
-                                    <small class="text-muted" style="font-size: 0.7rem;">Tabla de posiciones, goleadores y reportes de tarjetas.</small>
+                                    <small class="text-muted" style="font-size: 0.7rem;">Tabla de posiciones y goleadores.</small>
                                 </div>
                             </div>
                         </div>
@@ -8718,13 +8717,9 @@ async function exportarVisorHorarioPDF() {
                 </div>
             `;
             
-            // Precargar datos básicos
             await indorCargarDatosBase();
         }
 
-        // ==========================================
-        // FUNCION PARA MARCAR LA TARJETA SELECCIONADA
-        // ==========================================
         function indorMarcarMenuActivo(idActivo) {
             const tarjetas = ['cardIndorLigas', 'cardIndorPartidos', 'cardIndorArbitrar', 'cardIndorEstadisticas'];
             tarjetas.forEach(id => {
@@ -8760,7 +8755,7 @@ async function exportarVisorHorarioPDF() {
         }
 
         // ==========================================
-        // 1. CONFIGURAR LIGAS Y EQUIPOS (ADMINS)
+        // 1. CONFIGURAR LIGAS Y EQUIPOS
         // ==========================================
         function indorVistaConfigLigas() {
             indorMarcarMenuActivo('cardIndorLigas');
@@ -8802,13 +8797,12 @@ async function exportarVisorHorarioPDF() {
             area.innerHTML = `
                 <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
                     <h5 class="fw-bold text-dark"><i class="bi bi-diagram-3-fill me-2 text-primary"></i>Configuración de Ligas</h5>
-                    <button class="btn btn-primary btn-sm fw-bold shadow-sm" onclick="indorModalNuevaLiga()"><i class="bi bi-plus-lg me-1"></i> Crear Nueva Liga</button>
+                    <button class="btn btn-primary btn-sm fw-bold shadow-sm" onclick="indorModalLiga()"><i class="bi bi-plus-lg me-1"></i> Crear Nueva Liga</button>
                 </div>
                 ${htmlLigas || '<div class="alert alert-warning text-center fw-bold">No hay ligas creadas. Comience creando una.</div>'}
             `;
         }
 
-        // --- GESTIÓN DE LIGAS (Crear y Editar) ---
         function indorModalLiga(id = null) {
             let liga = id ? indorLigasGlobal.find(l => l.id === id) : null;
             let nom = liga ? liga.nombre : '';
@@ -8863,7 +8857,6 @@ async function exportarVisorHorarioPDF() {
             } catch(e) { alert(e.message); }
         }
 
-        // --- GESTIÓN DE EQUIPOS (Crear y Editar) ---
         function indorModalEquipo(ligaId, id = null) {
             let eq = id ? indorEquiposGlobal.find(e => e.id === id) : null;
             let cId = eq ? eq.curso_id : '';
@@ -8907,7 +8900,7 @@ async function exportarVisorHorarioPDF() {
         }
 
         // ==========================================
-        // 2. CONFIGURAR PARTIDOS (ADMINS)
+        // 2. CONFIGURAR PARTIDOS (NUEVO CON EDICIÓN)
         // ==========================================
         function indorVistaConfigPartidos() {
             indorMarcarMenuActivo('cardIndorPartidos');
@@ -8921,7 +8914,7 @@ async function exportarVisorHorarioPDF() {
                             <span class="badge ${p.estado === 'Finalizado' ? 'bg-secondary' : 'bg-primary'}">${p.estado}</span>
                         </div>
                         <div class="card-body text-center p-3">
-                            <div class="text-muted small mb-3"><i class="bi bi-calendar-event me-1"></i> ${p.fecha} | <i class="bi bi-clock me-1"></i> ${p.hora}</div>
+                            <div class="text-muted small mb-3"><i class="bi bi-calendar-event me-1"></i> ${p.fecha} | <i class="bi bi-clock me-1"></i> ${p.hora.substring(0,5)}</div>
                             <div class="d-flex justify-content-between align-items-center">
                                 <div class="fw-bold text-truncate w-100 text-end" style="font-size:0.85rem;">${p.local?.nombre_equipo}</div>
                                 <div class="px-2 fw-bold text-muted">VS</div>
@@ -8930,6 +8923,7 @@ async function exportarVisorHorarioPDF() {
                             <div class="small text-muted border-top pt-2 mt-2"><i class="bi bi-stopwatch-fill text-danger me-1"></i> Árbitro: <b>${p.docente?.nombres || 'N/A'}</b></div>
                         </div>
                         <div class="card-footer bg-white border-0 text-center pb-3 pt-0">
+                            <button class="btn btn-outline-primary btn-sm me-1" onclick="indorModalPartido(${p.id})" title="Editar Partido"><i class="bi bi-pencil-square"></i> Editar</button>
                             <button class="btn btn-outline-danger btn-sm" onclick="indorEliminarPartido(${p.id})" title="Eliminar Partido"><i class="bi bi-trash-fill"></i> Eliminar</button>
                         </div>
                     </div>
@@ -8939,41 +8933,54 @@ async function exportarVisorHorarioPDF() {
             area.innerHTML = `
                 <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
                     <h5 class="fw-bold text-dark"><i class="bi bi-calendar-check-fill me-2 text-warning"></i>Programación de Partidos</h5>
-                    <button class="btn btn-warning text-dark btn-sm fw-bold shadow-sm" onclick="indorModalNuevoPartido()"><i class="bi bi-plus-lg me-1"></i> Programar Partido</button>
+                    <button class="btn btn-warning text-dark btn-sm fw-bold shadow-sm" onclick="indorModalPartido()"><i class="bi bi-plus-lg me-1"></i> Programar Partido</button>
                 </div>
                 <div class="row">${htmlPartidos || '<div class="alert alert-warning text-center w-100">No hay partidos programados.</div>'}</div>
             `;
         }
 
-        function indorModalNuevoPartido() {
-            const ligasOpts = indorLigasGlobal.map(l => `<option value="${l.id}">${l.nombre}</option>`).join('');
-            const docOpts = docentesList.map(d => `<option value="${d.id}">${d.nombres} ${d.apellidos||''}</option>`).join('');
+        // --- Crear y Editar un Partido ---
+        function indorModalPartido(id = null) {
+            let p = id ? indorPartidosGlobal.find(x => x.id === id) : null;
+
+            const ligasOpts = indorLigasGlobal.map(l => `<option value="${l.id}" ${p && p.liga_id == l.id ? 'selected' : ''}>${l.nombre}</option>`).join('');
+            const docOpts = docentesList.map(d => `<option value="${d.id}" ${p && p.docente_asignado_id == d.id ? 'selected' : ''}>${d.nombres} ${d.apellidos||''}</option>`).join('');
             
             const modalBody = `
                 <div class="row g-2">
-                    <div class="col-12"><label class="fw-bold small">Liga</label><select id="partLiga" class="form-select form-select-sm" onchange="indorFiltrarEquiposPorLiga(this.value)">
-                        <option value="">Seleccione Liga...</option>${ligasOpts}
-                    </select></div>
+                    <div class="col-12"><label class="fw-bold small">Liga</label>
+                        <select id="partLiga" class="form-select form-select-sm" onchange="indorFiltrarEquiposPorLiga(this.value)">
+                            <option value="">Seleccione Liga...</option>${ligasOpts}
+                        </select>
+                    </div>
                     <div class="col-6"><label class="fw-bold small">Equipo Local</label><select id="partLocal" class="form-select form-select-sm"></select></div>
                     <div class="col-6"><label class="fw-bold small">Equipo Visitante</label><select id="partVis" class="form-select form-select-sm"></select></div>
-                    <div class="col-6"><label class="fw-bold small">Fase</label><input type="text" id="partFase" class="form-control form-control-sm" placeholder="Ej: Fase de Grupos"></div>
+                    <div class="col-6"><label class="fw-bold small">Fase / Etapa</label><input type="text" id="partFase" class="form-control form-control-sm" placeholder="Ej: Fase de Grupos" value="${p ? p.fase : ''}"></div>
                     <div class="col-6"><label class="fw-bold small">Árbitro</label><select id="partDoc" class="form-select form-select-sm">${docOpts}</select></div>
-                    <div class="col-6"><label class="fw-bold small">Fecha</label><input type="date" id="partFecha" class="form-control form-control-sm"></div>
-                    <div class="col-6"><label class="fw-bold small">Hora</label><input type="time" id="partHora" class="form-control form-control-sm"></div>
+                    <div class="col-6"><label class="fw-bold small">Fecha</label><input type="date" id="partFecha" class="form-control form-control-sm" value="${p ? p.fecha : ''}"></div>
+                    <div class="col-6"><label class="fw-bold small">Hora</label><input type="time" id="partHora" class="form-control form-control-sm" value="${p ? p.hora.substring(0,5) : ''}"></div>
                 </div>
-                <button class="btn btn-warning w-100 fw-bold text-dark mt-3" onclick="indorGuardarPartido()">Guardar Partido</button>
+                <button class="btn btn-warning w-100 fw-bold text-dark mt-3" onclick="indorGuardarPartido(${id ? id : 'null'})">${id ? '<i class="bi bi-save me-1"></i> Actualizar Partido' : '<i class="bi bi-check-lg me-1"></i> Guardar Partido'}</button>
             `;
-            abrirModalGenerico('Programar Nuevo Partido', modalBody);
+            abrirModalGenerico(id ? 'Editar Partido' : 'Programar Nuevo Partido', modalBody);
+
+            // Si es edición, llenamos los combos de equipos según la liga guardada
+            if (p && p.liga_id) {
+                indorFiltrarEquiposPorLiga(p.liga_id, p.equipo_local_id, p.equipo_visitante_id);
+            }
         }
 
-        function indorFiltrarEquiposPorLiga(ligaId) {
+        function indorFiltrarEquiposPorLiga(ligaId, localSeleccionado = null, visSeleccionado = null) {
             const equiposLiga = indorEquiposGlobal.filter(e => String(e.liga_id) === String(ligaId));
-            const opts = equiposLiga.map(e => `<option value="${e.id}">${e.nombre_equipo}</option>`).join('');
-            document.getElementById('partLocal').innerHTML = opts;
-            document.getElementById('partVis').innerHTML = opts;
+            
+            const optsLocal = equiposLiga.map(e => `<option value="${e.id}" ${e.id == localSeleccionado ? 'selected' : ''}>${e.nombre_equipo}</option>`).join('');
+            const optsVis = equiposLiga.map(e => `<option value="${e.id}" ${e.id == visSeleccionado ? 'selected' : ''}>${e.nombre_equipo}</option>`).join('');
+
+            document.getElementById('partLocal').innerHTML = optsLocal || '<option value="">Sin equipos...</option>';
+            document.getElementById('partVis').innerHTML = optsVis || '<option value="">Sin equipos...</option>';
         }
 
-        async function indorGuardarPartido() {
+        async function indorGuardarPartido(id) {
             const payload = {
                 liga_id: document.getElementById('partLiga').value,
                 equipo_local_id: document.getElementById('partLocal').value,
@@ -8981,15 +8988,27 @@ async function exportarVisorHorarioPDF() {
                 fase: document.getElementById('partFase').value,
                 docente_asignado_id: document.getElementById('partDoc').value,
                 fecha: document.getElementById('partFecha').value,
-                hora: document.getElementById('partHora').value,
-                estado: 'Programado',
-                goles_local: 0, goles_visitante: 0
+                hora: document.getElementById('partHora').value
             };
             
-            if(payload.equipo_local_id === payload.equipo_visitante_id) return alert("Local y Visitante no pueden ser el mismo.");
+            if(!payload.liga_id || !payload.equipo_local_id || !payload.equipo_visitante_id || !payload.fecha || !payload.hora) {
+                return alert("Por favor, complete todos los campos obligatorios del partido.");
+            }
+
+            if(payload.equipo_local_id === payload.equipo_visitante_id) return alert("El equipo Local y Visitante no pueden ser el mismo.");
 
             try {
-                await supabaseClient.from('indor_partidos').insert([payload]);
+                if (id) {
+                    // Actualizar
+                    await supabaseClient.from('indor_partidos').update(payload).eq('id', id);
+                } else {
+                    // Insertar
+                    payload.estado = 'Programado';
+                    payload.goles_local = 0; 
+                    payload.goles_visitante = 0;
+                    await supabaseClient.from('indor_partidos').insert([payload]);
+                }
+                
                 cerrarModalGenerico();
                 await indorCargarDatosBase();
                 indorVistaConfigPartidos();
@@ -9039,7 +9058,6 @@ async function exportarVisorHorarioPDF() {
             `;
         }
 
-        // FUNCIÓN CLAVE: VERIFICAR MULTAS ANTES DE ARBITRAR
         async function indorVerificarYAbrirPanelPartido(partidoId) {
             const p = indorPartidosGlobal.find(x => x.id === partidoId);
             if(!p) return;
@@ -9083,9 +9101,6 @@ async function exportarVisorHorarioPDF() {
             }
         }
 
-        // ==========================================
-        // LÓGICA DEL PANEL DE ARBITRAJE Y ENCUENTRO
-        // ==========================================
         async function abrirGestionPartido(id) {
             if (!modalGestionarPartidoInst) modalGestionarPartidoInst = new bootstrap.Modal(document.getElementById('modalGestionarPartido'));
             const p = indorPartidosGlobal.find(x => x.id === id);
