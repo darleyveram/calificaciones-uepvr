@@ -8719,11 +8719,11 @@ async function exportarVisorHorarioPDF() {
                     ${miPartido ? `
                     <div class="card-footer bg-white border-0 text-center pb-3 pt-0">
                         <div class="d-flex gap-2">
-                            \${esAdmin ? `
+                            ${esAdmin ? `
                             <button class="btn btn-outline-secondary btn-sm" onclick="editarPartidoIndor(${p.id})" title="Editar Detalles"><i class="bi bi-pencil-square"></i></button>
                             <button class="btn btn-outline-danger btn-sm" onclick="eliminarPartidoIndor(${p.id})" title="Eliminar Partido"><i class="bi bi-trash-fill"></i></button>
                             ` : ''}
-                            <button class="btn btn-success btn-sm fw-bold flex-grow-1 shadow-sm" onclick="abrirGestionPartido(\${p.id})"><i class="bi bi-controller me-1"></i> Panel del Partido</button>
+                            <button class="btn btn-success btn-sm fw-bold flex-grow-1 shadow-sm" onclick="abrirGestionPartido(${p.id})"><i class="bi bi-controller me-1"></i> Panel del Partido</button>
                         </div>
                     </div>` : ''}
                 </div>
