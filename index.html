@@ -8652,7 +8652,7 @@ async function exportarVisorHorarioPDF() {
 }
 
     // =========================================================================
-        // MÓDULO: OLIMPIADAS INDOR 2026 (ACTUALIZADO CON LIGAS Y EQUIPOS)
+        // MÓDULO: OLIMPIADAS INDOR 2026 (ACTUALIZADO CON LIGAS, EQUIPOS Y EDICIÓN)
         // =========================================================================
         let indorLigasGlobal = [];
         let indorEquiposGlobal = [];
@@ -8762,26 +8762,38 @@ async function exportarVisorHorarioPDF() {
         // 1. CONFIGURAR LIGAS Y EQUIPOS (ADMINS)
         // ==========================================
         function indorVistaConfigLigas() {
-            indorMarcarMenuActivo('cardIndorLigas'); // Llama al iluminador
+            indorMarcarMenuActivo('cardIndorLigas');
             const area = document.getElementById('indorAreaTrabajo');
             
             let htmlLigas = indorLigasGlobal.map(l => `
                 <div class="card mb-3 shadow-sm border-primary">
                     <div class="card-header bg-light d-flex justify-content-between align-items-center">
-                        <h6 class="mb-0 fw-bold text-primary">${l.nombre}</h6>
-                        <span class="badge ${l.cobra_tarjetas ? 'bg-danger' : 'bg-secondary'}">
-                            ${l.cobra_tarjetas ? `Tarjetas: Am $${l.precio_amarilla} \vert{} Ro$${l.precio_roja}` : 'Sin multas económicas'}
-                        </span>
+                        <div>
+                            <h6 class="mb-0 fw-bold text-primary d-inline-block me-2">${l.nombre}</h6>
+                            <span class="badge ${l.cobra_tarjetas ? 'bg-danger' : 'bg-secondary'} align-middle">
+                                ${l.cobra_tarjetas ? `Tarjetas: Am $${l.precio_amarilla} \vert{} Ro$${l.precio_roja}` : 'Sin multas económicas'}
+                            </span>
+                        </div>
+                        <div>
+                            <button class="btn btn-sm btn-outline-primary py-0 px-1 me-1" onclick="indorModalLiga(${l.id})" title="Editar Liga"><i class="bi bi-pencil-square"></i></button>
+                            <button class="btn btn-sm btn-outline-danger py-0 px-1" onclick="indorEliminarLiga(${l.id})" title="Eliminar Liga"><i class="bi bi-trash-fill"></i></button>
+                        </div>
                     </div>
-                    <div class="card-body py-2">
+                    <div class="card-body py-3">
                         <div class="d-flex flex-wrap gap-2">
                             ${indorEquiposGlobal.filter(e => e.liga_id === l.id).map(e => `
-                                <span class="badge bg-dark border p-2"><i class="bi bi-shield-fill me-1"></i>\${e.nombre_equipo} <small class="text-warning">(\${e.cursos?.nombre})</small></span>
+                                <div class="btn-group shadow-sm" role="group">
+                                    <button type="button" class="btn btn-dark btn-sm pe-none fw-bold">
+                                        <i class="bi bi-shield-fill me-1"></i>\${e.nombre_equipo} <span class="text-warning small ms-1">(\${e.cursos?.nombre})</span>
+                                    </button>
+                                    <button type="button" class="btn btn-outline-dark btn-sm bg-light" onclick="indorModalEquipo(${l.id},${e.id})" title="Editar Equipo"><i class="bi bi-pencil"></i></button>
+                                    <button type="button" class="btn btn-outline-danger btn-sm bg-light" onclick="indorEliminarEquipo(\${e.id})" title="Eliminar Equipo"><i class="bi bi-x-lg"></i></button>
+                                </div>
                             `).join('') || '<small class="text-muted fst-italic">Sin equipos registrados.</small>'}
                         </div>
                     </div>
                     <div class="card-footer bg-white border-0 text-end">
-                        <button class="btn btn-sm btn-outline-success fw-bold" onclick="indorModalNuevoEquipo(${l.id})"><i class="bi bi-plus-circle me-1"></i> Agregar Equipo</button>
+                        <button class="btn btn-sm btn-outline-success fw-bold" onclick="indorModalEquipo(${l.id})"><i class="bi bi-plus-circle me-1"></i> Agregar Equipo</button>
                     </div>
                 </div>
             `).join('');
@@ -8789,32 +8801,39 @@ async function exportarVisorHorarioPDF() {
             area.innerHTML = `
                 <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
                     <h5 class="fw-bold text-dark"><i class="bi bi-diagram-3-fill me-2 text-primary"></i>Configuración de Ligas</h5>
-                    <button class="btn btn-primary btn-sm fw-bold shadow-sm" onclick="indorModalNuevaLiga()"><i class="bi bi-plus-lg me-1"></i> Crear Nueva Liga</button>
+                    <button class="btn btn-primary btn-sm fw-bold shadow-sm" onclick="indorModalLiga()"><i class="bi bi-plus-lg me-1"></i> Crear Nueva Liga</button>
                 </div>
                 ${htmlLigas || '<div class="alert alert-warning text-center fw-bold">No hay ligas creadas. Comience creando una.</div>'}
             `;
         }
 
-        function indorModalNuevaLiga() {
+        // --- GESTIÓN DE LIGAS (Crear y Editar) ---
+        function indorModalLiga(id = null) {
+            let liga = id ? indorLigasGlobal.find(l => l.id === id) : null;
+            let nom = liga ? liga.nombre : '';
+            let cobra = liga ? liga.cobra_tarjetas : false;
+            let pAm = liga ? liga.precio_amarilla : 1.00;
+            let pRo = liga ? liga.precio_roja : 2.00;
+
             const cobroHtml = `
-                <div class="form-check form-switch mb-2">
-                    <input class="form-check-input" type="checkbox" id="ligaCobro" onchange="document.getElementById('cajaPrecios').classList.toggle('d-none', !this.checked)">
+                <div class="form-check form-switch mb-2 mt-2">
+                    <input class="form-check-input" type="checkbox" id="ligaCobro" onchange="document.getElementById('cajaPrecios').classList.toggle('d-none', !this.checked)" ${cobra ? 'checked' : ''}>
                     <label class="form-check-label fw-bold small text-danger" for="ligaCobro">¿Se cobran multas por tarjetas?</label>
                 </div>
-                <div id="cajaPrecios" class="row g-2 d-none">
-                    <div class="col-6"><label class="small fw-bold text-warning">Precio Amarilla ($)</label><input type="number" step="0.5" id="pAm" class="form-control form-control-sm" value="1.00"></div>
-                    <div class="col-6"><label class="small fw-bold text-danger">Precio Roja ($)</label><input type="number" step="0.5" id="pRo" class="form-control form-control-sm" value="2.00"></div>
+                <div id="cajaPrecios" class="row g-2 ${cobra ? '' : 'd-none'}">
+                    <div class="col-6"><label class="small fw-bold text-warning">Precio Amarilla ($)</label><input type="number" step="0.5" id="pAm" class="form-control form-control-sm" value="${pAm}"></div>
+                    <div class="col-6"><label class="small fw-bold text-danger">Precio Roja ($)</label><input type="number" step="0.5" id="pRo" class="form-control form-control-sm" value="${pRo}"></div>
                 </div>`;
             
             const modalBody = `
-                <div class="mb-3"><label class="fw-bold small">Nombre de la Liga (Ej: Liga Junior Masculino)</label><input type="text" id="ligaNombre" class="form-control form-control-sm" required></div>
+                <div class="mb-2"><label class="fw-bold small">Nombre de la Liga (Ej: Liga Junior Masculino)</label><input type="text" id="ligaNombre" class="form-control form-control-sm" value="${nom}" required></div>
                 ${cobroHtml}
-                <button class="btn btn-primary w-100 fw-bold mt-3" onclick="indorGuardarLiga()">Guardar Liga</button>
+                <button class="btn btn-primary w-100 fw-bold mt-4" onclick="indorGuardarLiga(${id || 'null'})">${id ? '<i class="bi bi-save me-1"></i> Actualizar Liga' : '<i class="bi bi-plus-lg me-1"></i> Crear Liga'}</button>
             `;
-            abrirModalGenerico('Crear Nueva Liga', modalBody);
+            abrirModalGenerico(id ? 'Editar Liga' : 'Crear Nueva Liga', modalBody);
         }
 
-        async function indorGuardarLiga() {
+        async function indorGuardarLiga(id) {
             const nom = document.getElementById('ligaNombre').value;
             const cobro = document.getElementById('ligaCobro').checked;
             const pAm = parseFloat(document.getElementById('pAm').value) || 0;
@@ -8823,31 +8842,64 @@ async function exportarVisorHorarioPDF() {
             if(!nom) return alert("Ingrese el nombre de la liga");
             
             try {
-                await supabaseClient.from('indor_ligas').insert([{ nombre: nom, cobra_tarjetas: cobro, precio_amarilla: pAm, precio_roja: pRo }]);
+                if (id) {
+                    await supabaseClient.from('indor_ligas').update({ nombre: nom, cobra_tarjetas: cobro, precio_amarilla: pAm, precio_roja: pRo }).eq('id', id);
+                } else {
+                    await supabaseClient.from('indor_ligas').insert([{ nombre: nom, cobra_tarjetas: cobro, precio_amarilla: pAm, precio_roja: pRo }]);
+                }
                 cerrarModalGenerico();
                 await indorCargarDatosBase();
                 indorVistaConfigLigas();
             } catch(e) { alert(e.message); }
         }
 
-        function indorModalNuevoEquipo(ligaId) {
-            const modalBody = `
-                <div class="mb-3"><label class="fw-bold small">Seleccione el Curso Integrante</label>
-                <select id="eqCurso" class="form-select form-select-sm">${todosCursos.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('')}</select></div>
-                <div class="mb-3"><label class="fw-bold small">Nombre del Equipo (Ej: Los Peluches)</label><input type="text" id="eqNombre" class="form-control form-control-sm" required></div>
-                <button class="btn btn-success w-100 fw-bold mt-3" onclick="indorGuardarEquipo(${ligaId})">Registrar Equipo</button>
-            `;
-            abrirModalGenerico('Añadir Equipo a la Liga', modalBody);
+        async function indorEliminarLiga(id) {
+            if(!confirm("¿Estás completamente seguro de ELIMINAR esta liga? Se borrarán de forma permanente TODOS sus equipos y partidos programados.")) return;
+            try {
+                await supabaseClient.from('indor_ligas').delete().eq('id', id);
+                await indorCargarDatosBase();
+                indorVistaConfigLigas();
+            } catch(e) { alert(e.message); }
         }
 
-        async function indorGuardarEquipo(ligaId) {
+        // --- GESTIÓN DE EQUIPOS (Crear y Editar) ---
+        function indorModalEquipo(ligaId, id = null) {
+            let eq = id ? indorEquiposGlobal.find(e => e.id === id) : null;
+            let cId = eq ? eq.curso_id : '';
+            let nomEq = eq ? eq.nombre_equipo : '';
+
+            const opts = todosCursos.map(c => `<option value="${c.id}" ${c.id == cId ? 'selected' : ''}>${c.nombre}</option>`).join('');
+
+            const modalBody = `
+                <div class="mb-3"><label class="fw-bold small">Seleccione el Curso Oficial</label>
+                <select id="eqCurso" class="form-select form-select-sm">${opts}</select></div>
+                <div class="mb-3"><label class="fw-bold small">Nombre del Equipo (Ej: Los Peluches)</label><input type="text" id="eqNombre" class="form-control form-control-sm" value="${nomEq}" required></div>
+                <button class="btn btn-success w-100 fw-bold mt-3" onclick="indorGuardarEquipo(${ligaId}, ${id || 'null'})">${id ? '<i class="bi bi-save me-1"></i> Actualizar Equipo' : '<i class="bi bi-plus-lg me-1"></i> Registrar Equipo'}</button>
+            `;
+            abrirModalGenerico(id ? 'Editar Equipo' : 'Añadir Equipo a la Liga', modalBody);
+        }
+
+        async function indorGuardarEquipo(ligaId, id) {
             const cursoId = document.getElementById('eqCurso').value;
             const nomEq = document.getElementById('eqNombre').value;
             if(!nomEq) return alert("Ingrese el nombre del equipo");
             
             try {
-                await supabaseClient.from('indor_equipos').insert([{ liga_id: ligaId, curso_id: cursoId, nombre_equipo: nomEq }]);
+                if (id) {
+                    await supabaseClient.from('indor_equipos').update({ curso_id: cursoId, nombre_equipo: nomEq }).eq('id', id);
+                } else {
+                    await supabaseClient.from('indor_equipos').insert([{ liga_id: ligaId, curso_id: cursoId, nombre_equipo: nomEq }]);
+                }
                 cerrarModalGenerico();
+                await indorCargarDatosBase();
+                indorVistaConfigLigas();
+            } catch(e) { alert(e.message); }
+        }
+
+        async function indorEliminarEquipo(id) {
+            if(!confirm("¿Estás seguro de eliminar este equipo? Se borrarán sus registros relacionados.")) return;
+            try {
+                await supabaseClient.from('indor_equipos').delete().eq('id', id);
                 await indorCargarDatosBase();
                 indorVistaConfigLigas();
             } catch(e) { alert(e.message); }
@@ -8857,7 +8909,7 @@ async function exportarVisorHorarioPDF() {
         // 2. CONFIGURAR PARTIDOS (ADMINS)
         // ==========================================
         function indorVistaConfigPartidos() {
-            indorMarcarMenuActivo('cardIndorPartidos'); // Llama al iluminador
+            indorMarcarMenuActivo('cardIndorPartidos');
             const area = document.getElementById('indorAreaTrabajo');
             
             let htmlPartidos = indorPartidosGlobal.map(p => `
@@ -8875,6 +8927,9 @@ async function exportarVisorHorarioPDF() {
                                 <div class="fw-bold text-truncate w-100 text-start" style="font-size:0.85rem;">${p.visitante?.nombre_equipo}</div>
                             </div>
                             <div class="small text-muted border-top pt-2 mt-2"><i class="bi bi-whistle text-danger me-1"></i> Árbitro: <b>${p.docente?.nombres || 'N/A'}</b></div>
+                        </div>
+                        <div class="card-footer bg-white border-0 text-center pb-3 pt-0">
+                            <button class="btn btn-outline-danger btn-sm" onclick="indorEliminarPartido(${p.id})" title="Eliminar Partido"><i class="bi bi-trash-fill"></i> Eliminar</button>
                         </div>
                     </div>
                 </div>
@@ -8940,11 +8995,20 @@ async function exportarVisorHorarioPDF() {
             } catch(e) { alert(e.message); }
         }
 
+        async function indorEliminarPartido(id) {
+            if(!confirm("¿Estás seguro de cancelar y eliminar este partido de la programación?")) return;
+            try {
+                await supabaseClient.from('indor_partidos').delete().eq('id', id);
+                await indorCargarDatosBase();
+                indorVistaConfigPartidos();
+            } catch(e) { alert(e.message); }
+        }
+
         // ==========================================
         // 3. ARBITRAR PARTIDOS (ÁRBITROS / ADMINS)
         // ==========================================
         function indorVistaArbitraje() {
-            indorMarcarMenuActivo('cardIndorArbitrar'); // Llama al iluminador
+            indorMarcarMenuActivo('cardIndorArbitrar');
             const area = document.getElementById('indorAreaTrabajo');
             const esAdmin = usuarioActualPerfil?.rol === 'admin';
             
@@ -9020,7 +9084,7 @@ async function exportarVisorHorarioPDF() {
         // 4. VER ESTADÍSTICAS (DOCENTES / ADMINS)
         // ==========================================
         function indorVistaEstadisticas() {
-            indorMarcarMenuActivo('cardIndorEstadisticas'); // Llama al iluminador
+            indorMarcarMenuActivo('cardIndorEstadisticas');
             const area = document.getElementById('indorAreaTrabajo');
             
             area.innerHTML = `
