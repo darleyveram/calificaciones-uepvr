@@ -8784,10 +8784,10 @@ async function exportarVisorHorarioPDF() {
                             ${indorEquiposGlobal.filter(e => e.liga_id === l.id).map(e => `
                                 <div class="btn-group shadow-sm" role="group">
                                     <button type="button" class="btn btn-dark btn-sm pe-none fw-bold">
-                                        <i class="bi bi-shield-fill me-1"></i>${e.nombre_equipo} <span class="text-warning small ms-1">(${e.cursos?.nombre})</span>
+                                        <i class="bi bi-shield-fill me-1"></i>\${e.nombre_equipo} <span class="text-warning small ms-1">(\${e.cursos?.nombre})</span>
                                     </button>
                                     <button type="button" class="btn btn-outline-dark btn-sm bg-light" onclick="indorModalEquipo(${l.id},${e.id})" title="Editar Equipo"><i class="bi bi-pencil"></i></button>
-                                    <button type="button" class="btn btn-outline-danger btn-sm bg-light" onclick="indorEliminarEquipo(${e.id})" title="Eliminar Equipo"><i class="bi bi-x-lg"></i></button>
+                                    <button type="button" class="btn btn-outline-danger btn-sm bg-light" onclick="indorEliminarEquipo(\${e.id})" title="Eliminar Equipo"><i class="bi bi-x-lg"></i></button>
                                 </div>
                             `).join('') || '<small class="text-muted fst-italic">Sin equipos registrados.</small>'}
                         </div>
@@ -8801,7 +8801,7 @@ async function exportarVisorHorarioPDF() {
             area.innerHTML = `
                 <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
                     <h5 class="fw-bold text-dark"><i class="bi bi-diagram-3-fill me-2 text-primary"></i>Configuración de Ligas</h5>
-                    <button class="btn btn-primary btn-sm fw-bold shadow-sm" onclick="indorModalLiga()"><i class="bi bi-plus-lg me-1"></i> Crear Nueva Liga</button>
+                    <button class="btn btn-primary btn-sm fw-bold shadow-sm" onclick="indorModalNuevaLiga()"><i class="bi bi-plus-lg me-1"></i> Crear Nueva Liga</button>
                 </div>
                 ${htmlLigas || '<div class="alert alert-warning text-center fw-bold">No hay ligas creadas. Comience creando una.</div>'}
             `;
@@ -8926,7 +8926,7 @@ async function exportarVisorHorarioPDF() {
                                 <div class="px-2 fw-bold text-muted">VS</div>
                                 <div class="fw-bold text-truncate w-100 text-start" style="font-size:0.85rem;">${p.visitante?.nombre_equipo}</div>
                             </div>
-                            <div class="small text-muted border-top pt-2 mt-2"><i class="bi bi-whistle text-danger me-1"></i> Árbitro: <b>${p.docente?.nombres || 'N/A'}</b></div>
+                            <div class="small text-muted border-top pt-2 mt-2"><i class="bi bi-stopwatch-fill text-danger me-1"></i> Árbitro: <b>${p.docente?.nombres || 'N/A'}</b></div>
                         </div>
                         <div class="card-footer bg-white border-0 text-center pb-3 pt-0">
                             <button class="btn btn-outline-danger btn-sm" onclick="indorEliminarPartido(${p.id})" title="Eliminar Partido"><i class="bi bi-trash-fill"></i> Eliminar</button>
@@ -9024,7 +9024,7 @@ async function exportarVisorHorarioPDF() {
                         <div class="card-body text-center p-3">
                             <h4 class="fw-bold mb-2">${p.local?.nombre_equipo} <span class="text-danger">vs</span> ${p.visitante?.nombre_equipo}</h4>
                             <h3 class="bg-dark text-white rounded d-inline-block px-3 py-1 mb-3">${p.goles_local} - ${p.goles_visitante}</h3>
-                            <button class="btn btn-danger w-100 fw-bold shadow-sm" onclick="indorVerificarYAbrirPanelPartido(${p.id})"><i class="bi bi-whistle me-1"></i> Abrir Panel de Arbitraje</button>
+                            <button class="btn btn-danger w-100 fw-bold shadow-sm" onclick="indorVerificarYAbrirPanelPartido(${p.id})"><i class="bi bi-stopwatch-fill me-1"></i> Abrir Panel de Arbitraje</button>
                         </div>
                     </div>
                 </div>
@@ -9032,7 +9032,7 @@ async function exportarVisorHorarioPDF() {
 
             area.innerHTML = `
                 <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
-                    <h5 class="fw-bold text-dark"><i class="bi bi-whistle me-2 text-danger"></i>Mis Partidos Asignados</h5>
+                    <h5 class="fw-bold text-dark"><i class="bi bi-stopwatch-fill me-2 text-danger"></i>Mis Partidos Asignados</h5>
                 </div>
                 <div class="row">${htmlPartidos || '<div class="alert alert-info text-center w-100">No tienes partidos asignados para arbitrar.</div>'}</div>
             `;
@@ -9073,7 +9073,7 @@ async function exportarVisorHorarioPDF() {
                     return; 
                 }
 
-                // SI NO HAY MULTAS PENDIENTES, ABRIMOS EL PANEL
+                // SI NO HAY MULTAS PENDIENTES, ABRIMOS EL PANEL DE GESTIÓN DIRECTAMENTE
                 abrirGestionPartido(partidoId);
                 
             } catch (err) {
@@ -9082,8 +9082,8 @@ async function exportarVisorHorarioPDF() {
             }
         }
 
-    // ==========================================
-        // LÓGICA DEL PANEL DE ARBITRAJE
+        // ==========================================
+        // LÓGICA DEL PANEL DE ARBITRAJE Y ENCUENTRO
         // ==========================================
         async function abrirGestionPartido(id) {
             if (!modalGestionarPartidoInst) modalGestionarPartidoInst = new bootstrap.Modal(document.getElementById('modalGestionarPartido'));
@@ -9139,9 +9139,8 @@ async function exportarVisorHorarioPDF() {
                     historialTarjetasHtml += '</ul>';
                 }
 
-
                 document.getElementById('bodyGestionPartido').innerHTML = `
-            <div class="row text-center mb-3">
+            <div class="row text-center mb-3 align-items-center">
                 <div class="col-4"><h6 class="fw-bold text-primary mb-0">${eqLocal.nombre_equipo}</h6></div>
                 <div class="col-4">
                     <h3 class="fw-bold bg-dark text-white rounded py-2 shadow-sm d-inline-block px-4 mb-0">${p.goles_local} - ${p.goles_visitante}</h3>
